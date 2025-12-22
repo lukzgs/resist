@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Player, Role } from '../types';
 import { AVATAR_URL } from '../constants';
@@ -32,7 +33,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     shadowClass = "shadow-[0_0_20px_-5px_rgba(234,179,8,0.3)]";
   }
 
-  const roleColor = player.role === Role.SPY ? 'text-spy' : 'text-resistance';
+  const roleColor = player.role === Role.TERMINATOR ? 'text-spy' : 'text-resistance';
   
   return (
     <div className={`${baseClasses} ${borderClass} ${shadowClass} group`}>
@@ -73,7 +74,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className={`h-4 flex items-center justify-center mt-1`}>
             {showIdentity ? (
                 <div className={`text-[10px] uppercase font-bold tracking-widest px-2 rounded-sm bg-black/40 ${roleColor}`}>
-                    {player.role === Role.SPY ? 'SPY' : 'RESIST'}
+                    {player.role === Role.TERMINATOR ? 'TERM' : 'HUMAN'}
                 </div>
             ) : (
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />

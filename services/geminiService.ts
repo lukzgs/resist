@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { GameState, Player, Role, Phase } from "../types";
 
@@ -12,18 +13,18 @@ const getClient = () => {
 // Helper to construct context for the AI
 const buildGameContext = (gameState: GameState, aiPlayer: Player) => {
   const visibleMissions = gameState.missions.slice(0, gameState.currentMissionIndex + 1);
-  const isSpy = aiPlayer.role === Role.SPY;
+  const isSpy = aiPlayer.role === Role.TERMINATOR;
   
   // Spies know other spies
   const knownSpies = isSpy 
-    ? gameState.players.filter(p => p.role === Role.SPY).map(p => p.name).join(", ")
+    ? gameState.players.filter(p => p.role === Role.TERMINATOR).map(p => p.name).join(", ")
     : "None (You are Resistance)";
 
   return `
     You are playing "The Resistance". 
     Your Name: ${aiPlayer.name}
     Your Role: ${aiPlayer.role}
-    ${isSpy ? `Your fellow Spies are: ${knownSpies}` : "You do not know who the spies are."}
+    ${isSpy ? `Your fellow Spies (Terminators) are: ${knownSpies}` : "You do not know who the spies are."}
     
     Current Phase: ${gameState.phase}
     Failed Votes Track: ${gameState.failedVoteCount}/5 (If 5, Spies win).
@@ -44,7 +45,7 @@ export const getAiTeamSelection = async (gameState: GameState, aiPlayer: Player,
   const prompt = `
     ${context}
     You are the Leader. You must select exactly ${teamSize} players for this mission.
-    ${aiPlayer.role === Role.RESISTANCE ? "Choose players you trust." : "Choose a mix of spies and resistance to stay hidden, or just spies if you want to fail it."}
+    ${aiPlayer.role === Role.HUMAN ? "Choose players you trust." : "Choose a mix of spies and resistance to stay hidden, or just spies if you want to fail it."}
     
     Available Players:
     ${gameState.players.map(p => `- ${p.name} (ID: ${p.id})`).join("\n")}
@@ -102,8 +103,8 @@ export const getAiTeamVote = async (gameState: GameState, aiPlayer: Player): Pro
     Leader is: ${gameState.players[gameState.leaderIndex].name}.
     
     Do you Vote YES (Approve team) or NO (Reject team)?
-    If you are Resistance, vote NO if you suspect a spy is on the team.
-    If you are Spy, vote YES if a spy is on the team, or NO to confuse the resistance.
+    If you are Resistance (Human), vote NO if you suspect a spy is on the team.
+    If you are Spy (Terminator), vote YES if a spy is on the team, or NO to confuse the resistance.
     Also provide a short 1-sentence reason for the public chat.
   `;
 
@@ -135,14 +136,14 @@ export const getAiTeamVote = async (gameState: GameState, aiPlayer: Player): Pro
  */
 export const getAiMissionAction = async (gameState: GameState, aiPlayer: Player): Promise<boolean> => {
   // Resistance MUST vote Success.
-  if (aiPlayer.role === Role.RESISTANCE) return true;
+  if (aiPlayer.role === Role.HUMAN) return true;
 
   const ai = getClient();
   const context = buildGameContext(gameState, aiPlayer);
 
   const prompt = `
     ${context}
-    You are on the mission. You are a SPY.
+    You are on the mission. You are a SPY (Terminator).
     Do you want the mission to SUCCEED (stay hidden) or FAIL (gain a point for Spies)?
     
     Note: If you fail, people might suspect you. If you succeed, you gain trust but lose a scoring opportunity.

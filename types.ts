@@ -1,10 +1,10 @@
+
 export enum Role {
-  RESISTANCE = 'RESISTANCE',
-  SPY = 'SPY',
+  HUMAN = 'HUMAN',
+  TERMINATOR = 'TERMINATOR',
 }
 
 export enum Phase {
-  HOME = 'HOME',
   LOBBY = 'LOBBY',
   TEAM_SELECTION = 'TEAM_SELECTION',
   TEAM_VOTE = 'TEAM_VOTE',
@@ -14,7 +14,6 @@ export enum Phase {
 
 export interface Player {
   id: string;
-  peerId?: string; // Para conexões P2P
   name: string;
   role: Role;
   isAi: boolean;
@@ -32,6 +31,13 @@ export interface Mission {
   missionOutcomes: boolean[]; 
 }
 
+export interface GameConfig {
+  playerCount: number;
+  spyCount: number;
+  missionSizes: number[];
+  twoFailsRequiredRound4?: boolean;
+}
+
 export interface GameState {
   phase: Phase;
   players: Player[];
@@ -44,11 +50,4 @@ export interface GameState {
   logs: string[];
   winner: Role | null;
   isProcessingAi: boolean;
-}
-
-export interface GameConfig {
-  playerCount: number;
-  spyCount: number;
-  missionSizes: number[];
-  twoFailsRequiredRound4?: boolean;
 }
