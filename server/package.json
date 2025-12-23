@@ -1,0 +1,17 @@
+{
+    "name": "resist-server",
+    "version": "1.0.0",
+    "description": "Servidor WebSocket para o jogo Resist (The Resistance)",
+    "main": "src/server.ts",
+    "scripts": {
+        "dev": "partykit dev",
+        "deploy": "partykit deploy",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "partykit": "^0.0.108"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    }
+}
