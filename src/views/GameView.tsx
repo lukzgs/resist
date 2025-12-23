@@ -30,21 +30,21 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           <div>
             <h1 className="font-display font-black text-2xl text-white leading-none tracking-tighter">SKYNET_INFILTRATION</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[8px] font-mono text-spy uppercase tracking-[0.3em] font-black">Active_Threat_Detected</span>
+              <span className="text-xs font-mono text-spy uppercase tracking-[0.3em] font-black">Active_Threat_Detected</span>
               <span className="w-8 h-[1px] bg-spy/40"></span>
-              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
+              <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end font-mono text-[8px] text-slate-600 uppercase tracking-widest mr-4">
+          <div className="hidden md:flex flex-col items-end font-mono text-xs text-slate-600 uppercase tracking-widest mr-4">
             <span>Signal_Strength: 98%</span>
             <span>Lat: 34.0522° N | Long: 118.2437° W</span>
           </div>
           <button
             onClick={function () { setShowId(!showId); }}
-            className="group relative bg-white/5 px-6 py-2 rounded border border-white/10 text-[9px] font-mono font-black uppercase tracking-[0.3em] hover:bg-resistance/20 hover:text-resistance hover:border-resistance/40 transition-all overflow-hidden"
+            className="group relative bg-white/5 px-6 py-2 rounded border border-white/10 text-sm font-mono font-black uppercase tracking-[0.3em] hover:bg-resistance/20 hover:text-resistance hover:border-resistance/40 transition-all overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-1 h-full bg-resistance opacity-0 group-hover:opacity-100 transition-opacity"></div>
             {showId ? '[ Hide_Intel ]' : '[ View_Identity ]'}
@@ -54,7 +54,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
         <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
-          <div className="absolute top-2 left-4 text-[7px] font-mono text-slate-600 uppercase">Operational_Objectives</div>
+          <div className="absolute top-2 left-4 text-xs font-mono text-slate-600 uppercase">Operational_Objectives</div>
           <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
         </div>
 
@@ -86,7 +86,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
 
           <div className="mb-8">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
+            <span className="text-sm font-mono text-slate-500 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
             <h3 className="text-3xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-glow-blue">
               {state.phase.replace(/_/g, ' ')}
             </h3>
@@ -104,13 +104,13 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
 
       <div className="fixed bottom-6 left-6 w-72 bg-black/60 p-4 rounded-xl border border-white/5 backdrop-blur-md opacity-40 hover:opacity-100 transition-opacity pointer-events-none md:pointer-events-auto">
         <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-1">
-          <span className="text-[8px] font-mono text-resistance font-bold">SYSTEM_LOG_v3.1</span>
+          <span className="text-xs font-mono text-resistance font-bold">SYSTEM_LOG_v3.1</span>
           <div className="w-1.5 h-1.5 bg-resistance rounded-full animate-pulse"></div>
         </div>
         <div className="space-y-1.5 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
           {state.logs.slice(-6).map(function (log, i) {
             return (
-              <div key={i} className="text-[9px] font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
+              <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
                 <span className="text-slate-600 mr-2">[{1024 + i}]</span>
                 {log}
               </div>
@@ -131,7 +131,7 @@ function PhaseControls({ state, me, sendAction }: any) {
       <div className="space-y-6 animate-in fade-in zoom-in duration-500">
         <div className="flex items-center gap-3 justify-center mb-2">
           <span className="w-2 h-2 bg-resistance animate-ping rounded-full"></span>
-          <p className="text-[11px] font-mono text-resistance uppercase tracking-widest font-bold">Aguardando Seleção de Alvos: {state.proposedTeam.length}/{currentMission.requiredPlayers}</p>
+          <p className="text-sm font-mono text-resistance uppercase tracking-widest font-bold">Aguardando Seleção de Alvos: {state.proposedTeam.length}/{currentMission.requiredPlayers}</p>
         </div>
         <button
           onClick={function () { sendAction('SUBMIT_TEAM', {}); }}
@@ -150,7 +150,7 @@ function PhaseControls({ state, me, sendAction }: any) {
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
         </div>
-        <p className="text-slate-500 font-mono text-xs uppercase tracking-widest italic">Comandante {state.players[state.leaderIndex].name} selecionando unidades...</p>
+        <p className="text-slate-500 font-mono text-sm uppercase tracking-widest italic">Comandante {state.players[state.leaderIndex].name} selecionando unidades...</p>
       </div>
     );
   }
@@ -212,7 +212,7 @@ function PhaseControls({ state, me, sendAction }: any) {
           {humanWins ? 'Resistance_Won' : 'Skynet_Prevails'}
         </div>
         <div className="bg-white/5 p-4 rounded-xl border border-white/10 max-w-sm mx-auto">
-          <p className="text-[11px] font-mono text-slate-400 uppercase leading-relaxed tracking-widest">
+          <p className="text-sm font-mono text-slate-400 uppercase leading-relaxed tracking-widest">
             {humanWins
               ? 'O Dia do Julgamento foi evitado. A linha temporal foi preservada por agora.'
               : 'A Resistência foi obliterada. As máquinas agora controlam o futuro.'}
@@ -220,7 +220,7 @@ function PhaseControls({ state, me, sendAction }: any) {
         </div>
         <button
           onClick={function () { window.location.reload(); }}
-          className="bg-white/5 text-slate-400 px-8 py-2 rounded-full font-mono text-[9px] uppercase font-black tracking-[0.4em] hover:bg-white/10 hover:text-white transition-all border border-white/10 mt-4"
+          className="bg-white/5 text-slate-400 px-8 py-2 rounded-full font-mono text-sm uppercase font-black tracking-[0.4em] hover:bg-white/10 hover:text-white transition-all border border-white/10 mt-4"
         >
           {'>> New_Timeline_Sync <<'}
         </button>
@@ -233,7 +233,7 @@ function PhaseControls({ state, me, sendAction }: any) {
       <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
       </div>
-      <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+      <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
     </div>
   );
 }
