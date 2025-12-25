@@ -19,6 +19,8 @@ export interface Player {
   isAi: boolean;
   isHost: boolean;
   avatarSeed: number;
+  sessionId?: string;      // ID persistente para reconexão
+  disconnected?: boolean;  // true se jogador está offline
 }
 
 export interface Mission {
@@ -26,9 +28,9 @@ export interface Mission {
   requiredPlayers: number;
   requiresTwoFails: boolean;
   status: 'PENDING' | 'SUCCESS' | 'FAIL';
-  team: string[]; 
-  votes: Record<string, boolean>; 
-  missionOutcomes: boolean[]; 
+  team: string[];
+  votes: Record<string, boolean>;
+  missionOutcomes: boolean[];
 }
 
 export interface GameConfig {
@@ -50,4 +52,5 @@ export interface GameState {
   logs: string[];
   winner: Role | null;
   isProcessingAi: boolean;
+  anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
 }
