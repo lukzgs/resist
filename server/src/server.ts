@@ -510,8 +510,6 @@ export default class ResistServer implements Party.Server {
 
                     this.disconnectedPlayers.set(playerId, timeout);
                 }
-
-                this.room.broadcast(JSON.stringify({ type: 'PLAYER_LEFT', name: player.name } as ServerMessage));
             }
         }
         this.connections.delete(conn.id);
