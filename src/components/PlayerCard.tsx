@@ -67,7 +67,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
       {/* Leader Badge */}
       {isLeader && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 text-black text-xs font-display font-bold px-4 py-1 rounded-full z-20 shadow-lg tracking-wider animate-pulse border border-yellow-300/50">
-          ⚔️ LEADER
+          LEADER
         </div>
       )}
 
