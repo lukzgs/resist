@@ -11,6 +11,58 @@ const RECONNECT_DELAY_MS = 1000; // Delay inicial entre tentativas
 const MAX_RECONNECT_DELAY_MS = 30000; // Delay máximo (30s)
 const MAX_RECONNECT_ATTEMPTS = 10; // Tentativas máximas antes de desistir
 
+// Chave do localStorage para sessão
+const SESSION_STORAGE_KEY = 'resist_session';
+
+interface StoredSession {
+    sessionId: string;
+    roomCode: string;
+    playerName: string;
+}
+
+// Gera um ID de sessão único
+function generateSessionId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Recupera ou cria sessão do localStorage
+function getOrCreateSession(roomCode: string, playerName: string): string {
+    try {
+        const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (stored) {
+            const session: StoredSession = JSON.parse(stored);
+            // Se é a mesma sala e jogador, retorna sessionId existente
+            if (session.roomCode === roomCode && session.playerName === playerName) {
+                console.log('[Session] Sessão recuperada:', session.sessionId);
+                return session.sessionId;
+            }
+        }
+    } catch (e) {
+        console.warn('[Session] Erro ao ler sessão:', e);
+    }
+
+    // Cria nova sessão
+    const newSessionId = generateSessionId();
+    const newSession: StoredSession = { sessionId: newSessionId, roomCode, playerName };
+    try {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+        console.log('[Session] Nova sessão criada:', newSessionId);
+    } catch (e) {
+        console.warn('[Session] Erro ao salvar sessão:', e);
+    }
+    return newSessionId;
+}
+
+// Limpa sessão do localStorage
+function clearSession() {
+    try {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        console.log('[Session] Sessão limpa');
+    } catch (e) {
+        console.warn('[Session] Erro ao limpar sessão:', e);
+    }
+}
+
 interface UsePartySocketOptions {
     roomCode: string;
     playerName: string;
@@ -38,6 +90,7 @@ interface UsePartySocketReturn {
     submitTeam: () => void;
     vote: (approve: boolean) => void;
     missionAction: (success: boolean) => void;
+    setAnonymousVotes: (enabled: boolean) => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {
@@ -121,11 +174,15 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 setReconnectAttempt(0);
                 onConnectionChange?.('connected');
 
-                // Envia JOIN ao conectar
+                // Gera ou recupera sessionId do localStorage
+                const sessionId = getOrCreateSession(currentRoomCode, currentPlayerName);
+
+                // Envia JOIN ao conectar com sessionId
                 socket.send(JSON.stringify({
                     type: 'JOIN',
                     name: currentPlayerName,
                     avatarSeed: currentAvatarSeed,
+                    sessionId,
                 }));
             });
 
@@ -251,6 +308,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'MISSION_ACTION', success });
     }, [send]);
 
+    const setAnonymousVotes = useCallback((enabled: boolean) => {
+        send({ type: 'SET_ANONYMOUS_VOTES', enabled });
+    }, [send]);
+
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
@@ -277,5 +338,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         submitTeam,
         vote,
         missionAction,
+        setAnonymousVotes,
     };
 }

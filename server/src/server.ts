@@ -53,6 +53,7 @@ export default class ResistServer implements Party.Server {
             proposedTeam: [],
             logs: [`> PROTOCOLO: ${roomCode}`],
             winner: null,
+            anonymousVotes: false,  // Default: votos públicos
         };
     }
 
@@ -83,7 +84,7 @@ export default class ResistServer implements Party.Server {
     }
 
     // Processa JOIN
-    private handleJoin(conn: Party.Connection, name: string, avatarSeed: number) {
+    private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string) {
         // Inicializa estado se necessário
         if (!this.gameState) {
             this.gameState = this.createInitialState(this.room.id);
@@ -97,8 +98,16 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Verifica se é reconexão de jogador existente (mesmo nome)
-        const existingPlayer = this.gameState.players.find(p => p.name === name && !p.isAi);
+        // Tenta reconexão por sessionId primeiro (mais seguro)
+        let existingPlayer = sessionId
+            ? this.gameState.players.find(p => p.sessionId === sessionId && !p.isAi)
+            : null;
+
+        // Se não encontrou por sessionId, tenta por nome (fallback)
+        if (!existingPlayer) {
+            existingPlayer = this.gameState.players.find(p => p.name === name && !p.isAi);
+        }
+
         if (existingPlayer) {
             // Cancela timeout de remoção se existir
             const timeout = this.disconnectedPlayers.get(existingPlayer.id);
@@ -109,14 +118,23 @@ export default class ResistServer implements Party.Server {
 
             // Registra nova conexão para o jogador existente
             this.connections.set(conn.id, existingPlayer.id);
-            this.addLog(`> ${name} reconectou`);
+
+            // Atualiza sessionId se fornecido (upgrade de sessão)
+            if (sessionId && !existingPlayer.sessionId) {
+                existingPlayer.sessionId = sessionId;
+            }
+
+            // Marca como conectado
+            existingPlayer.disconnected = false;
+
+            this.addLog(`> ${existingPlayer.name} reconectou`);
 
             // Envia estado atual
             const message: ServerMessage = { type: 'STATE', state: this.gameState };
             conn.send(JSON.stringify(message));
             this.broadcastState();
 
-            console.log(`[${this.room.id}] Jogador reconectou: ${name}`);
+            console.log(`[${this.room.id}] Jogador reconectou: ${existingPlayer.name} (sessionId: ${sessionId || 'none'})`);
             return;
         }
 
@@ -141,6 +159,8 @@ export default class ResistServer implements Party.Server {
             isAi: false,
             isHost: isFirstPlayer,
             avatarSeed,
+            sessionId,          // Armazena sessionId para reconexão futura
+            disconnected: false,
         };
 
         // Registra conexão e adiciona jogador
@@ -460,6 +480,9 @@ export default class ResistServer implements Party.Server {
                 console.log(`[${this.room.id}] Desconectou: ${player.name}`);
                 this.addLog(`> ${player.name} desconectou`);
 
+                // Marca como desconectado
+                player.disconnected = true;
+
                 // No lobby, remove imediatamente
                 if (this.gameState.phase === Phase.LOBBY) {
                     this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
@@ -502,7 +525,7 @@ export default class ResistServer implements Party.Server {
 
             switch (data.type) {
                 case 'JOIN':
-                    this.handleJoin(sender, data.name, data.avatarSeed);
+                    this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId);
                     break;
                 case 'ADD_AI':
                     this.handleAddAi(sender, data.name, data.avatarSeed);
@@ -524,6 +547,17 @@ export default class ResistServer implements Party.Server {
                     break;
                 case 'MISSION_ACTION':
                     this.handleMissionAction(sender, data.success);
+                    break;
+                case 'SET_ANONYMOUS_VOTES':
+                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
+                        const playerId = this.connections.get(sender.id);
+                        const player = this.gameState.players.find(p => p.id === playerId);
+                        if (player?.isHost) {
+                            this.gameState.anonymousVotes = data.enabled;
+                            this.addLog(`> Votos ${data.enabled ? 'anônimos' : 'públicos'}`);
+                            this.broadcastState();
+                        }
+                    }
                     break;
             }
         } catch (err) {

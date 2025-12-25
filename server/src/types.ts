@@ -20,6 +20,8 @@ export interface Player {
     isAi: boolean;
     isHost: boolean;
     avatarSeed: number;
+    sessionId?: string;      // ID persistente para reconexão
+    disconnected?: boolean;  // true se jogador está offline
 }
 
 export interface Mission {
@@ -43,18 +45,20 @@ export interface GameState {
     proposedTeam: string[];
     logs: string[];
     winner: Role | null;
+    anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
 }
 
 // Mensagens do cliente para o servidor
 export type ClientMessage =
-    | { type: 'JOIN'; name: string; avatarSeed: number }
+    | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string }
     | { type: 'ADD_AI'; name: string; avatarSeed: number }
     | { type: 'REMOVE_PLAYER' }
     | { type: 'START_GAME' }
     | { type: 'SELECT_PLAYER'; playerId: string }
     | { type: 'SUBMIT_TEAM' }
     | { type: 'VOTE'; approve: boolean }
-    | { type: 'MISSION_ACTION'; success: boolean };
+    | { type: 'MISSION_ACTION'; success: boolean }
+    | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean };
 
 // Mensagens do servidor para o cliente
 export type ServerMessage =

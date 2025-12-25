@@ -8,9 +8,10 @@ interface Props {
     onAddAi: () => void;
     onRemove: () => void;
     onStart: () => void;
+    onToggleAnonymousVotes: (enabled: boolean) => void;
 }
 
-export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart }: Props) {
+export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart, onToggleAnonymousVotes }: Props) {
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
 
@@ -48,23 +49,18 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart }:
 
                     {isHost && (
                         <div className="bg-black/40 p-6 rounded-3xl border border-white/10 backdrop-blur-md">
-                            <h3 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Gerenciamento</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    onClick={onAddAi}
-                                    disabled={pCount >= 10}
-                                    className="bg-white/5 border border-white/10 p-3 rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-resistance/20 hover:text-resistance transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            <h3 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Configurações</h3>
+
+                            {/* Toggle de votos anônimos */}
+                            <label className="flex items-center justify-between cursor-pointer group">
+                                <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">Votos Anônimos</span>
+                                <div
+                                    onClick={() => onToggleAnonymousVotes(!state.anonymousVotes)}
+                                    className={`relative w-12 h-6 rounded-full transition-colors ${state.anonymousVotes ? 'bg-resistance' : 'bg-slate-700'}`}
                                 >
-                                    + IA
-                                </button>
-                                <button
-                                    onClick={onRemove}
-                                    disabled={pCount <= 1}
-                                    className="bg-white/5 border border-white/10 p-3 rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-spy/20 hover:text-spy transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    Remover
-                                </button>
-                            </div>
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${state.anonymousVotes ? 'left-7' : 'left-1'}`}></div>
+                                </div>
+                            </label>
                         </div>
                     )}
                 </div>
@@ -78,10 +74,10 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart }:
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {state.players.map((p) => (
-                                <div key={p.id} className="group h-20 rounded-2xl border border-white/5 bg-black/40 flex items-center px-4 transition-all hover:border-resistance/40 hover:translate-x-1">
+                                <div key={p.id} className={`group h-20 rounded-2xl border ${p.disconnected ? 'border-red-500/30 bg-red-900/10 opacity-50' : 'border-white/5 bg-black/40'} flex items-center px-4 transition-all hover:border-resistance/40 hover:translate-x-1`}>
                                     <div className="relative shrink-0">
-                                        <img src={`https://picsum.photos/seed/${p.avatarSeed}/80`} className="w-10 h-10 rounded-lg border border-slate-800 grayscale group-hover:grayscale-0 transition-all" alt={p.name} />
-                                        <div className="absolute -top-1 -left-1 w-2 h-2 bg-resistance rounded-full border border-dark"></div>
+                                        <img src={`https://picsum.photos/seed/${p.avatarSeed}/80`} className={`w-10 h-10 rounded-lg border border-slate-800 ${p.disconnected ? 'grayscale' : 'grayscale group-hover:grayscale-0'} transition-all`} alt={p.name} />
+                                        <div className={`absolute -top-1 -left-1 w-2 h-2 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-resistance'} rounded-full border border-dark`}></div>
                                         {p.isHost && (
                                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full border-2 border-dark flex items-center justify-center text-[8px]">👑</div>
                                         )}
@@ -89,8 +85,8 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart }:
                                     <div className="ml-4 overflow-hidden">
                                         <div className="text-sm font-bold text-white uppercase tracking-wider truncate">{p.name}</div>
                                         <div className="text-xs font-mono text-slate-500 flex items-center gap-2">
-                                            <span className="w-1 h-1 bg-green-500 rounded-full"></span>
-                                            {p.isAi ? 'SINTÉTICO' : 'VITAL_OK'}
+                                            <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
+                                            {p.disconnected ? 'OFFLINE' : p.isAi ? 'SINTÉTICO' : 'VITAL_OK'}
                                         </div>
                                     </div>
                                 </div>
@@ -103,8 +99,8 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart }:
                             onClick={onStart}
                             disabled={!canStart}
                             className={`w-full py-6 rounded-2xl font-display font-black text-3xl uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${canStart
-                                    ? 'bg-spy text-white shadow-glow-red hover:scale-[1.01]'
-                                    : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
+                                ? 'bg-spy text-white shadow-glow-red hover:scale-[1.01]'
+                                : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
                                 }`}
                         >
                             {canStart ? 'Iniciar Incursão' : `Aguardando Unidades (${pCount}/5)`}
