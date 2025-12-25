@@ -13,20 +13,20 @@ function Toast({ message, type, onClose }: { message: string; type: 'error' | 'i
     return function () { clearTimeout(timer); };
   }, [onClose]);
 
-  const bgColor = type === 'error' ? 'bg-spy/90' : type === 'success' ? 'bg-green-500/90' : 'bg-resistance/90';
+  const borderColor = type === 'error' ? 'border-spy/50' : type === 'success' ? 'border-resistance/50' : 'border-white/20';
+  const iconColor = type === 'error' ? 'text-spy' : type === 'success' ? 'text-resistance' : 'text-slate-400';
+  const glowColor = type === 'error' ? 'shadow-glow-red' : type === 'success' ? 'shadow-glow-blue' : '';
 
   return (
-    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl border border-white/20 backdrop-blur-md animate-in slide-in-from-top duration-300 max-w-md`}>
-      <div className="flex items-center gap-4">
-        <div className="shrink-0">
-          {type === 'error' && <span className="text-2xl">⚠️</span>}
-          {type === 'success' && <span className="text-2xl">✅</span>}
-          {type === 'info' && <span className="text-2xl">ℹ️</span>}
+    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-black/90 text-white px-5 py-3 rounded-xl border ${borderColor} backdrop-blur-xl animate-in slide-in-from-top duration-300 max-w-md ${glowColor}`}>
+      <div className="flex items-center gap-3">
+        <div className={`shrink-0 ${iconColor}`}>
+          {type === 'error' && <span className="text-lg">⚠</span>}
+          {type === 'success' && <span className="text-lg">✓</span>}
+          {type === 'info' && <span className="text-lg">›</span>}
         </div>
-        <div className="flex-1">
-          <p className="font-mono text-sm uppercase tracking-wide font-bold">{message}</p>
-        </div>
-        <button onClick={onClose} className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors text-lg">
+        <p className="flex-1 font-mono text-xs uppercase tracking-widest font-bold text-slate-200">{message}</p>
+        <button onClick={onClose} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-xs text-slate-400 hover:text-white">
           ×
         </button>
       </div>
@@ -61,6 +61,7 @@ export default function App() {
     submitTeam,
     vote,
     missionAction,
+    setAnonymousVotes,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -232,6 +233,7 @@ export default function App() {
           onAddAi={handleAddAi}
           onRemove={removePlayer}
           onStart={handleStart}
+          onToggleAnonymousVotes={setAnonymousVotes}
         />
       )}
 
