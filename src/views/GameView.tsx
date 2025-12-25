@@ -18,85 +18,109 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const isLeader = state.players[state.leaderIndex].name === playerName;
 
   // Estado para posição e tamanho do log arrastável
-  const [logPosition, setLogPosition] = useState({ x: 24, y: window.innerHeight - 224 });
-  const [logDimensions, setLogDimensions] = useState({ width: 288, height: 180 }); // w-72 = 288px
-  const [logSize, setLogSize] = useState<'minimized' | 'normal' | 'expanded'>('normal');
+  const [logPosition, setLogPosition] = useState({ x: 16, y: 100 });
+  const [logDimensions, setLogDimensions] = useState({ width: 280, height: 160 });
+  const [logSize, setLogSize] = useState<'minimized' | 'normal' | 'expanded'>('minimized'); // Start minimized on mobile
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const logRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Helper to get clientX/Y from mouse or touch event
+  const getEventPosition = (e: MouseEvent | TouchEvent) => {
+    if ('touches' in e) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  };
+
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     const rect = logRef.current?.getBoundingClientRect();
     if (rect) {
+      const pos = 'touches' in e
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        : { x: e.clientX, y: e.clientY };
       dragOffset.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: pos.x - rect.left,
+        y: pos.y - rect.top
       };
       setIsDragging(true);
     }
   }, []);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const pos = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
     resizeStart.current = {
-      x: e.clientX,
-      y: e.clientY,
+      x: pos.x,
+      y: pos.y,
       width: logDimensions.width,
       height: logDimensions.height
     };
     setIsResizing(true);
   }, [logDimensions]);
 
-  // Drag effect
+  // Drag effect - supports both mouse and touch
   React.useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const newX = Math.max(0, Math.min(e.clientX - dragOffset.current.x, window.innerWidth - 300));
-      const newY = Math.max(0, Math.min(e.clientY - dragOffset.current.y, window.innerHeight - 200));
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const pos = getEventPosition(e);
+      const newX = Math.max(0, Math.min(pos.x - dragOffset.current.x, window.innerWidth - 150));
+      const newY = Math.max(0, Math.min(pos.y - dragOffset.current.y, window.innerHeight - 100));
       setLogPosition({ x: newX, y: newY });
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       setIsDragging(false);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
     };
   }, [isDragging]);
 
-  // Resize effect
+  // Resize effect - supports both mouse and touch
   React.useEffect(() => {
     if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - resizeStart.current.x;
-      const deltaY = e.clientY - resizeStart.current.y;
-      const newWidth = Math.max(180, Math.min(resizeStart.current.width + deltaX, 600));
-      const newHeight = Math.max(100, Math.min(resizeStart.current.height + deltaY, 400));
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const pos = getEventPosition(e);
+      const deltaX = pos.x - resizeStart.current.x;
+      const deltaY = pos.y - resizeStart.current.y;
+      const newWidth = Math.max(150, Math.min(resizeStart.current.width + deltaX, 500));
+      const newHeight = Math.max(80, Math.min(resizeStart.current.height + deltaY, 350));
       setLogDimensions({ width: newWidth, height: newHeight });
-      setLogSize('normal'); // Sair de minimized/expanded ao redimensionar manualmente
+      setLogSize('normal');
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       setIsResizing(false);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
     };
   }, [isResizing]);
 
@@ -193,8 +217,9 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
         }}
       >
         <div
-          className="flex justify-between items-center mb-3 border-b border-white/10 pb-1 cursor-grab"
-          onMouseDown={handleMouseDown}
+          className="flex justify-between items-center mb-3 border-b border-white/10 pb-1 cursor-grab active:cursor-grabbing"
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
         >
           <span className="text-xs font-mono text-resistance font-bold truncate">
             {logSize === 'minimized' ? 'LOG' : 'SYSTEM_LOG_v3.1'}
@@ -232,10 +257,11 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
         {/* Resize Handle */}
         {logSize !== 'minimized' && (
           <div
-            className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors"
+            className="absolute bottom-1 right-1 w-6 h-6 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors touch-none"
             onMouseDown={handleResizeStart}
+            onTouchStart={handleResizeStart}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+            <svg width="12" height="12" viewBox="0 0 10 10" fill="currentColor">
               <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
             </svg>
           </div>
