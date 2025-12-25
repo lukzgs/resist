@@ -18,7 +18,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'error' | 'i
   const glowColor = type === 'error' ? 'shadow-glow-red' : type === 'success' ? 'shadow-glow-blue' : '';
 
   return (
-    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-black/90 text-white px-5 py-3 rounded-xl border ${borderColor} backdrop-blur-xl animate-in slide-in-from-top duration-300 max-w-md ${glowColor}`}>
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-black/90 text-white px-5 py-3 rounded-xl border ${borderColor} backdrop-blur-xl animate-in slide-in-from-bottom duration-300 max-w-md ${glowColor}`}>
       <div className="flex items-center gap-3">
         <div className={`shrink-0 ${iconColor}`}>
           {type === 'error' && <span className="text-lg">⚠</span>}
@@ -34,11 +34,55 @@ function Toast({ message, type, onClose }: { message: string; type: 'error' | 'i
   );
 }
 
+// Chave do localStorage para sessão do App
+const APP_SESSION_KEY = 'resist_app_session';
+
+interface AppSession {
+  roomCode: string;
+  playerName: string;
+  avatarSeed: number;
+}
+
+// Recupera sessão do sessionStorage (por aba)
+function getStoredSession(): AppSession | null {
+  try {
+    const stored = sessionStorage.getItem(APP_SESSION_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('[App] Erro ao ler sessão:', e);
+  }
+  return null;
+}
+
+// Salva sessão no sessionStorage (por aba)
+function saveSession(session: AppSession) {
+  try {
+    sessionStorage.setItem(APP_SESSION_KEY, JSON.stringify(session));
+  } catch (e) {
+    console.warn('[App] Erro ao salvar sessão:', e);
+  }
+}
+
+// Limpa sessão do sessionStorage
+function clearAppSession() {
+  try {
+    sessionStorage.removeItem(APP_SESSION_KEY);
+  } catch (e) {
+    console.warn('[App] Erro ao limpar sessão:', e);
+  }
+}
+
 export default function App() {
-  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME'>('HOME');
-  const [playerName, setPlayerName] = useState('Agente_' + Math.floor(Math.random() * 999));
-  const [avatarSeed] = useState(Math.floor(Math.random() * 9000));
-  const [roomCode, setRoomCode] = useState('');
+  // Tenta restaurar sessão anterior
+  const storedSession = getStoredSession();
+  const isRestoringSession = React.useRef(!!storedSession); // Track if we started from a stored session
+
+  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME'>(storedSession ? 'LOBBY' : 'HOME');
+  const [playerName, setPlayerName] = useState(storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999));
+  const [avatarSeed] = useState(storedSession?.avatarSeed || Math.floor(Math.random() * 9000));
+  const [roomCode, setRoomCode] = useState(storedSession?.roomCode || '');
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'info' | 'success' } | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
@@ -90,6 +134,12 @@ export default function App() {
         showNotification('Conexão perdida. Reconectando...', 'info');
       } else if (status === 'connected' && connectionStatus === 'reconnecting') {
         showNotification('Conexão restabelecida!', 'success');
+      } else if (status === 'disconnected' && storedSession && !gameState) {
+        // Tentou reconectar mas não conseguiu e não tem gameState = sala não existe mais
+        clearAppSession();
+        setRoomCode('');
+        setView('HOME');
+        showNotification('Sala não encontrada. Crie ou entre em uma nova sala.', 'error');
       }
     },
   });
@@ -121,6 +171,37 @@ export default function App() {
       connect();
     }
   }, [roomCode, isConnected, isConnecting, connect]);
+
+  // Salva sessão no localStorage quando conectado
+  useEffect(() => {
+    if (isConnected && roomCode && playerName) {
+      saveSession({ roomCode, playerName, avatarSeed });
+    }
+  }, [isConnected, roomCode, playerName, avatarSeed]);
+
+  // Timeout para detectar sala inexistente - APENAS quando restaurando sessão salva
+  useEffect(() => {
+    if (isConnected && !gameState && isRestoringSession.current) {
+      const timeout = setTimeout(() => {
+        // Ainda conectado mas sem gameState = sala vazia ou inexistente
+        if (!gameState) {
+          isRestoringSession.current = false;
+          clearAppSession();
+          setRoomCode('');
+          setView('HOME');
+          showNotification('Sala não encontrada ou expirada.', 'error');
+        }
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isConnected, gameState, showNotification]);
+
+  // Quando recebe gameState, não está mais restaurando
+  useEffect(() => {
+    if (gameState) {
+      isRestoringSession.current = false;
+    }
+  }, [gameState]);
 
   // Encontra o jogador atual
   const myPlayer = gameState?.players.find(p => p.name === playerName);
@@ -159,6 +240,7 @@ export default function App() {
   // Handler para voltar
   const handleBack = useCallback(() => {
     disconnect();
+    clearAppSession(); // Limpa sessão ao sair
     setRoomCode('');
     setGameState(null);
     setView('HOME');
@@ -234,6 +316,7 @@ export default function App() {
           onRemove={removePlayer}
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}
+          onBack={handleBack}
         />
       )}
 
