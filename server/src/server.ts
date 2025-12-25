@@ -53,7 +53,7 @@ export default class ResistServer implements Party.Server {
             proposedTeam: [],
             logs: [`> PROTOCOLO: ${roomCode}`],
             winner: null,
-            anonymousVotes: false,  // Default: votos públicos
+            anonymousVotes: true,  // Default: votos anônimos
         };
     }
 
