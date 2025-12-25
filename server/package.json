@@ -9,9 +9,9 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "partykit": "^0.0.108"
+        "partykit": "^0.0.115"
     },
     "devDependencies": {
-        "typescript": "^5.3.0"
+        "typescript": "^5.9.3"
     }
 }
