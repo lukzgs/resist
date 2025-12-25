@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { GameState, Phase, Role } from '../types';
 import PlayerCard from '../components/PlayerCard';
 import MissionTracker from '../components/MissionTracker';
@@ -16,6 +16,89 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const [showId, setShowId] = useState(false);
   const me = state.players.find(function (p) { return p.name === playerName; });
   const isLeader = state.players[state.leaderIndex].name === playerName;
+
+  // Estado para posição e tamanho do log arrastável
+  const [logPosition, setLogPosition] = useState({ x: 24, y: window.innerHeight - 224 });
+  const [logDimensions, setLogDimensions] = useState({ width: 288, height: 180 }); // w-72 = 288px
+  const [logSize, setLogSize] = useState<'minimized' | 'normal' | 'expanded'>('normal');
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  const logRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const rect = logRef.current?.getBoundingClientRect();
+    if (rect) {
+      dragOffset.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: logDimensions.width,
+      height: logDimensions.height
+    };
+    setIsResizing(true);
+  }, [logDimensions]);
+
+  // Drag effect
+  React.useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newX = Math.max(0, Math.min(e.clientX - dragOffset.current.x, window.innerWidth - 300));
+      const newY = Math.max(0, Math.min(e.clientY - dragOffset.current.y, window.innerHeight - 200));
+      setLogPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  // Resize effect
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStart.current.x;
+      const deltaY = e.clientY - resizeStart.current.y;
+      const newWidth = Math.max(180, Math.min(resizeStart.current.width + deltaX, 600));
+      const newHeight = Math.max(100, Math.min(resizeStart.current.height + deltaY, 400));
+      setLogDimensions({ width: newWidth, height: newHeight });
+      setLogSize('normal'); // Sair de minimized/expanded ao redimensionar manualmente
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   return (
     <div className="flex flex-col h-screen relative bg-dark">
@@ -38,17 +121,10 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end font-mono text-xs text-slate-600 uppercase tracking-widest mr-4">
-            <span>Signal_Strength: 98%</span>
-            <span>Lat: 34.0522° N | Long: 118.2437° W</span>
+          <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
+            <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Sala:</span>
+            <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode}</span>
           </div>
-          <button
-            onClick={function () { setShowId(!showId); }}
-            className="group relative bg-white/5 px-6 py-2 rounded border border-white/10 text-sm font-mono font-black uppercase tracking-[0.3em] hover:bg-resistance/20 hover:text-resistance hover:border-resistance/40 transition-all overflow-hidden"
-          >
-            <div className="absolute top-0 left-0 w-1 h-full bg-resistance opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            {showId ? '[ Hide_Intel ]' : '[ View_Identity ]'}
-          </button>
         </div>
       </header>
 
@@ -76,6 +152,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                   isInTeam={state.proposedTeam.includes(p.id)}
                   showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
                   vote={state.phase === Phase.TEAM_VOTE ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
+                  isDisconnected={p.disconnected}
+                  isMe={p.name === playerName}
                 />
               </div>
             );
@@ -101,30 +179,87 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           </div>
         </div>
       </main>
+      {/* Log arrastável */}
+      <div
+        ref={logRef}
+        className={`draggable-log fixed bg-black/60 p-4 rounded-xl border border-white/5 backdrop-blur-md opacity-40 hover:opacity-100 transition-opacity z-40 ${isDragging || isResizing ? 'cursor-grabbing' : ''}`}
+        style={{
+          left: logPosition.x,
+          top: logPosition.y,
+          width: logSize === 'minimized' ? 180 : logDimensions.width,
+          height: logSize === 'minimized' ? 'auto' : logDimensions.height,
+          userSelect: (isDragging || isResizing) ? 'none' : 'auto',
+          transition: (isDragging || isResizing) ? 'none' : 'opacity 0.2s'
+        }}
+      >
+        <div
+          className="flex justify-between items-center mb-3 border-b border-white/10 pb-1 cursor-grab"
+          onMouseDown={handleMouseDown}
+        >
+          <span className="text-xs font-mono text-resistance font-bold truncate">
+            {logSize === 'minimized' ? 'LOG' : 'SYSTEM_LOG_v3.1'}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {logSize !== 'minimized' && <span className="text-[10px] text-slate-600 mr-2">⋮⋮</span>}
+            {/* Botões de controle de janela */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setLogSize('minimized'); }}
+              className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors"
+              title="Minimizar"
+            />
+            <button
+              onClick={(e) => { e.stopPropagation(); setLogSize(logSize === 'expanded' ? 'normal' : 'expanded'); setLogDimensions(logSize === 'expanded' ? { width: 288, height: 180 } : { width: 384, height: 280 }); }}
+              className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors"
+              title="Expandir"
+            />
+          </div>
+        </div>
+        {logSize !== 'minimized' && (
+          <div className="overflow-y-auto pr-2 custom-scrollbar flex-1" style={{ height: logDimensions.height - 60 }}>
+            <div className="space-y-1.5">
+              {state.logs.slice(-Math.floor((logDimensions.height - 60) / 20)).map(function (log, i) {
+                return (
+                  <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
+                    <span className="text-slate-600 mr-2">[{1024 + i}]</span>
+                    {log}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-      <div className="fixed bottom-6 left-6 w-72 bg-black/60 p-4 rounded-xl border border-white/5 backdrop-blur-md opacity-40 hover:opacity-100 transition-opacity pointer-events-none md:pointer-events-auto">
-        <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-1">
-          <span className="text-xs font-mono text-resistance font-bold">SYSTEM_LOG_v3.1</span>
-          <div className="w-1.5 h-1.5 bg-resistance rounded-full animate-pulse"></div>
-        </div>
-        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-          {state.logs.slice(-6).map(function (log, i) {
-            return (
-              <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
-                <span className="text-slate-600 mr-2">[{1024 + i}]</span>
-                {log}
-              </div>
-            );
-          })}
-        </div>
+        {/* Resize Handle */}
+        {logSize !== 'minimized' && (
+          <div
+            className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors"
+            onMouseDown={handleResizeStart}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+              <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function PhaseControls({ state, me, sendAction }: any) {
+  const [pendingVote, setPendingVote] = useState<boolean | null>(null);
+  const [pendingMissionAction, setPendingMissionAction] = useState<boolean>(false);
   const isLeader = state.players[state.leaderIndex].id === me?.id;
   const currentMission = state.missions[state.currentMissionIndex];
+
+  // Reset pending states quando a fase mudar
+  React.useEffect(() => {
+    if (currentMission.votes[me?.id] !== undefined || state.phase !== Phase.TEAM_VOTE) {
+      setPendingVote(null);
+    }
+    if (state.phase !== Phase.MISSION_EXECUTION) {
+      setPendingMissionAction(false);
+    }
+  }, [currentMission.votes, me?.id, state.phase]);
 
   if (state.phase === Phase.TEAM_SELECTION) {
     if (isLeader) return (
@@ -155,22 +290,46 @@ function PhaseControls({ state, me, sendAction }: any) {
     );
   }
 
-  if (state.phase === Phase.TEAM_VOTE && !currentMission.votes[me?.id]) {
+  if (state.phase === Phase.TEAM_VOTE) {
+    // Já votou (servidor confirmou) ou voto pendente (aguardando confirmação)
+    const hasVoted = currentMission.votes[me?.id] !== undefined || pendingVote !== null;
+
+    if (hasVoted) {
+      // Mostra tela de aguardando outros jogadores
+      return (
+        <div className="flex flex-col items-center gap-4 opacity-60">
+          <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
+          </div>
+          <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Aguardando votos dos outros agentes...</p>
+        </div>
+      );
+    }
+
+    // Ainda não votou - mostra botões
     return (
       <div className="space-y-6 animate-in slide-in-from-bottom-4">
         <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">Validar Integridade Biológica?</p>
         <div className="flex gap-4 justify-center">
           <button
-            onClick={function () { sendAction('VOTE', { playerId: me.id, approve: true }); }}
-            className="bg-resistance text-black px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all"
+            onClick={function () {
+              setPendingVote(true);
+              sendAction('VOTE', { playerId: me.id, approve: true });
+            }}
+            className="bg-resistance text-black px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
             Aprovar
+            <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
           </button>
           <button
-            onClick={function () { sendAction('VOTE', { playerId: me.id, approve: false }); }}
-            className="bg-spy text-white px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-red transition-all"
+            onClick={function () {
+              setPendingVote(false);
+              sendAction('VOTE', { playerId: me.id, approve: false });
+            }}
+            className="bg-spy text-white px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-red transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
             Rejeitar
+            <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
           </button>
         </div>
       </div>
@@ -178,6 +337,19 @@ function PhaseControls({ state, me, sendAction }: any) {
   }
 
   if (state.phase === Phase.MISSION_EXECUTION && state.proposedTeam.includes(me?.id)) {
+    // Já executou ação (pendente)
+    if (pendingMissionAction) {
+      return (
+        <div className="flex flex-col items-center gap-4 opacity-60">
+          <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
+          </div>
+          <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+        </div>
+      );
+    }
+
+    // Ainda não executou - mostra botões
     return (
       <div className="space-y-6 animate-in zoom-in duration-300">
         <div className="relative inline-block">
@@ -186,14 +358,20 @@ function PhaseControls({ state, me, sendAction }: any) {
         </div>
         <div className="flex gap-6 justify-center">
           <button
-            onClick={function () { sendAction('MISSION_ACTION', { success: true }); }}
+            onClick={function () {
+              setPendingMissionAction(true);
+              sendAction('MISSION_ACTION', { success: true });
+            }}
             className="group relative bg-black border-2 border-resistance text-resistance px-12 py-4 rounded-xl font-display font-black uppercase tracking-widest hover:bg-resistance hover:text-black transition-all"
           >
             [ Sucesso ]
           </button>
           {me?.role === Role.TERMINATOR && (
             <button
-              onClick={function () { sendAction('MISSION_ACTION', { success: false }); }}
+              onClick={function () {
+                setPendingMissionAction(true);
+                sendAction('MISSION_ACTION', { success: false });
+              }}
               className="group relative bg-black border-2 border-spy text-spy px-12 py-4 rounded-xl font-display font-black uppercase tracking-widest hover:bg-spy hover:text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)]"
             >
               [ Sabotar ]
