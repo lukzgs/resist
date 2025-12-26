@@ -72,6 +72,7 @@ interface UsePartySocketOptions {
     onPlayerJoined?: (name: string) => void;
     onPlayerLeft?: (name: string) => void;
     onConnectionChange?: (status: 'connecting' | 'connected' | 'disconnected' | 'reconnecting') => void;
+    onRoomClosed?: () => void;
 }
 
 interface UsePartySocketReturn {
@@ -90,6 +91,7 @@ interface UsePartySocketReturn {
     vote: (approve: boolean) => void;
     missionAction: (success: boolean) => void;
     setAnonymousVotes: (enabled: boolean) => void;
+    restartGame: () => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {
@@ -101,7 +103,8 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         onError,
         onPlayerJoined,
         onPlayerLeft,
-        onConnectionChange
+        onConnectionChange,
+        onRoomClosed
     } = options;
 
     const [isConnected, setIsConnected] = useState(false);
@@ -202,6 +205,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                         case 'PLAYER_LEFT':
                             onPlayerLeft?.(data.name);
                             break;
+                        case 'ROOM_CLOSED':
+                            shouldReconnectRef.current = false;  // Impede reconexão
+                            onRoomClosed?.();
+                            break;
                     }
                 } catch (err) {
                     console.error('[WS] Erro ao processar mensagem:', err);
@@ -249,7 +256,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
             setIsConnecting(false);
             onError('Não foi possível conectar ao servidor');
         }
-    }, [reconnectAttempt, getReconnectDelay, onStateUpdate, onError, onPlayerJoined, onPlayerLeft, onConnectionChange]);
+    }, [reconnectAttempt, getReconnectDelay, onStateUpdate, onError, onPlayerJoined, onPlayerLeft, onConnectionChange, onRoomClosed]);
 
     // Desconecta intencionalmente (não tenta reconectar)
     const disconnect = useCallback(() => {
@@ -307,6 +314,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'SET_ANONYMOUS_VOTES', enabled });
     }, [send]);
 
+    const restartGame = useCallback(() => {
+        send({ type: 'RESTART_GAME' });
+    }, [send]);
+
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
@@ -333,5 +344,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         vote,
         missionAction,
         setAnonymousVotes,
+        restartGame,
     };
 }

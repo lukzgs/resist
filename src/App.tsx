@@ -105,6 +105,7 @@ export default function App() {
     vote,
     missionAction,
     setAnonymousVotes,
+    restartGame,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -140,6 +141,13 @@ export default function App() {
         setView('HOME');
         showNotification('Sala não encontrada. Crie ou entre em uma nova sala.', 'error');
       }
+    },
+    onRoomClosed: () => {
+      clearAppSession();
+      setRoomCode('');
+      setGameState(null);
+      setView('HOME');
+      showNotification('A sala foi fechada.', 'info');
     },
   });
 
@@ -225,8 +233,11 @@ export default function App() {
       case 'MISSION_ACTION':
         missionAction(payload.success);
         break;
+      case 'RESTART_GAME':
+        restartGame();
+        break;
     }
-  }, [selectPlayer, submitTeam, vote, missionAction]);
+  }, [selectPlayer, submitTeam, vote, missionAction, restartGame]);
 
   // Handler para voltar
   const handleBack = useCallback(() => {
