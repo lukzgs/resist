@@ -179,22 +179,21 @@ export default function App() {
     }
   }, [isConnected, roomCode, playerName, avatarSeed]);
 
-  // Timeout para detectar sala inexistente - APENAS quando restaurando sessão salva
+  // Timeout para detectar conexão travada - se 8s sem gameState, volta para HOME
   useEffect(() => {
-    if (isConnected && !gameState && isRestoringSession.current) {
+    // Só ativa timeout quando está tentando restaurar uma sessão (tem roomCode mas sem gameState)
+    if ((isConnecting || isConnected) && !gameState && roomCode) {
       const timeout = setTimeout(() => {
-        // Ainda conectado mas sem gameState = sala vazia ou inexistente
-        if (!gameState) {
-          isRestoringSession.current = false;
-          clearAppSession();
-          setRoomCode('');
-          setView('HOME');
-          showNotification('Sala não encontrada ou expirada.', 'error');
-        }
-      }, 5000);
+        // Ainda sem gameState = sala vazia ou inexistente
+        clearAppSession();
+        disconnect();
+        setRoomCode('');
+        setView('HOME');
+        showNotification('Sala não encontrada ou expirada.', 'error');
+      }, 8000);
       return () => clearTimeout(timeout);
     }
-  }, [isConnected, gameState, showNotification]);
+  }, [isConnecting, isConnected, gameState, roomCode, disconnect, showNotification]);
 
   // Quando recebe gameState, não está mais restaurando
   useEffect(() => {
@@ -263,6 +262,18 @@ export default function App() {
           <div className="text-center space-y-4">
             <div className="w-16 h-16 border-4 border-resistance border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="font-mono text-sm text-resistance uppercase tracking-widest animate-pulse">Estabelecendo conexão...</p>
+            <button
+              onClick={() => {
+                disconnect();
+                clearAppSession();
+                setRoomCode('');
+                setView('HOME');
+                showNotification('Conexão cancelada.', 'info');
+              }}
+              className="mt-4 text-xs font-mono text-slate-500 hover:text-red-400 uppercase tracking-widest transition-colors"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
