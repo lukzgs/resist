@@ -216,7 +216,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           </div>
 
           <div className="min-h-[120px] flex flex-col justify-center items-center">
-            <PhaseControls state={state} me={me} sendAction={sendAction} />
+            <PhaseControls state={state} me={me} sendAction={sendAction} isHost={isHost} />
           </div>
 
           <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
@@ -306,7 +306,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   );
 }
 
-function PhaseControls({ state, me, sendAction }: any) {
+function PhaseControls({ state, me, sendAction, isHost }: any) {
   const [pendingVote, setPendingVote] = useState<boolean | null>(null);
   const [pendingMissionAction, setPendingMissionAction] = useState<boolean>(false);
   const isLeader = state.players[state.leaderIndex].id === me?.id;
@@ -458,6 +458,30 @@ function PhaseControls({ state, me, sendAction }: any) {
 
   if (state.phase === Phase.GAME_OVER) {
     const humanWins = state.winner === Role.HUMAN;
+
+    // Countdown para fechamento da sala
+    const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
+
+    React.useEffect(() => {
+      if (!state.roomExpiresAt) return;
+
+      const updateTime = () => {
+        const remaining = Math.max(0, state.roomExpiresAt! - Date.now());
+        setTimeLeft(remaining);
+      };
+
+      updateTime();
+      const interval = setInterval(updateTime, 1000);
+      return () => clearInterval(interval);
+    }, [state.roomExpiresAt]);
+
+    const formatTime = (ms: number) => {
+      const seconds = Math.floor(ms / 1000);
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
       <div className="space-y-6 py-4 animate-in fade-in duration-1000">
         <div className={`text-6xl font-display font-black uppercase tracking-tighter leading-tight ${humanWins ? 'text-resistance drop-shadow-glow-blue' : 'text-spy drop-shadow-glow-red animate-glitch'}`}>
@@ -470,12 +494,34 @@ function PhaseControls({ state, me, sendAction }: any) {
               : 'A Resistência foi obliterada. As máquinas agora controlam o futuro.'}
           </p>
         </div>
-        <button
-          onClick={function () { sessionStorage.clear(); window.location.reload(); }}
-          className="bg-white/5 text-slate-400 px-8 py-2 rounded-full font-mono text-sm uppercase font-black tracking-[0.4em] hover:bg-white/10 hover:text-white transition-all border border-white/10 mt-4"
-        >
-          {'>> New_Timeline_Sync <<'}
-        </button>
+
+        {/* Countdown */}
+        {timeLeft !== null && timeLeft > 0 && (
+          <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-sm">
+            <span className="uppercase tracking-widest">Sala fecha em</span>
+            <span className="text-resistance font-bold text-lg">{formatTime(timeLeft)}</span>
+          </div>
+        )}
+
+        <div className="flex gap-4 justify-center flex-wrap">
+          {/* Botão Nova Partida - apenas host */}
+          {isHost && (
+            <button
+              onClick={function () { sendAction('RESTART_GAME', {}); }}
+              className="bg-resistance text-black px-8 py-3 rounded-full font-display font-black text-lg uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95"
+            >
+              Nova Partida
+            </button>
+          )}
+
+          {/* Botão Sair - todos */}
+          <button
+            onClick={function () { sessionStorage.clear(); window.location.reload(); }}
+            className="bg-white/5 text-slate-400 px-8 py-3 rounded-full font-mono text-sm uppercase font-black tracking-[0.3em] hover:bg-white/10 hover:text-white transition-all border border-white/10"
+          >
+            Sair
+          </button>
+        </div>
       </div>
     );
   }
