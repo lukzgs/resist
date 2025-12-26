@@ -207,6 +207,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                             break;
                         case 'ROOM_CLOSED':
                             shouldReconnectRef.current = false;  // Impede reconexão
+                            clearSession();  // Limpa sessão do localStorage
                             onRoomClosed?.();
                             break;
                     }
@@ -263,6 +264,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         console.log('[WS] Desconectando...');
         shouldReconnectRef.current = false;
         clearReconnectTimeout();
+        clearSession();  // Limpa sessão do localStorage
 
         if (socketRef.current) {
             socketRef.current.close();
