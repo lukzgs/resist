@@ -98,7 +98,6 @@ export default function App() {
     reconnectAttempt,
     connect,
     disconnect,
-    addAi,
     removePlayer,
     startGame,
     selectPlayer,
@@ -205,13 +204,6 @@ export default function App() {
   // Encontra o jogador atual
   const myPlayer = gameState?.players.find(p => p.name === playerName);
   const isHost = myPlayer?.isHost || false;
-
-  // Handler para adicionar IA
-  const handleAddAi = useCallback(() => {
-    const aiName = 'T-' + (Math.floor(Math.random() * 900) + 100);
-    const aiSeed = Math.floor(Math.random() * 9999);
-    addAi(aiName, aiSeed);
-  }, [addAi]);
 
   // Handler para iniciar o jogo
   const handleStart = useCallback(() => {
@@ -323,7 +315,6 @@ export default function App() {
         <LobbyView
           state={gameState}
           isHost={isHost}
-          onAddAi={handleAddAi}
           onRemove={removePlayer}
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}

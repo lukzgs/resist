@@ -83,7 +83,6 @@ interface UsePartySocketReturn {
     disconnect: () => void;
     send: (message: any) => void;
     // Ações do jogo
-    addAi: (name: string, avatarSeed: number) => void;
     removePlayer: () => void;
     startGame: () => void;
     selectPlayer: (playerId: string) => void;
@@ -280,10 +279,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
     }, [isConnected]);
 
     // Ações do jogo
-    const addAi = useCallback((name: string, seed: number) => {
-        send({ type: 'ADD_AI', name, avatarSeed: seed });
-    }, [send]);
-
     const removePlayer = useCallback(() => {
         send({ type: 'REMOVE_PLAYER' });
     }, [send]);
@@ -331,7 +326,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         connect,
         disconnect,
         send,
-        addAi,
         removePlayer,
         startGame,
         selectPlayer,

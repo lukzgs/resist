@@ -100,12 +100,12 @@ export default class ResistServer implements Party.Server {
 
         // Tenta reconexão por sessionId primeiro (mais seguro)
         let existingPlayer = sessionId
-            ? this.gameState.players.find(p => p.sessionId === sessionId && !p.isAi)
+            ? this.gameState.players.find(p => p.sessionId === sessionId)
             : null;
 
         // Se não encontrou por sessionId, tenta por nome (fallback)
         if (!existingPlayer) {
-            existingPlayer = this.gameState.players.find(p => p.name === name && !p.isAi);
+            existingPlayer = this.gameState.players.find(p => p.name === name);
         }
 
         if (existingPlayer) {
@@ -156,7 +156,6 @@ export default class ResistServer implements Party.Server {
             id: generateId(),
             name,
             role: Role.HUMAN, // Será definido ao iniciar
-            isAi: false,
             isHost: isFirstPlayer,
             avatarSeed,
             sessionId,          // Armazena sessionId para reconexão futura
@@ -173,35 +172,6 @@ export default class ResistServer implements Party.Server {
 
         // Notifica entrada
         this.room.broadcast(JSON.stringify({ type: 'PLAYER_JOINED', name } as ServerMessage));
-    }
-
-    // Processa ADD_AI
-    private handleAddAi(conn: Party.Connection, name: string, avatarSeed: number) {
-        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
-
-        const player = this.getPlayerByConnection(conn.id);
-        if (!player?.isHost) {
-            this.sendError(conn, 'Apenas o host pode adicionar IAs');
-            return;
-        }
-
-        if (this.gameState.players.length >= 10) {
-            this.sendError(conn, 'Sala cheia');
-            return;
-        }
-
-        const aiPlayer: Player = {
-            id: 'ai-' + generateId(),
-            name,
-            role: Role.HUMAN,
-            isAi: true,
-            isHost: false,
-            avatarSeed,
-        };
-
-        this.gameState.players.push(aiPlayer);
-        this.addLog(`> IA ${name} adicionada`);
-        this.broadcastState();
     }
 
     // Processa REMOVE_PLAYER
@@ -343,17 +313,8 @@ export default class ResistServer implements Party.Server {
         // Registra voto
         this.gameState.missions[missionIndex].votes[player.id] = approve;
 
-        // Verifica se todos votaram (apenas jogadores humanos, não IAs)
-        const humanPlayers = this.gameState.players.filter(p => !p.isAi);
+        // Verifica se todos votaram
         const voteCount = Object.keys(this.gameState.missions[missionIndex].votes).length;
-
-        // IAs votam automaticamente (simples: sempre aprovam)
-        const aiPlayers = this.gameState.players.filter(p => p.isAi);
-        for (const ai of aiPlayers) {
-            if (!(ai.id in this.gameState.missions[missionIndex].votes)) {
-                this.gameState.missions[missionIndex].votes[ai.id] = true;
-            }
-        }
 
         // Todos votaram?
         if (Object.keys(this.gameState.missions[missionIndex].votes).length === this.gameState.players.length) {
@@ -414,19 +375,6 @@ export default class ResistServer implements Party.Server {
             this.gameState.missions[missionIndex].missionOutcomes.push(undefined as any);
         }
         this.gameState.missions[missionIndex].missionOutcomes[teamIndex] = outcome;
-
-        // IAs na equipe executam automaticamente
-        for (const playerId of this.gameState.proposedTeam) {
-            const teamPlayer = this.gameState.players.find(p => p.id === playerId);
-            if (teamPlayer?.isAi) {
-                const aiIndex = this.gameState.proposedTeam.indexOf(playerId);
-                if (this.gameState.missions[missionIndex].missionOutcomes[aiIndex] === undefined) {
-                    // IA Terminator pode sabotar (50% chance)
-                    const aiOutcome = teamPlayer.role === Role.HUMAN ? true : Math.random() > 0.5;
-                    this.gameState.missions[missionIndex].missionOutcomes[aiIndex] = aiOutcome;
-                }
-            }
-        }
 
         // Verifica se missão está completa
         const outcomes = this.gameState.missions[missionIndex].missionOutcomes.filter(o => o !== undefined);
@@ -524,9 +472,6 @@ export default class ResistServer implements Party.Server {
             switch (data.type) {
                 case 'JOIN':
                     this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId);
-                    break;
-                case 'ADD_AI':
-                    this.handleAddAi(sender, data.name, data.avatarSeed);
                     break;
                 case 'REMOVE_PLAYER':
                     this.handleRemovePlayer(sender);

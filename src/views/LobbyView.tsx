@@ -5,14 +5,13 @@ import { GAME_RULES } from '../constants';
 interface Props {
     state: GameState;
     isHost: boolean;
-    onAddAi: () => void;
     onRemove: () => void;
     onStart: () => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onBack: () => void;
 }
 
-export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart, onToggleAnonymousVotes, onBack }: Props) {
+export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onBack }: Props) {
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
 
@@ -94,7 +93,7 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart, o
                                             <div className="text-sm font-bold text-white uppercase tracking-wider truncate">{p.name}</div>
                                             <div className="text-xs font-mono text-slate-500 flex items-center gap-2">
                                                 <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
-                                                {p.disconnected ? 'OFFLINE' : p.isAi ? 'SINTÉTICO' : 'VITAL_OK'}
+                                                {p.disconnected ? 'OFFLINE' : 'VITAL_OK'}
                                             </div>
                                         </div>
                                     </div>

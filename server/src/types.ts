@@ -17,7 +17,6 @@ export interface Player {
     id: string;
     name: string;
     role: Role;
-    isAi: boolean;
     isHost: boolean;
     avatarSeed: number;
     sessionId?: string;      // ID persistente para reconexão
@@ -51,7 +50,6 @@ export interface GameState {
 // Mensagens do cliente para o servidor
 export type ClientMessage =
     | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string }
-    | { type: 'ADD_AI'; name: string; avatarSeed: number }
     | { type: 'REMOVE_PLAYER' }
     | { type: 'START_GAME' }
     | { type: 'SELECT_PLAYER'; playerId: string }

@@ -16,7 +16,6 @@ export interface Player {
   id: string;
   name: string;
   role: Role;
-  isAi: boolean;
   isHost: boolean;
   avatarSeed: number;
   sessionId?: string;      // ID persistente para reconexão
@@ -51,6 +50,5 @@ export interface GameState {
   proposedTeam: string[];
   logs: string[];
   winner: Role | null;
-  isProcessingAi: boolean;
   anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
 }
