@@ -308,8 +308,7 @@ export default class ResistServer implements Party.Server {
         }
 
         // Valida se o jogador alvo existe
-        const targetPlayer = this.gameState.players.find(p => p.id === playerId);
-        if (!targetPlayer) {
+        if (!this.gameState.players.some(p => p.id === playerId)) {
             this.sendError(conn, 'Jogador não encontrado');
             return;
         }
