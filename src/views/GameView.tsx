@@ -4,6 +4,8 @@ import { GameState, Phase, Role, Player } from '../types';
 import PlayerCard from '../components/PlayerCard';
 import MissionTracker from '../components/MissionTracker';
 import VoteTracker from '../components/VoteTracker';
+import { DisconnectWaitScreen } from '../components/DisconnectWaitScreen';
+import { DisconnectVoteScreen } from '../components/DisconnectVoteScreen';
 
 interface Props {
   state: GameState;
@@ -146,163 +148,173 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   }, [isResizing]);
 
   return (
-    <div className="flex flex-col h-screen relative bg-dark">
-      <header className="px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-xl flex justify-between items-center shrink-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="w-10 h-10 bg-spy/10 border border-spy/40 rounded flex items-center justify-center animate-pulse">
-              <div className="w-3 h-3 bg-spy rounded-sm shadow-glow-red"></div>
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-black animate-ping"></div>
-          </div>
-          <div>
-            <h1 className="font-display font-black text-2xl text-white leading-none tracking-tighter">SKYNET_INFILTRATION</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-mono text-spy uppercase tracking-[0.3em] font-black">Active_Threat_Detected</span>
-              <span className="w-8 h-[1px] bg-spy/40"></span>
-              <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
-            </div>
-          </div>
-        </div>
+    <>
+      {/* Overlays de desconexão */}
+      {state.phase === Phase.PAUSED_DISCONNECT && (
+        <DisconnectWaitScreen state={state} />
+      )}
+      {state.phase === Phase.DISCONNECT_VOTE && (
+        <DisconnectVoteScreen state={state} me={me} sendAction={sendAction} />
+      )}
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
-            <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Sala:</span>
-            <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode}</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
-        <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
-          <div className="absolute top-2 left-4 text-xs font-mono text-slate-600 uppercase">Operational_Objectives</div>
-          <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
-          {state.players.map(function (p, i) {
-            return (
-              <div
-                key={p.id}
-                onClick={function () {
-                  if (isLeader && state.phase === Phase.TEAM_SELECTION) {
-                    sendAction('SELECT_PLAYER', { id: p.id });
-                  }
-                }}
-                className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
-              >
-                <PlayerCard
-                  player={p}
-                  isLeader={i === state.leaderIndex}
-                  isInTeam={state.proposedTeam.includes(p.id)}
-                  showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
-                  vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
-                  isDisconnected={p.disconnected}
-                  isMe={p.name === playerName}
-                />
+      <div className="flex flex-col h-screen relative bg-dark">
+        <header className="px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-xl flex justify-between items-center shrink-0 z-50">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-10 h-10 bg-spy/10 border border-spy/40 rounded flex items-center justify-center animate-pulse">
+                <div className="w-3 h-3 bg-spy rounded-sm shadow-glow-red"></div>
               </div>
-            );
-          })}
-        </div>
-
-        <div className="max-w-xl mx-auto text-center p-10 bg-black/80 rounded-[40px] border-2 border-white/5 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
-
-          <div className="mb-8">
-            <span className="text-sm font-mono text-slate-500 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
-            <h3 className="text-3xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-glow-blue">
-              {state.phase.replace(/_/g, ' ')}
-            </h3>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-black animate-ping"></div>
+            </div>
+            <div>
+              <h1 className="font-display font-black text-2xl text-white leading-none tracking-tighter">SKYNET_INFILTRATION</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-mono text-spy uppercase tracking-[0.3em] font-black">Active_Threat_Detected</span>
+                <span className="w-8 h-[1px] bg-spy/40"></span>
+                <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
+              </div>
+            </div>
           </div>
 
-          <div className="min-h-[120px] flex flex-col justify-center items-center">
-            <PhaseControls state={state} me={me} sendAction={sendAction} isHost={isHost} />
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
+              <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Sala:</span>
+              <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode}</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
+          <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
+            <div className="absolute top-2 left-4 text-xs font-mono text-slate-600 uppercase">Operational_Objectives</div>
+            <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
           </div>
 
-          <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
-            {/* Resultado da última votação (modo anônimo) */}
-            {lastVoteResult && state.anonymousVotes && (
-              <div className="flex items-center justify-center gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/10">
-                <span className="text-xs font-mono text-slate-500 uppercase">Última votação:</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-display font-black text-resistance">{lastVoteResult.approvals}</span>
-                  <span className="text-xs text-slate-400">×</span>
-                  <span className="text-lg font-display font-black text-spy">{lastVoteResult.rejections}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+            {state.players.map(function (p, i) {
+              return (
+                <div
+                  key={p.id}
+                  onClick={function () {
+                    if (isLeader && state.phase === Phase.TEAM_SELECTION) {
+                      sendAction('SELECT_PLAYER', { id: p.id });
+                    }
+                  }}
+                  className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
+                >
+                  <PlayerCard
+                    player={p}
+                    isLeader={i === state.leaderIndex}
+                    isInTeam={state.proposedTeam.includes(p.id)}
+                    showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
+                    vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
+                    isDisconnected={p.disconnected}
+                    isMe={p.name === playerName}
+                  />
                 </div>
-                <span className={`text-xs font-mono uppercase font-bold ${lastVoteResult.approved ? 'text-green-400' : 'text-red-400'}`}>
-                  {lastVoteResult.approved ? 'Aprovado' : 'Rejeitado'}
-                </span>
-              </div>
-            )}
-            <VoteTracker failedVotes={state.failedVoteCount} />
+              );
+            })}
           </div>
-        </div>
-      </main>
-      {/* Log arrastável */}
-      <div
-        ref={logRef}
-        className={`draggable-log fixed bg-black/60 p-4 rounded-xl border border-white/5 backdrop-blur-md opacity-40 hover:opacity-100 transition-opacity z-40 ${isDragging || isResizing ? 'cursor-grabbing' : ''}`}
-        style={{
-          left: logPosition.x,
-          top: logPosition.y,
-          width: logSize === 'minimized' ? 180 : logDimensions.width,
-          height: logSize === 'minimized' ? 'auto' : logDimensions.height,
-          userSelect: (isDragging || isResizing) ? 'none' : 'auto',
-          transition: (isDragging || isResizing) ? 'none' : 'opacity 0.2s'
-        }}
-      >
-        <div
-          className="flex justify-between items-center mb-3 border-b border-white/10 pb-1 cursor-grab active:cursor-grabbing"
-          onMouseDown={handleDragStart}
-          onTouchStart={handleDragStart}
-        >
-          <span className="text-xs font-mono text-resistance font-bold truncate">
-            {logSize === 'minimized' ? 'LOG' : 'SYSTEM_LOG_v3.1'}
-          </span>
-          <div className="flex items-center gap-1 shrink-0">
-            {logSize !== 'minimized' && <span className="text-[10px] text-slate-600 mr-2">⋮⋮</span>}
-            {/* Botões de controle de janela */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setLogSize('minimized'); }}
-              className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors"
-              title="Minimizar"
-            />
-            <button
-              onClick={(e) => { e.stopPropagation(); setLogSize(logSize === 'expanded' ? 'normal' : 'expanded'); setLogDimensions(logSize === 'expanded' ? { width: 288, height: 180 } : { width: 384, height: 280 }); }}
-              className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors"
-              title="Expandir"
-            />
-          </div>
-        </div>
-        {logSize !== 'minimized' && (
-          <div className="overflow-y-auto pr-2 custom-scrollbar flex-1" style={{ height: logDimensions.height - 60 }}>
-            <div className="space-y-1.5">
-              {state.logs.slice(-Math.floor((logDimensions.height - 60) / 20)).map(function (log, i) {
-                return (
-                  <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
-                    <span className="text-slate-600 mr-2">[{1024 + i}]</span>
-                    {log}
+
+          <div className="max-w-xl mx-auto text-center p-10 bg-black/80 rounded-[40px] border-2 border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
+
+            <div className="mb-8">
+              <span className="text-sm font-mono text-slate-500 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
+              <h3 className="text-3xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-glow-blue">
+                {state.phase.replace(/_/g, ' ')}
+              </h3>
+            </div>
+
+            <div className="min-h-[120px] flex flex-col justify-center items-center">
+              <PhaseControls state={state} me={me} sendAction={sendAction} isHost={isHost} />
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+              {/* Resultado da última votação (modo anônimo) */}
+              {lastVoteResult && state.anonymousVotes && (
+                <div className="flex items-center justify-center gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/10">
+                  <span className="text-xs font-mono text-slate-500 uppercase">Última votação:</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-display font-black text-resistance">{lastVoteResult.approvals}</span>
+                    <span className="text-xs text-slate-400">×</span>
+                    <span className="text-lg font-display font-black text-spy">{lastVoteResult.rejections}</span>
                   </div>
-                );
-              })}
+                  <span className={`text-xs font-mono uppercase font-bold ${lastVoteResult.approved ? 'text-green-400' : 'text-red-400'}`}>
+                    {lastVoteResult.approved ? 'Aprovado' : 'Rejeitado'}
+                  </span>
+                </div>
+              )}
+              <VoteTracker failedVotes={state.failedVoteCount} />
             </div>
           </div>
-        )}
-
-        {/* Resize Handle */}
-        {logSize !== 'minimized' && (
+        </main>
+        {/* Log arrastável */}
+        <div
+          ref={logRef}
+          className={`draggable-log fixed bg-black/60 p-4 rounded-xl border border-white/5 backdrop-blur-md opacity-40 hover:opacity-100 transition-opacity z-40 ${isDragging || isResizing ? 'cursor-grabbing' : ''}`}
+          style={{
+            left: logPosition.x,
+            top: logPosition.y,
+            width: logSize === 'minimized' ? 180 : logDimensions.width,
+            height: logSize === 'minimized' ? 'auto' : logDimensions.height,
+            userSelect: (isDragging || isResizing) ? 'none' : 'auto',
+            transition: (isDragging || isResizing) ? 'none' : 'opacity 0.2s'
+          }}
+        >
           <div
-            className="absolute bottom-1 right-1 w-6 h-6 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors touch-none"
-            onMouseDown={handleResizeStart}
-            onTouchStart={handleResizeStart}
+            className="flex justify-between items-center mb-3 border-b border-white/10 pb-1 cursor-grab active:cursor-grabbing"
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
           >
-            <svg width="12" height="12" viewBox="0 0 10 10" fill="currentColor">
-              <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            </svg>
+            <span className="text-xs font-mono text-resistance font-bold truncate">
+              {logSize === 'minimized' ? 'LOG' : 'SYSTEM_LOG_v3.1'}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              {logSize !== 'minimized' && <span className="text-[10px] text-slate-600 mr-2">⋮⋮</span>}
+              {/* Botões de controle de janela */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setLogSize('minimized'); }}
+                className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors"
+                title="Minimizar"
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); setLogSize(logSize === 'expanded' ? 'normal' : 'expanded'); setLogDimensions(logSize === 'expanded' ? { width: 288, height: 180 } : { width: 384, height: 280 }); }}
+                className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors"
+                title="Expandir"
+              />
+            </div>
           </div>
-        )}
+          {logSize !== 'minimized' && (
+            <div className="overflow-y-auto pr-2 custom-scrollbar flex-1" style={{ height: logDimensions.height - 60 }}>
+              <div className="space-y-1.5">
+                {state.logs.slice(-Math.floor((logDimensions.height - 60) / 20)).map(function (log, i) {
+                  return (
+                    <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
+                      <span className="text-slate-600 mr-2">[{1024 + i}]</span>
+                      {log}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Resize Handle */}
+          {logSize !== 'minimized' && (
+            <div
+              className="absolute bottom-1 right-1 w-6 h-6 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors touch-none"
+              onMouseDown={handleResizeStart}
+              onTouchStart={handleResizeStart}
+            >
+              <svg width="12" height="12" viewBox="0 0 10 10" fill="currentColor">
+                <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              </svg>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

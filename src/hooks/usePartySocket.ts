@@ -92,6 +92,7 @@ interface UsePartySocketReturn {
     missionAction: (success: boolean) => void;
     setAnonymousVotes: (enabled: boolean) => void;
     restartGame: () => void;
+    disconnectVote: (endGame: boolean) => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {
@@ -320,6 +321,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'RESTART_GAME' });
     }, [send]);
 
+    const disconnectVote = useCallback((endGame: boolean) => {
+        send({ type: 'DISCONNECT_VOTE', endGame });
+    }, [send]);
+
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
@@ -347,5 +352,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         missionAction,
         setAnonymousVotes,
         restartGame,
+        disconnectVote,
     };
 }

@@ -38,11 +38,26 @@ export default class ResistServer implements Party.Server {
     // Timer para fechar sala após GAME_OVER
     gameOverTimeout: NodeJS.Timeout | null = null;
 
+    // Timer para espera de reconexão (sistema de votação)
+    disconnectWaitTimer: NodeJS.Timeout | null = null;
+
+    // Timer para votação de desconexão
+    disconnectVoteTimer: NodeJS.Timeout | null = null;
+
     // Tempo de graça para reconexão (5 minutos)
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;
 
     // Tempo até a sala fechar após GAME_OVER (3 minutos)
     static readonly ROOM_EXPIRY_MS = 180000;
+
+    // Tempo de espera para reconexão (2 minutos)
+    static readonly DISCONNECT_WAIT_MS = 120000;
+
+    // Tempo de votação (15 segundos)
+    static readonly DISCONNECT_VOTE_MS = 15000;
+
+    // Máximo de tentativas de espera
+    static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
     constructor(public room: Party.Room) { }
 
@@ -87,6 +102,173 @@ export default class ResistServer implements Party.Server {
         if (this.gameState) {
             this.gameState.roomExpiresAt = undefined;
         }
+    }
+
+    // Inicia espera de reconexão quando jogador desconecta durante o jogo
+    private startDisconnectWait(player: { id: string; name: string }, attempt: number = 1) {
+        if (!this.gameState) return;
+
+        // Cancela timers anteriores
+        this.cancelDisconnectTimers();
+
+        const now = Date.now();
+        const expiresAt = now + ResistServer.DISCONNECT_WAIT_MS;
+
+        // Salva estado anterior e pausa o jogo
+        this.gameState.disconnectInfo = {
+            disconnectedPlayerId: player.id,
+            disconnectedPlayerName: player.name,
+            pausedPhase: this.gameState.phase,
+            waitingAttempt: attempt,
+            pausedAt: now,
+            expiresAt,
+        };
+        this.gameState.phase = Phase.PAUSED_DISCONNECT;
+        this.gameState.disconnectVotes = {};
+
+        this.addLog(`> ${player.name} desconectou - aguardando ${ResistServer.DISCONNECT_WAIT_MS / 1000}s...`);
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Aguardando reconexão de ${player.name} (tentativa ${attempt}/${ResistServer.MAX_DISCONNECT_ATTEMPTS})`);
+
+        // Timer para iniciar votação
+        this.disconnectWaitTimer = setTimeout(() => {
+            this.startDisconnectVote();
+        }, ResistServer.DISCONNECT_WAIT_MS);
+    }
+
+    // Cancela espera de reconexão (jogador reconectou)
+    private cancelDisconnectWait() {
+        if (!this.gameState || !this.gameState.disconnectInfo) return;
+
+        this.cancelDisconnectTimers();
+
+        const info = this.gameState.disconnectInfo;
+
+        // Restaura fase anterior
+        this.gameState.phase = info.pausedPhase;
+        this.gameState.disconnectInfo = undefined;
+        this.gameState.disconnectVotes = undefined;
+
+        this.addLog(`> Jogador reconectou - retomando jogo`);
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Jogador reconectou - jogo retomado`);
+    }
+
+    // Cancela todos os timers de desconexão
+    private cancelDisconnectTimers() {
+        if (this.disconnectWaitTimer) {
+            clearTimeout(this.disconnectWaitTimer);
+            this.disconnectWaitTimer = null;
+        }
+        if (this.disconnectVoteTimer) {
+            clearTimeout(this.disconnectVoteTimer);
+            this.disconnectVoteTimer = null;
+        }
+    }
+
+    // Inicia votação para decidir se encerra ou continua esperando
+    private startDisconnectVote() {
+        if (!this.gameState || !this.gameState.disconnectInfo) return;
+
+        const info = this.gameState.disconnectInfo;
+        const expiresAt = Date.now() + ResistServer.DISCONNECT_VOTE_MS;
+
+        this.gameState.phase = Phase.DISCONNECT_VOTE;
+        this.gameState.disconnectInfo.expiresAt = expiresAt;
+        this.gameState.disconnectVotes = {};
+
+        this.addLog(`> Votação: encerrar partida ou aguardar ${info.disconnectedPlayerName}?`);
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Votação de desconexão iniciada`);
+
+        // Timer para resolver votação automaticamente
+        this.disconnectVoteTimer = setTimeout(() => {
+            this.resolveDisconnectVote();
+        }, ResistServer.DISCONNECT_VOTE_MS);
+    }
+
+    // Processa voto de desconexão
+    private handleDisconnectVote(conn: Party.Connection, endGame: boolean) {
+        if (!this.gameState || this.gameState.phase !== Phase.DISCONNECT_VOTE) return;
+        if (!this.gameState.disconnectVotes) return;
+
+        const player = this.getPlayerByConnection(conn.id);
+        if (!player) return;
+
+        // Não pode votar se está desconectado
+        if (player.disconnected) return;
+
+        // Já votou?
+        if (player.id in this.gameState.disconnectVotes) return;
+
+        this.gameState.disconnectVotes[player.id] = endGame;
+        this.broadcastState();
+
+        // Verifica se todos votaram
+        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+        const voteCount = Object.keys(this.gameState.disconnectVotes).length;
+
+        if (voteCount === activePlayers.length) {
+            // Todos votaram, resolve imediatamente
+            if (this.disconnectVoteTimer) {
+                clearTimeout(this.disconnectVoteTimer);
+                this.disconnectVoteTimer = null;
+            }
+            this.resolveDisconnectVote();
+        }
+    }
+
+    // Resolve votação de desconexão
+    private resolveDisconnectVote() {
+        if (!this.gameState || !this.gameState.disconnectInfo) return;
+
+        this.cancelDisconnectTimers();
+
+        const info = this.gameState.disconnectInfo;
+        const votes = this.gameState.disconnectVotes || {};
+        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+
+        // Conta votos para encerrar
+        const endGameVotes = Object.values(votes).filter(v => v === true).length;
+        const majorityNeeded = Math.ceil(activePlayers.length / 2);
+
+        console.log(`[${this.room.id}] Votação: ${endGameVotes}/${activePlayers.length} votaram encerrar (maioria: ${majorityNeeded})`);
+
+        if (endGameVotes >= majorityNeeded) {
+            // Maioria votou encerrar
+            this.cancelGame(`Jogadores votaram para encerrar (${info.disconnectedPlayerName} desconectou)`);
+        } else if (info.waitingAttempt >= ResistServer.MAX_DISCONNECT_ATTEMPTS) {
+            // Máximo de tentativas atingido
+            this.cancelGame(`${info.disconnectedPlayerName} não reconectou após ${ResistServer.MAX_DISCONNECT_ATTEMPTS} tentativas`);
+        } else {
+            // Continua esperando - nova tentativa
+            this.addLog(`> Jogadores votaram para aguardar - tentativa ${info.waitingAttempt + 1}/${ResistServer.MAX_DISCONNECT_ATTEMPTS}`);
+
+            // Mantém info mas incrementa tentativa
+            const playerInfo = { id: info.disconnectedPlayerId, name: info.disconnectedPlayerName };
+            this.startDisconnectWait(playerInfo, info.waitingAttempt + 1);
+        }
+    }
+
+    // Cancela partida (sem vencedor)
+    private cancelGame(reason: string) {
+        if (!this.gameState) return;
+
+        this.cancelDisconnectTimers();
+
+        this.gameState.phase = Phase.GAME_OVER;
+        this.gameState.winner = null;  // Sem vencedor
+        this.gameState.disconnectInfo = undefined;
+        this.gameState.disconnectVotes = undefined;
+
+        this.addLog(`> PARTIDA CANCELADA: ${reason}`);
+        this.scheduleRoomClosure();
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Partida cancelada: ${reason}`);
     }
 
     // Cria estado inicial do jogo
@@ -176,12 +358,17 @@ export default class ResistServer implements Party.Server {
             // Marca como conectado
             existingPlayer.disconnected = false;
 
-            this.addLog(`> ${existingPlayer.name} reconectou`);
+            // Se era o jogador que causou pausa, cancela espera e retoma jogo
+            if (this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id) {
+                this.cancelDisconnectWait();
+            } else {
+                this.addLog(`> ${existingPlayer.name} reconectou`);
+                this.broadcastState();
+            }
 
             // Envia estado atual
             const message: ServerMessage = { type: 'STATE', state: this.gameState };
             conn.send(JSON.stringify(message));
-            this.broadcastState();
 
             console.log(`[${this.room.id}] Jogador reconectou: ${existingPlayer.name} (sessionId: ${sessionId || 'none'})`);
             return;
@@ -481,7 +668,6 @@ export default class ResistServer implements Party.Server {
             const player = this.gameState.players.find(p => p.id === playerId);
             if (player) {
                 console.log(`[${this.room.id}] Desconectou: ${player.name}`);
-                this.addLog(`> ${player.name} desconectou`);
 
                 // Marca como desconectado
                 player.disconnected = true;
@@ -496,22 +682,15 @@ export default class ResistServer implements Party.Server {
                     }
 
                     this.broadcastState();
+                } else if (this.gameState.phase === Phase.GAME_OVER) {
+                    // No GAME_OVER, apenas marca como desconectado
+                    this.broadcastState();
+                } else if (this.gameState.phase === Phase.PAUSED_DISCONNECT || this.gameState.phase === Phase.DISCONNECT_VOTE) {
+                    // Já está pausado, apenas atualiza estado
+                    this.broadcastState();
                 } else {
-                    // Durante o jogo, dá tempo para reconectar
-                    console.log(`[${this.room.id}] Aguardando reconexão de ${player.name} por ${ResistServer.RECONNECT_GRACE_PERIOD_MS / 1000}s`);
-
-                    const timeout = setTimeout(() => {
-                        // Jogador não reconectou - trata como abandono
-                        console.log(`[${this.room.id}] ${player.name} não reconectou - abandonou`);
-                        this.addLog(`> ${player.name} abandonou o jogo`);
-                        this.disconnectedPlayers.delete(playerId);
-
-                        // Remove das conexões ativas (já removido) e notifica
-                        this.room.broadcast(JSON.stringify({ type: 'PLAYER_LEFT', name: player.name } as ServerMessage));
-                        this.broadcastState();
-                    }, ResistServer.RECONNECT_GRACE_PERIOD_MS);
-
-                    this.disconnectedPlayers.set(playerId, timeout);
+                    // Durante o jogo normal: pausa e inicia sistema de espera
+                    this.startDisconnectWait({ id: player.id, name: player.name });
                 }
             }
         }
@@ -526,6 +705,9 @@ export default class ResistServer implements Party.Server {
                 clearTimeout(this.gameOverTimeout);
                 this.gameOverTimeout = null;
             }
+
+            // Cancela timers de desconexão
+            this.cancelDisconnectTimers();
 
             // Cancela todos os timeouts de reconexão pendentes
             for (const timeout of this.disconnectedPlayers.values()) {
@@ -607,6 +789,9 @@ export default class ResistServer implements Party.Server {
                             this.sendError(sender, 'Apenas o host pode reiniciar o jogo');
                         }
                     }
+                    break;
+                case 'DISCONNECT_VOTE':
+                    this.handleDisconnectVote(sender, data.endGame);
                     break;
             }
         } catch (err) {

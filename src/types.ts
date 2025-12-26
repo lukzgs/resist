@@ -10,6 +10,8 @@ export enum Phase {
   TEAM_VOTE = 'TEAM_VOTE',
   MISSION_EXECUTION = 'MISSION_EXECUTION',
   GAME_OVER = 'GAME_OVER',
+  PAUSED_DISCONNECT = 'PAUSED_DISCONNECT',  // Jogo pausado aguardando reconexão
+  DISCONNECT_VOTE = 'DISCONNECT_VOTE',      // Votação para encerrar ou esperar
 }
 
 export interface Player {
@@ -39,6 +41,16 @@ export interface GameConfig {
   twoFailsRequiredRound4?: boolean;
 }
 
+// Informações de desconexão durante o jogo
+export interface DisconnectInfo {
+  disconnectedPlayerId: string;
+  disconnectedPlayerName: string;
+  pausedPhase: Phase;           // Fase anterior para retornar
+  waitingAttempt: number;       // 1, 2 ou 3
+  pausedAt: number;             // Timestamp de quando pausou
+  expiresAt: number;            // Quando timer expira
+}
+
 export interface GameState {
   phase: Phase;
   players: Player[];
@@ -52,4 +64,6 @@ export interface GameState {
   winner: Role | null;
   anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
   roomExpiresAt?: number;   // Timestamp de quando a sala fecha (após GAME_OVER)
+  disconnectInfo?: DisconnectInfo;  // Info de desconexão durante jogo
+  disconnectVotes?: Record<string, boolean>;  // playerId -> true=encerrar
 }

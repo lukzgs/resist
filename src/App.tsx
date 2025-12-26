@@ -106,6 +106,7 @@ export default function App() {
     missionAction,
     setAnonymousVotes,
     restartGame,
+    disconnectVote,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -236,8 +237,11 @@ export default function App() {
       case 'RESTART_GAME':
         restartGame();
         break;
+      case 'DISCONNECT_VOTE':
+        disconnectVote(payload.endGame);
+        break;
     }
-  }, [selectPlayer, submitTeam, vote, missionAction, restartGame]);
+  }, [selectPlayer, submitTeam, vote, missionAction, restartGame, disconnectVote]);
 
   // Handler para voltar
   const handleBack = useCallback(() => {
