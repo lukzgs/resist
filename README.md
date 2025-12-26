@@ -1,4 +1,4 @@
-# 🤖 Skynet Infiltration Protocol
+# Skynet Infiltration Protocol
 
 > Um jogo multiplayer online inspirado em **The Resistance**, com temática de **Terminator**.
 
