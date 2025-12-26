@@ -35,10 +35,59 @@ export default class ResistServer implements Party.Server {
     // Mapa de jogadores desconectados pendentes de reconexão: playerId -> timeout
     disconnectedPlayers: Map<string, NodeJS.Timeout> = new Map();
 
+    // Timer para fechar sala após GAME_OVER
+    gameOverTimeout: NodeJS.Timeout | null = null;
+
     // Tempo de graça para reconexão (5 minutos)
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;
 
+    // Tempo até a sala fechar após GAME_OVER (3 minutos)
+    static readonly ROOM_EXPIRY_MS = 180000;
+
     constructor(public room: Party.Room) { }
+
+    // Agenda fechamento da sala após GAME_OVER
+    private scheduleRoomClosure() {
+        // Cancela timeout anterior se existir
+        if (this.gameOverTimeout) {
+            clearTimeout(this.gameOverTimeout);
+        }
+
+        const expiresAt = Date.now() + ResistServer.ROOM_EXPIRY_MS;
+        if (this.gameState) {
+            this.gameState.roomExpiresAt = expiresAt;
+        }
+
+        console.log(`[${this.room.id}] Sala expira em ${ResistServer.ROOM_EXPIRY_MS / 1000}s`);
+
+        this.gameOverTimeout = setTimeout(() => {
+            console.log(`[${this.room.id}] Tempo expirado - fechando sala`);
+
+            // Notifica todos os clientes
+            this.room.broadcast(JSON.stringify({ type: 'ROOM_CLOSED' } as ServerMessage));
+
+            // Desconecta todos
+            for (const conn of this.room.getConnections()) {
+                conn.close();
+            }
+
+            // Limpa estado
+            this.gameState = null;
+            this.connections.clear();
+            this.disconnectedPlayers.clear();
+        }, ResistServer.ROOM_EXPIRY_MS);
+    }
+
+    // Cancela o fechamento agendado da sala
+    private cancelRoomClosure() {
+        if (this.gameOverTimeout) {
+            clearTimeout(this.gameOverTimeout);
+            this.gameOverTimeout = null;
+        }
+        if (this.gameState) {
+            this.gameState.roomExpiresAt = undefined;
+        }
+    }
 
     // Cria estado inicial do jogo
     private createInitialState(roomCode: string): GameState {
@@ -313,9 +362,6 @@ export default class ResistServer implements Party.Server {
         // Registra voto
         this.gameState.missions[missionIndex].votes[player.id] = approve;
 
-        // Verifica se todos votaram
-        const voteCount = Object.keys(this.gameState.missions[missionIndex].votes).length;
-
         // Todos votaram?
         if (Object.keys(this.gameState.missions[missionIndex].votes).length === this.gameState.players.length) {
             const votes = Object.values(this.gameState.missions[missionIndex].votes);
@@ -334,6 +380,7 @@ export default class ResistServer implements Party.Server {
                     this.gameState.phase = Phase.GAME_OVER;
                     this.gameState.winner = Role.TERMINATOR;
                     this.addLog(`> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+                    this.scheduleRoomClosure();
                 } else {
                     this.gameState.phase = Phase.TEAM_SELECTION;
                     this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
@@ -392,10 +439,12 @@ export default class ResistServer implements Party.Server {
                 this.gameState.winner = Role.HUMAN;
                 this.gameState.phase = Phase.GAME_OVER;
                 this.addLog(`> RESISTÊNCIA VENCE!`);
+                this.scheduleRoomClosure();
             } else if (failures >= 3) {
                 this.gameState.winner = Role.TERMINATOR;
                 this.gameState.phase = Phase.GAME_OVER;
                 this.addLog(`> SKYNET PREVALECE!`);
+                this.scheduleRoomClosure();
             } else {
                 // Próxima missão
                 this.gameState.currentMissionIndex++;
@@ -461,6 +510,26 @@ export default class ResistServer implements Party.Server {
             }
         }
         this.connections.delete(conn.id);
+
+        // Limpa estado quando não há mais conexões ativas
+        if (this.connections.size === 0) {
+            console.log(`[${this.room.id}] Nenhuma conexão ativa - limpando estado da sala`);
+
+            // Cancela timeout de fechamento da sala se existir
+            if (this.gameOverTimeout) {
+                clearTimeout(this.gameOverTimeout);
+                this.gameOverTimeout = null;
+            }
+
+            // Cancela todos os timeouts de reconexão pendentes
+            for (const timeout of this.disconnectedPlayers.values()) {
+                clearTimeout(timeout);
+            }
+            this.disconnectedPlayers.clear();
+
+            // Limpa o estado do jogo
+            this.gameState = null;
+        }
     }
 
     // Quando recebe mensagem
@@ -499,6 +568,37 @@ export default class ResistServer implements Party.Server {
                             this.gameState.anonymousVotes = data.enabled;
                             this.addLog(`> Votos ${data.enabled ? 'anônimos' : 'públicos'}`);
                             this.broadcastState();
+                        }
+                    }
+                    break;
+                case 'RESTART_GAME':
+                    if (this.gameState && this.gameState.phase === Phase.GAME_OVER) {
+                        const playerId = this.connections.get(sender.id);
+                        const player = this.gameState.players.find(p => p.id === playerId);
+                        if (player?.isHost) {
+                            // Cancela o timeout de fechamento
+                            this.cancelRoomClosure();
+
+                            // Reseta para lobby mantendo jogadores
+                            this.gameState.phase = Phase.LOBBY;
+                            this.gameState.winner = null;
+                            this.gameState.leaderIndex = 0;
+                            this.gameState.currentMissionIndex = 0;
+                            this.gameState.missions = [];
+                            this.gameState.failedVoteCount = 0;
+                            this.gameState.proposedTeam = [];
+
+                            // Reseta roles dos jogadores
+                            this.gameState.players = this.gameState.players.map(p => ({
+                                ...p,
+                                role: Role.HUMAN,  // Será redistribuído ao iniciar
+                            }));
+
+                            this.addLog(`> NOVA PARTIDA INICIADA`);
+                            this.broadcastState();
+                            console.log(`[${this.room.id}] Jogo reiniciado pelo host`);
+                        } else {
+                            this.sendError(sender, 'Apenas o host pode reiniciar o jogo');
                         }
                     }
                     break;
