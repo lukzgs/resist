@@ -17,8 +17,8 @@ export default function LobbyView({ state, isHost, onAddAi, onRemove, onStart, o
     const canStart = pCount >= 5 && pCount <= 10;
 
     return (
-        <div className="min-h-screen overflow-y-auto pb-8">
-            <div className="flex flex-col items-center p-6 max-w-7xl mx-auto">
+        <div className="min-h-screen overflow-y-auto pb-8 flex items-center justify-center">
+            <div className="flex flex-col items-center p-6 max-w-7xl mx-auto w-full">
                 <div className="w-full grid lg:grid-cols-12 gap-8 items-stretch">
 
                     <div className="lg:col-span-4 flex flex-col gap-6">
