@@ -51,4 +51,5 @@ export interface GameState {
   logs: string[];
   winner: Role | null;
   anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
+  roomExpiresAt?: number;   // Timestamp de quando a sala fecha (após GAME_OVER)
 }

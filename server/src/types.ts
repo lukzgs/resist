@@ -45,6 +45,7 @@ export interface GameState {
     logs: string[];
     winner: Role | null;
     anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
+    roomExpiresAt?: number;   // Timestamp de quando a sala fecha (após GAME_OVER)
 }
 
 // Mensagens do cliente para o servidor
@@ -56,14 +57,16 @@ export type ClientMessage =
     | { type: 'SUBMIT_TEAM' }
     | { type: 'VOTE'; approve: boolean }
     | { type: 'MISSION_ACTION'; success: boolean }
-    | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean };
+    | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean }
+    | { type: 'RESTART_GAME' };
 
 // Mensagens do servidor para o cliente
 export type ServerMessage =
     | { type: 'STATE'; state: GameState }
     | { type: 'ERROR'; message: string }
     | { type: 'PLAYER_JOINED'; name: string }
-    | { type: 'PLAYER_LEFT'; name: string };
+    | { type: 'PLAYER_LEFT'; name: string }
+    | { type: 'ROOM_CLOSED' };
 
 // Regras do jogo por número de jogadores
 export const GAME_RULES: Record<number, { spyCount: number; missionSizes: number[]; twoFailsRequiredRound4?: boolean }> = {
