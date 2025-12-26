@@ -17,6 +17,27 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const me = state.players.find(function (p) { return p.name === playerName; });
   const isLeader = state.players[state.leaderIndex].name === playerName;
 
+  // Estado para guardar o último resultado de votação (para mostrar após todos votarem)
+  const [lastVoteResult, setLastVoteResult] = useState<{ approvals: number; rejections: number; approved: boolean } | null>(null);
+  const lastPhase = useRef(state.phase);
+
+  // Captura resultado da votação quando a fase muda de TEAM_VOTE para outra
+  React.useEffect(() => {
+    if (lastPhase.current === Phase.TEAM_VOTE && state.phase !== Phase.TEAM_VOTE) {
+      const currentMission = state.missions[state.currentMissionIndex];
+      const votes = Object.values(currentMission.votes) as boolean[];
+      const approvals = votes.filter(v => v === true).length;
+      const rejections = votes.filter(v => v === false).length;
+      const approved = approvals > rejections;
+      setLastVoteResult({ approvals, rejections, approved });
+    }
+    // Limpa resultado quando começa nova votação
+    if (state.phase === Phase.TEAM_VOTE && lastPhase.current !== Phase.TEAM_VOTE) {
+      setLastVoteResult(null);
+    }
+    lastPhase.current = state.phase;
+  }, [state.phase, state.currentMissionIndex, state.missions]);
+
   // Estado para posição e tamanho do log arrastável
   const [logPosition, setLogPosition] = useState({ x: 16, y: 100 });
   const [logDimensions, setLogDimensions] = useState({ width: 280, height: 160 });
@@ -175,7 +196,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                   isLeader={i === state.leaderIndex}
                   isInTeam={state.proposedTeam.includes(p.id)}
                   showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
-                  vote={state.phase === Phase.TEAM_VOTE ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
+                  vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
                   isDisconnected={p.disconnected}
                   isMe={p.name === playerName}
                 />
@@ -198,7 +219,21 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
             <PhaseControls state={state} me={me} sendAction={sendAction} />
           </div>
 
-          <div className="mt-8 pt-6 border-t border-white/5">
+          <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+            {/* Resultado da última votação (modo anônimo) */}
+            {lastVoteResult && state.anonymousVotes && (
+              <div className="flex items-center justify-center gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/10">
+                <span className="text-xs font-mono text-slate-500 uppercase">Última votação:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-display font-black text-resistance">{lastVoteResult.approvals}</span>
+                  <span className="text-xs text-slate-400">×</span>
+                  <span className="text-lg font-display font-black text-spy">{lastVoteResult.rejections}</span>
+                </div>
+                <span className={`text-xs font-mono uppercase font-bold ${lastVoteResult.approved ? 'text-green-400' : 'text-red-400'}`}>
+                  {lastVoteResult.approved ? 'Aprovado' : 'Rejeitado'}
+                </span>
+              </div>
+            )}
             <VoteTracker failedVotes={state.failedVoteCount} />
           </div>
         </div>
@@ -321,13 +356,26 @@ function PhaseControls({ state, me, sendAction }: any) {
     const hasVoted = currentMission.votes[me?.id] !== undefined || pendingVote !== null;
 
     if (hasVoted) {
+      // Conta quantos votaram
+      const totalVotes = Object.keys(currentMission.votes).length;
+      const totalPlayers = state.players.length;
+      const remaining = totalPlayers - totalVotes;
+
       // Mostra tela de aguardando outros jogadores
       return (
-        <div className="flex flex-col items-center gap-4 opacity-60">
+        <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
           </div>
           <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Aguardando votos dos outros agentes...</p>
+
+          {/* Mostra apenas quantos faltam votar */}
+          {remaining > 0 && (
+            <div className="flex items-center gap-2 mt-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10">
+              <span className="text-lg font-display font-black text-slate-400">{remaining}</span>
+              <span className="text-xs font-mono text-slate-500 uppercase">agente{remaining > 1 ? 's' : ''} pendente{remaining > 1 ? 's' : ''}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -423,7 +471,7 @@ function PhaseControls({ state, me, sendAction }: any) {
           </p>
         </div>
         <button
-          onClick={function () { window.location.reload(); }}
+          onClick={function () { sessionStorage.clear(); window.location.reload(); }}
           className="bg-white/5 text-slate-400 px-8 py-2 rounded-full font-mono text-sm uppercase font-black tracking-[0.4em] hover:bg-white/10 hover:text-white transition-all border border-white/10 mt-4"
         >
           {'>> New_Timeline_Sync <<'}
