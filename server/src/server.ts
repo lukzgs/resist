@@ -25,6 +25,20 @@ function shuffle<T>(array: T[]): T[] {
     return arr;
 }
 
+// Gera UUID seguro (compatível com diversos ambientes)
+function generateUUID(): string {
+    // Tenta usar crypto nativo (Node.js 19+, Cloudflare Workers, Browsers)
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+        return crypto.randomUUID();
+    }
+
+    // Fallback para ambientes antigos ou restritos
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 export default class ResistServer implements Party.Server {
     // Estado do jogo
     gameState: GameState | null = null;
@@ -701,7 +715,7 @@ export default class ResistServer implements Party.Server {
         }
 
         // Gera novo sessionId seguro
-        const newSessionId = crypto.randomUUID();
+        const newSessionId = generateUUID();
 
         // Cria novo jogador
         const isFirstPlayer = this.gameState.players.length === 0;
@@ -715,20 +729,31 @@ export default class ResistServer implements Party.Server {
             disconnected: false,
         };
 
+        console.log(`[${this.room.id}] Criando novo jogador: ${name}`);
+
         // Envia confirmação de sessão segura
-        conn.send(JSON.stringify({
-            type: 'SESSION_ESTABLISHED',
-            sessionId: newSessionId,
-            playerId: newPlayer.id
-        } as ServerMessage));
+        try {
+            conn.send(JSON.stringify({
+                type: 'SESSION_ESTABLISHED',
+                sessionId: newSessionId,
+                playerId: newPlayer.id
+            } as ServerMessage));
+        } catch (e) {
+            console.error(`[${this.room.id}] Erro ao enviar SESSION_ESTABLISHED:`, e);
+        }
 
         // Registra conexão e adiciona jogador
         this.connections.set(conn.id, newPlayer.id);
         this.gameState.players.push(newPlayer);
         this.addLog(`> ${name} conectou`);
 
-        // Broadcast para todos
+        // Broadcast para todos (incluindo o novo jogador, teoricamente)
         this.broadcastState();
+
+        // GARANTIA: Envia estado explicitamente para o novo jogador
+        // Isso resolve casos onde o broadcast pode falhar ou ter race condition
+        const stateMsg: ServerMessage = { type: 'STATE', state: this.gameState };
+        conn.send(JSON.stringify(stateMsg));
 
         // Notifica entrada
         this.room.broadcast(JSON.stringify({ type: 'PLAYER_JOINED', name } as ServerMessage));

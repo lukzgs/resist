@@ -68,3 +68,27 @@ export interface GameState {
   disconnectInfo?: DisconnectInfo;  // Info de desconexão durante jogo
   disconnectVotes?: Record<string, boolean>;  // playerId -> true=encerrar
 }
+
+// Mensagens do cliente para o servidor
+export type ClientMessage =
+  | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string }
+  | { type: 'REMOVE_PLAYER' }
+  | { type: 'START_GAME' }
+  | { type: 'SELECT_PLAYER'; playerId: string }
+  | { type: 'SUBMIT_TEAM' }
+  | { type: 'VOTE'; approve: boolean }
+  | { type: 'MISSION_ACTION'; success: boolean }
+  | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean }
+  | { type: 'RESTART_GAME' }
+  | { type: 'DISCONNECT_VOTE'; endGame: boolean }
+  | { type: 'ADD_BOT' }
+  | { type: 'REMOVE_BOT'; playerId: string };
+
+// Mensagens do servidor para o cliente
+export type ServerMessage =
+  | { type: 'STATE'; state: GameState }
+  | { type: 'ERROR'; message: string }
+  | { type: 'PLAYER_JOINED'; name: string }
+  | { type: 'PLAYER_LEFT'; name: string }
+  | { type: 'ROOM_CLOSED' }
+  | { type: 'SESSION_ESTABLISHED'; sessionId: string; playerId: string };

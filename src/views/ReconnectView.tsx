@@ -95,7 +95,7 @@ export default function ReconnectView({
 
                 <div className="pt-4">
                     <p className="text-xs font-mono text-slate-600 uppercase tracking-widest">
-                        {isConnecting ? 'Uplink em progresso...' : 'Pronto para reconexão'}
+                        {isConnecting ? 'Uplink em progresso...' : 'Pronto para reconectar'}
                     </p>
                 </div>
             </div>

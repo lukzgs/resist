@@ -117,6 +117,11 @@ export default function App() {
     avatarSeed,
     onStateUpdate: (state) => {
       setGameState(state);
+      // Limpa notificações de "conectando"
+      if (view !== 'GAME' && view !== 'LOBBY' && view !== 'RECONNECT') {
+        setNotification(null);
+      }
+
       // Navega para a view correta baseado na fase
       if (state.phase === Phase.LOBBY) {
         setView('LOBBY');
