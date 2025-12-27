@@ -20,13 +20,8 @@ interface StoredSession {
     playerName: string;
 }
 
-// Gera um ID de sessão único
-function generateSessionId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// Recupera ou cria sessão do localStorage
-function getOrCreateSession(roomCode: string, playerName: string): string {
+// Recupera sessão do localStorage
+function getStoredSessionId(roomCode: string, playerName: string): string | undefined {
     try {
         const stored = localStorage.getItem(SESSION_STORAGE_KEY);
         if (stored) {
@@ -39,16 +34,7 @@ function getOrCreateSession(roomCode: string, playerName: string): string {
     } catch (e) {
         console.warn('[Session] Erro ao ler sessão:', e);
     }
-
-    // Cria nova sessão
-    const newSessionId = generateSessionId();
-    const newSession: StoredSession = { sessionId: newSessionId, roomCode, playerName };
-    try {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
-    } catch (e) {
-        console.warn('[Session] Erro ao salvar sessão:', e);
-    }
-    return newSessionId;
+    return undefined;
 }
 
 // Limpa sessão do localStorage (exportada para uso externo)
@@ -171,10 +157,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 setReconnectAttempt(0);
                 onConnectionChange?.('connected');
 
-                // Gera ou recupera sessionId do localStorage
-                const sessionId = getOrCreateSession(currentRoomCode, currentPlayerName);
+                // Tenta recuperar sessão existente
+                const sessionId = getStoredSessionId(currentRoomCode, currentPlayerName);
 
-                // Envia JOIN ao conectar com sessionId
+                // Envia JOIN (se tiver sessionId, o servidor tenta reconectar; se não, cria nova)
                 socket.send(JSON.stringify({
                     type: 'JOIN',
                     name: currentPlayerName,
@@ -204,6 +190,20 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                             shouldReconnectRef.current = false;  // Impede reconexão
                             clearSession();  // Limpa sessão do localStorage
                             onRoomClosed?.();
+                            break;
+                        case 'SESSION_ESTABLISHED':
+                            // Recebe crachá oficial do servidor e salva
+                            try {
+                                const sessionData: StoredSession = {
+                                    sessionId: (data as any).sessionId,
+                                    roomCode: lastRoomCodeRef.current,
+                                    playerName: lastPlayerNameRef.current
+                                };
+                                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+                                console.log('[Session] Sessão segura estabelecida');
+                            } catch (e) {
+                                console.error('[Session] Erro ao salvar sessão segura:', e);
+                            }
                             break;
                     }
                 } catch (err) {

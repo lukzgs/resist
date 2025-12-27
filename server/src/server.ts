@@ -646,15 +646,12 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Tenta reconexão por sessionId primeiro (mais seguro)
-        let existingPlayer = sessionId
+        // Tenta reconexão EXCLUSIVAMENTE por sessionId (segurança contra spoofing)
+        const existingPlayer = sessionId
             ? this.gameState.players.find(p => p.sessionId === sessionId)
             : null;
 
-        // Se não encontrou por sessionId, tenta por nome (fallback)
-        if (!existingPlayer) {
-            existingPlayer = this.gameState.players.find(p => p.name === name);
-        }
+        // REMOVIDO: Fallback por nome (inseguro)
 
         if (existingPlayer) {
             // Cancela timeout de remoção se existir
@@ -697,11 +694,14 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Verifica se jogo já começou
-        if (this.gameState.phase !== Phase.LOBBY) {
-            this.sendError(conn, 'Jogo já em andamento');
+        // Verifica se nome está em uso
+        if (this.gameState.players.some(p => p.name === name)) {
+            this.sendError(conn, 'Nome já em uso');
             return;
         }
+
+        // Gera novo sessionId seguro
+        const newSessionId = crypto.randomUUID();
 
         // Cria novo jogador
         const isFirstPlayer = this.gameState.players.length === 0;
@@ -711,9 +711,16 @@ export default class ResistServer implements Party.Server {
             role: Role.HUMAN, // Será definido ao iniciar
             isHost: isFirstPlayer,
             avatarSeed,
-            sessionId,          // Armazena sessionId para reconexão futura
+            sessionId: newSessionId,
             disconnected: false,
         };
+
+        // Envia confirmação de sessão segura
+        conn.send(JSON.stringify({
+            type: 'SESSION_ESTABLISHED',
+            sessionId: newSessionId,
+            playerId: newPlayer.id
+        } as ServerMessage));
 
         // Registra conexão e adiciona jogador
         this.connections.set(conn.id, newPlayer.id);

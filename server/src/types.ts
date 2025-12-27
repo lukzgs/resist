@@ -84,7 +84,8 @@ export type ServerMessage =
     | { type: 'ERROR'; message: string }
     | { type: 'PLAYER_JOINED'; name: string }
     | { type: 'PLAYER_LEFT'; name: string }
-    | { type: 'ROOM_CLOSED' };
+    | { type: 'ROOM_CLOSED' }
+    | { type: 'SESSION_ESTABLISHED'; sessionId: string; playerId: string };
 
 // Regras do jogo por número de jogadores
 export const GAME_RULES: Record<number, { spyCount: number; missionSizes: number[]; twoFailsRequiredRound4?: boolean }> = {
