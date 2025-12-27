@@ -349,8 +349,6 @@ export default class ResistServer implements Party.Server {
         this.gameState.players.push(bot);
         this.addLog(`> [BOT] ${botName} adicionado`);
         this.broadcastState();
-
-        console.log(`[${this.room.id}] Bot adicionado: ${botName}`);
     }
 
     // Remove um bot da sala

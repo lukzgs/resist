@@ -55,7 +55,6 @@ function getOrCreateSession(roomCode: string, playerName: string): string {
 export function clearSession() {
     try {
         localStorage.removeItem(SESSION_STORAGE_KEY);
-        console.log('[Session] Sessão limpa');
     } catch (e) {
         console.warn('[Session] Erro ao limpar sessão:', e);
     }

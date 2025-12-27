@@ -5,6 +5,7 @@ import HomeView from './views/HomeView';
 import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
 import GameView from './views/GameView';
+import ReconnectView from './views/ReconnectView';
 
 // Componente de Toast para notificações na tela
 function Toast({ message, type, onClose }: { message: string; type: 'error' | 'info' | 'success'; onClose: () => void }) {
@@ -79,13 +80,16 @@ export default function App() {
   const storedSession = getStoredSession();
   const isRestoringSession = React.useRef(!!storedSession); // Track if we started from a stored session
 
-  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME'>(storedSession ? 'LOBBY' : 'HOME');
+  // Se há sessão salva, vai para RECONNECT em vez de conectar automaticamente
+  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT'>(storedSession ? 'RECONNECT' : 'HOME');
   const [playerName, setPlayerName] = useState(storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999));
   const [avatarSeed] = useState(storedSession?.avatarSeed || Math.floor(Math.random() * 9000));
-  const [roomCode, setRoomCode] = useState(storedSession?.roomCode || '');
+  const [roomCode, setRoomCode] = useState(''); // NÃO inicia com roomCode salvo - espera usuário clicar
+  const [savedRoomCode] = useState(storedSession?.roomCode || ''); // Guarda para exibir na tela
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'info' | 'success' } | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
+  const [reconnectError, setReconnectError] = useState<string | null>(null);
 
   const showNotification = useCallback((message: string, type: 'error' | 'info' | 'success' = 'info') => {
     setNotification({ message, type });
@@ -137,13 +141,8 @@ export default function App() {
         showNotification('Conexão perdida. Reconectando...', 'info');
       } else if (status === 'connected' && connectionStatus === 'reconnecting') {
         showNotification('Conexão restabelecida!', 'success');
-      } else if (status === 'disconnected' && storedSession && !gameState) {
-        // Tentou reconectar mas não conseguiu e não tem gameState = sala não existe mais
-        clearAppSession();
-        setRoomCode('');
-        setView('HOME');
-        showNotification('Sala não encontrada. Crie ou entre em uma nova sala.', 'error');
       }
+      // NÃO limpar sessão aqui - permite tentar reconexão ao recarregar página
     },
     onRoomClosed: () => {
       clearAppSession();
@@ -189,21 +188,20 @@ export default function App() {
     }
   }, [isConnected, roomCode, playerName, avatarSeed]);
 
-  // Timeout para detectar conexão travada - se 5s sem gameState, volta para HOME
+  // Timeout para detectar conexão travada - se 15s sem gameState, mostra erro
   useEffect(() => {
-    // Só ativa timeout quando está tentando restaurar uma sessão (tem roomCode mas sem gameState)
-    if ((isConnecting || isConnected) && !gameState && roomCode) {
+    // Só ativa timeout quando está tentando reconectar (tem roomCode mas sem gameState)
+    if ((isConnecting || isConnected) && !gameState && roomCode && view === 'RECONNECT') {
       const timeout = setTimeout(() => {
         // Ainda sem gameState = sala vazia ou inexistente
-        // NÃO limpa sessão do localStorage - permite tentar novamente ao recarregar
         disconnect();
         setRoomCode('');
-        setView('HOME');
-        showNotification('Não foi possível reconectar. Tente novamente.', 'error');
-      }, 5000);
+        setReconnectError('Não foi possível reconectar. A sala pode não existir mais.');
+        clearAppSession(); // Limpa sessão pois a sala não existe
+      }, 15000);
       return () => clearTimeout(timeout);
     }
-  }, [isConnecting, isConnected, gameState, roomCode, disconnect, showNotification]);
+  }, [isConnecting, isConnected, gameState, roomCode, view, disconnect]);
 
   // Quando recebe gameState, não está mais restaurando
   useEffect(() => {
@@ -255,6 +253,24 @@ export default function App() {
     setView('HOME');
   }, [disconnect]);
 
+  // Handler para tentar reconectar
+  const handleReconnect = useCallback(() => {
+    if (savedRoomCode) {
+      setReconnectError(null);
+      setRoomCode(savedRoomCode); // Isso vai disparar o connect() via useEffect
+    }
+  }, [savedRoomCode]);
+
+  // Handler para voltar da tela de reconexão
+  const handleBackFromReconnect = useCallback(() => {
+    disconnect();
+    clearAppSession();
+    setRoomCode('');
+    setGameState(null);
+    setReconnectError(null);
+    setView('HOME');
+  }, [disconnect]);
+
   return (
     <div className="min-h-screen bg-dark text-slate-200 font-sans selection:bg-resistance selection:text-white">
       {/* Sistema de notificações */}
@@ -266,8 +282,8 @@ export default function App() {
         />
       )}
 
-      {/* Overlay de loading durante conexão */}
-      {isConnecting && (
+      {/* Overlay de loading durante conexão (não mostra na tela RECONNECT) */}
+      {isConnecting && view !== 'RECONNECT' && (
         <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 border-4 border-resistance border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -317,6 +333,17 @@ export default function App() {
       )}
 
       {view === 'HOME' && <HomeView onNavigate={setView} />}
+
+      {view === 'RECONNECT' && (
+        <ReconnectView
+          roomCode={savedRoomCode}
+          playerName={playerName}
+          onReconnect={handleReconnect}
+          onBackToMenu={handleBackFromReconnect}
+          isConnecting={isConnecting}
+          error={reconnectError}
+        />
+      )}
 
       {(view === 'CREATE' || view === 'JOIN') && (
         <SetupView
