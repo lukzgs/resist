@@ -76,8 +76,6 @@ interface UsePartySocketReturn {
     setAnonymousVotes: (enabled: boolean) => void;
     restartGame: () => void;
     disconnectVote: (endGame: boolean) => void;
-    addBot: () => void;
-    removeBot: (playerId: string) => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {
@@ -318,14 +316,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'DISCONNECT_VOTE', endGame });
     }, [send]);
 
-    const addBot = useCallback(() => {
-        send({ type: 'ADD_BOT' });
-    }, [send]);
-
-    const removeBot = useCallback((playerId: string) => {
-        send({ type: 'REMOVE_BOT', playerId });
-    }, [send]);
-
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
@@ -354,7 +344,5 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         setAnonymousVotes,
         restartGame,
         disconnectVote,
-        addBot,
-        removeBot,
     };
 }

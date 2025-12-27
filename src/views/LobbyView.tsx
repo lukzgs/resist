@@ -9,11 +9,9 @@ interface Props {
     onStart: () => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onBack: () => void;
-    onAddBot: () => void;
-    onRemoveBot: (playerId: string) => void;
 }
 
-export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onBack, onAddBot, onRemoveBot }: Props) {
+export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onBack }: Props) {
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
 
@@ -70,19 +68,6 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!state.anonymousVotes ? 'left-7' : 'left-1'}`}></div>
                                     </div>
                                 </label>
-
-                                {/* Botão de adicionar bot */}
-                                <button
-                                    onClick={onAddBot}
-                                    disabled={pCount >= 10}
-                                    className={`w-full py-3 px-4 rounded-xl border font-mono text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${pCount < 10
-                                            ? 'border-resistance/30 bg-resistance/10 text-resistance hover:bg-resistance/20'
-                                            : 'border-slate-700 bg-slate-800/50 text-slate-600 cursor-not-allowed'
-                                        }`}
-                                >
-                                    <span>🤖</span>
-                                    <span>Adicionar Bot</span>
-                                </button>
                             </div>
                         )}
                     </div>
@@ -107,23 +92,12 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                         <div className="ml-4 overflow-hidden flex-1">
                                             <div className="text-sm font-bold text-white uppercase tracking-wider truncate flex items-center gap-2">
                                                 {p.name}
-                                                {p.isBot && <span className="text-[10px] text-slate-500 font-mono bg-slate-800 px-1 rounded">BOT</span>}
                                             </div>
                                             <div className="text-xs font-mono text-slate-500 flex items-center gap-2">
                                                 <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
-                                                {p.isBot ? 'CPU' : (p.disconnected ? 'OFFLINE' : 'VITAL_OK')}
+                                                {p.disconnected ? 'OFFLINE' : 'VITAL_OK'}
                                             </div>
                                         </div>
-                                        {/* Botão de remover bot (apenas host) */}
-                                        {isHost && p.isBot && (
-                                            <button
-                                                onClick={() => onRemoveBot(p.id)}
-                                                className="shrink-0 w-6 h-6 rounded-full bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 transition-colors flex items-center justify-center text-red-400 text-xs"
-                                                title="Remover bot"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
                                     </div>
                                 ))}
                             </div>

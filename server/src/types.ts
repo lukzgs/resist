@@ -23,7 +23,6 @@ export interface Player {
     avatarSeed: number;
     sessionId?: string;      // ID persistente para reconexão
     disconnected?: boolean;  // true se jogador está offline
-    isBot?: boolean;         // true se é um bot
 }
 
 export interface Mission {
@@ -74,9 +73,7 @@ export type ClientMessage =
     | { type: 'MISSION_ACTION'; success: boolean }
     | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean }
     | { type: 'RESTART_GAME' }
-    | { type: 'DISCONNECT_VOTE'; endGame: boolean }
-    | { type: 'ADD_BOT' }
-    | { type: 'REMOVE_BOT'; playerId: string };
+    | { type: 'DISCONNECT_VOTE'; endGame: boolean };
 
 // Mensagens do servidor para o cliente
 export type ServerMessage =

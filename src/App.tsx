@@ -109,8 +109,6 @@ export default function App() {
     setAnonymousVotes,
     restartGame,
     disconnectVote,
-    addBot,
-    removeBot,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -349,8 +347,6 @@ export default function App() {
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}
           onBack={handleBack}
-          onAddBot={addBot}
-          onRemoveBot={removeBot}
         />
       )}
 
