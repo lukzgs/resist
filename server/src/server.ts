@@ -44,6 +44,12 @@ export default class ResistServer implements Party.Server {
     // Timer para votação de desconexão
     disconnectVoteTimer: NodeJS.Timeout | null = null;
 
+    // Timer para limpeza da sala quando vazia
+    roomCleanupTimeout: NodeJS.Timeout | null = null;
+
+    // Tempo para limpar sala vazia (2 minutos) - permite reconexão se todos caírem
+    static readonly EMPTY_ROOM_CLEANUP_MS = 120000;
+
     // Tempo de graça para reconexão (5 minutos)
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;
 
@@ -620,6 +626,13 @@ export default class ResistServer implements Party.Server {
 
     // Processa JOIN
     private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string) {
+        // Cancela timeout de limpeza da sala se cliente está reconectando
+        if (this.roomCleanupTimeout) {
+            console.log(`[${this.room.id}] Cliente reconectando - cancelando limpeza da sala`);
+            clearTimeout(this.roomCleanupTimeout);
+            this.roomCleanupTimeout = null;
+        }
+
         // Inicializa estado se necessário
         if (!this.gameState) {
             this.gameState = this.createInitialState(this.room.id);
@@ -1012,27 +1025,36 @@ export default class ResistServer implements Party.Server {
         }
         this.connections.delete(conn.id);
 
-        // Limpa estado quando não há mais conexões ativas
-        if (this.connections.size === 0) {
-            console.log(`[${this.room.id}] Nenhuma conexão ativa - limpando estado da sala`);
+        // Quando não há mais conexões ativas, espera 2 minutos antes de limpar
+        // Isso permite que todos reconectem se caírem simultaneamente
+        if (this.connections.size === 0 && !this.roomCleanupTimeout) {
+            console.log(`[${this.room.id}] Nenhuma conexão ativa - aguardando ${ResistServer.EMPTY_ROOM_CLEANUP_MS / 1000}s antes de limpar...`);
 
-            // Cancela timeout de fechamento da sala se existir
-            if (this.gameOverTimeout) {
-                clearTimeout(this.gameOverTimeout);
-                this.gameOverTimeout = null;
-            }
+            this.roomCleanupTimeout = setTimeout(() => {
+                // Verifica novamente se não há conexões
+                if (this.connections.size === 0) {
+                    console.log(`[${this.room.id}] Sem reconexão - limpando estado da sala`);
 
-            // Cancela timers de desconexão
-            this.cancelDisconnectTimers();
+                    // Cancela timeout de fechamento da sala se existir
+                    if (this.gameOverTimeout) {
+                        clearTimeout(this.gameOverTimeout);
+                        this.gameOverTimeout = null;
+                    }
 
-            // Cancela todos os timeouts de reconexão pendentes
-            for (const timeout of this.disconnectedPlayers.values()) {
-                clearTimeout(timeout);
-            }
-            this.disconnectedPlayers.clear();
+                    // Cancela timers de desconexão
+                    this.cancelDisconnectTimers();
 
-            // Limpa o estado do jogo
-            this.gameState = null;
+                    // Cancela todos os timeouts de reconexão pendentes
+                    for (const timeout of this.disconnectedPlayers.values()) {
+                        clearTimeout(timeout);
+                    }
+                    this.disconnectedPlayers.clear();
+
+                    // Limpa o estado do jogo
+                    this.gameState = null;
+                }
+                this.roomCleanupTimeout = null;
+            }, ResistServer.EMPTY_ROOM_CLEANUP_MS);
         }
     }
 
