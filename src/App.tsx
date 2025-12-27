@@ -98,8 +98,6 @@ export default function App() {
   const {
     isConnected,
     isConnecting,
-    isReconnecting,
-    reconnectAttempt,
     connect,
     disconnect,
     removePlayer,
@@ -300,24 +298,6 @@ export default function App() {
             >
               Cancelar
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Overlay de reconexão */}
-      {isReconnecting && (
-        <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center">
-          <div className="text-center space-y-4 max-w-sm mx-auto p-8">
-            <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="font-mono text-lg text-yellow-500 uppercase tracking-widest animate-pulse">Reconectando...</p>
-            <p className="font-mono text-sm text-slate-400">Tentativa {reconnectAttempt} de 10</p>
-            <div className="w-full bg-slate-800 rounded-full h-2 mt-4">
-              <div
-                className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(reconnectAttempt / 10) * 100}%` }}
-              ></div>
-            </div>
-            <p className="font-mono text-xs text-slate-500 mt-4">Não feche esta página. Tentando restabelecer conexão...</p>
           </div>
         </div>
       )}
