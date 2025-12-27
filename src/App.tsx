@@ -189,18 +189,18 @@ export default function App() {
     }
   }, [isConnected, roomCode, playerName, avatarSeed]);
 
-  // Timeout para detectar conexão travada - se 8s sem gameState, volta para HOME
+  // Timeout para detectar conexão travada - se 5s sem gameState, volta para HOME
   useEffect(() => {
     // Só ativa timeout quando está tentando restaurar uma sessão (tem roomCode mas sem gameState)
     if ((isConnecting || isConnected) && !gameState && roomCode) {
       const timeout = setTimeout(() => {
         // Ainda sem gameState = sala vazia ou inexistente
-        clearAppSession();
+        // NÃO limpa sessão do localStorage - permite tentar novamente ao recarregar
         disconnect();
         setRoomCode('');
         setView('HOME');
-        showNotification('Sala não encontrada ou expirada.', 'error');
-      }, 8000);
+        showNotification('Não foi possível reconectar. Tente novamente.', 'error');
+      }, 5000);
       return () => clearTimeout(timeout);
     }
   }, [isConnecting, isConnected, gameState, roomCode, disconnect, showNotification]);

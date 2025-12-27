@@ -33,7 +33,6 @@ function getOrCreateSession(roomCode: string, playerName: string): string {
             const session: StoredSession = JSON.parse(stored);
             // Se é a mesma sala e jogador, retorna sessionId existente
             if (session.roomCode === roomCode && session.playerName === playerName) {
-                console.log('[Session] Sessão recuperada:', session.sessionId);
                 return session.sessionId;
             }
         }
@@ -46,7 +45,6 @@ function getOrCreateSession(roomCode: string, playerName: string): string {
     const newSession: StoredSession = { sessionId: newSessionId, roomCode, playerName };
     try {
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
-        console.log('[Session] Nova sessão criada:', newSessionId);
     } catch (e) {
         console.warn('[Session] Erro ao salvar sessão:', e);
     }
@@ -146,7 +144,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
     // Função principal de conexão
     const connect = useCallback(() => {
         if (socketRef.current) {
-            console.log('Já existe uma conexão ativa');
             return;
         }
 
@@ -155,7 +152,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         const currentAvatarSeed = lastAvatarSeedRef.current;
 
         if (!currentRoomCode) {
-            console.log('Código da sala não definido');
             return;
         }
 
@@ -164,15 +160,12 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         onConnectionChange?.('connecting');
 
         try {
-            console.log(`[WS] Conectando à sala ${currentRoomCode}...`);
-
             const socket = new PartySocket({
                 host: PARTYKIT_HOST,
                 room: currentRoomCode,
             });
 
             socket.addEventListener('open', () => {
-                console.log('[WS] Conectado!');
                 setIsConnected(true);
                 setIsConnecting(false);
                 setIsReconnecting(false);
@@ -264,7 +257,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
 
     // Desconecta (não limpa sessão - permite reconexão)
     const disconnect = useCallback(() => {
-        console.log('[WS] Desconectando...');
         shouldReconnectRef.current = false;
         clearReconnectTimeout();
         // NÃO limpa sessão aqui - permite reconexão automática
