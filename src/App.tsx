@@ -43,10 +43,10 @@ interface AppSession {
   avatarSeed: number;
 }
 
-// Recupera sessão do sessionStorage (por aba)
+// Recupera sessão do localStorage (persiste ao atualizar)
 function getStoredSession(): AppSession | null {
   try {
-    const stored = sessionStorage.getItem(APP_SESSION_KEY);
+    const stored = localStorage.getItem(APP_SESSION_KEY);
     if (stored) {
       return JSON.parse(stored);
     }
@@ -56,19 +56,19 @@ function getStoredSession(): AppSession | null {
   return null;
 }
 
-// Salva sessão no sessionStorage (por aba)
+// Salva sessão no localStorage (persiste ao atualizar)
 function saveSession(session: AppSession) {
   try {
-    sessionStorage.setItem(APP_SESSION_KEY, JSON.stringify(session));
+    localStorage.setItem(APP_SESSION_KEY, JSON.stringify(session));
   } catch (e) {
     console.warn('[App] Erro ao salvar sessão:', e);
   }
 }
 
-// Limpa sessão do sessionStorage
+// Limpa sessão do localStorage
 function clearAppSession() {
   try {
-    sessionStorage.removeItem(APP_SESSION_KEY);
+    localStorage.removeItem(APP_SESSION_KEY);
   } catch (e) {
     console.warn('[App] Erro ao limpar sessão:', e);
   }
