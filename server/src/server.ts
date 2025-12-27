@@ -59,6 +59,19 @@ export default class ResistServer implements Party.Server {
     // Máximo de tentativas de espera
     static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
+    // Nomes de bots
+    static readonly BOT_NAMES = [
+        'T-800', 'T-1000', 'T-X', 'Marcus_Wright', 'Cameron',
+        'John_Henry', 'Cromartie', 'Weaver', 'Skynet_Core', 'HK-47'
+    ];
+
+    // Delay para ações de bots (ms) - entre 1 e 3 segundos
+    static readonly BOT_ACTION_DELAY_MIN = 1000;
+    static readonly BOT_ACTION_DELAY_MAX = 3000;
+
+    // Contador de bots criados
+    botCounter: number = 0;
+
     constructor(public room: Party.Room) { }
 
     // Agenda fechamento da sala após GAME_OVER
@@ -295,6 +308,299 @@ export default class ResistServer implements Party.Server {
         }
     }
 
+    // Retorna delay aleatório para ação de bot
+    private getBotDelay(): number {
+        return Math.floor(
+            Math.random() * (ResistServer.BOT_ACTION_DELAY_MAX - ResistServer.BOT_ACTION_DELAY_MIN) +
+            ResistServer.BOT_ACTION_DELAY_MIN
+        );
+    }
+
+    // Adiciona um bot à sala
+    private handleAddBot(conn: Party.Connection) {
+        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
+
+        const player = this.getPlayerByConnection(conn.id);
+        if (!player?.isHost) {
+            this.sendError(conn, 'Apenas o host pode adicionar bots');
+            return;
+        }
+
+        if (this.gameState.players.length >= 10) {
+            this.sendError(conn, 'Sala cheia (máximo 10 jogadores)');
+            return;
+        }
+
+        // Escolhe nome do bot
+        const botIndex = this.botCounter % ResistServer.BOT_NAMES.length;
+        const botName = ResistServer.BOT_NAMES[botIndex];
+        this.botCounter++;
+
+        const bot: Player = {
+            id: generateId(),
+            name: botName,
+            role: Role.HUMAN, // Será definido ao iniciar
+            isHost: false,
+            avatarSeed: Math.floor(Math.random() * 9000) + 1000,
+            isBot: true,
+            disconnected: false,
+        };
+
+        this.gameState.players.push(bot);
+        this.addLog(`> [BOT] ${botName} adicionado`);
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Bot adicionado: ${botName}`);
+    }
+
+    // Remove um bot da sala
+    private handleRemoveBot(conn: Party.Connection, playerId: string) {
+        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
+
+        const player = this.getPlayerByConnection(conn.id);
+        if (!player?.isHost) {
+            this.sendError(conn, 'Apenas o host pode remover bots');
+            return;
+        }
+
+        const botIndex = this.gameState.players.findIndex(p => p.id === playerId && p.isBot);
+        if (botIndex === -1) {
+            this.sendError(conn, 'Bot não encontrado');
+            return;
+        }
+
+        const bot = this.gameState.players[botIndex];
+        this.gameState.players.splice(botIndex, 1);
+        this.addLog(`> [BOT] ${bot.name} removido`);
+        this.broadcastState();
+
+        console.log(`[${this.room.id}] Bot removido: ${bot.name}`);
+    }
+
+    // Agenda ações de bots para a fase atual
+    private scheduleBotsAction() {
+        if (!this.gameState) return;
+
+        const bots = this.gameState.players.filter(p => p.isBot && !p.disconnected);
+        if (bots.length === 0) return;
+
+        // Agenda ação de cada bot com delay aleatório
+        for (const bot of bots) {
+            setTimeout(() => {
+                this.executeBotAction(bot.id);
+            }, this.getBotDelay());
+        }
+    }
+
+    // Executa ação do bot baseado na fase atual
+    private executeBotAction(botId: string) {
+        if (!this.gameState) return;
+
+        const bot = this.gameState.players.find(p => p.id === botId);
+        if (!bot || !bot.isBot) return;
+
+        const phase = this.gameState.phase;
+        const currentMission = this.gameState.missions[this.gameState.currentMissionIndex];
+
+        switch (phase) {
+            case Phase.TEAM_SELECTION:
+                // Se o bot é líder, seleciona time aleatório
+                if (this.gameState.players[this.gameState.leaderIndex].id === botId) {
+                    this.botSelectTeam(bot);
+                }
+                break;
+
+            case Phase.TEAM_VOTE:
+                // Bot vota (Terminators tendem a aprovar times com Terminators)
+                if (!(botId in currentMission.votes)) {
+                    this.botVote(bot, currentMission);
+                }
+                break;
+
+            case Phase.MISSION_EXECUTION:
+                // Bot executa missão se está no time
+                if (currentMission.team.includes(botId)) {
+                    const hasActed = currentMission.missionOutcomes.length;
+                    const teamIndex = currentMission.team.indexOf(botId);
+                    // Verifica se este bot já agiu (baseado na ordem do time)
+                    // Simplificação: verificamos se o número de ações é menor que a posição do bot + 1
+                    if (hasActed < currentMission.team.length) {
+                        this.botMissionAction(bot, currentMission);
+                    }
+                }
+                break;
+        }
+    }
+
+    // Bot seleciona time
+    private botSelectTeam(bot: Player) {
+        if (!this.gameState) return;
+
+        const currentMission = this.gameState.missions[this.gameState.currentMissionIndex];
+        const requiredPlayers = currentMission.requiredPlayers;
+
+        // Seleciona jogadores aleatórios (sempre inclui a si mesmo)
+        const candidates = this.gameState.players.filter(p => p.id !== bot.id && !p.disconnected);
+        const shuffled = shuffle(candidates);
+        const selected = [bot.id, ...shuffled.slice(0, requiredPlayers - 1).map(p => p.id)];
+
+        // Define time e submete
+        this.gameState.proposedTeam = selected;
+        this.addLog(`> ${bot.name} propôs equipe: ${selected.map(id =>
+            this.gameState!.players.find(p => p.id === id)?.name || id
+        ).join(', ')}`);
+
+        // Submete time diretamente (bot não precisa de conexão)
+        this.botSubmitTeam(bot);
+    }
+
+    // Bot submete time
+    private botSubmitTeam(bot: Player) {
+        if (!this.gameState || this.gameState.phase !== Phase.TEAM_SELECTION) return;
+        if (this.gameState.players[this.gameState.leaderIndex].id !== bot.id) return;
+
+        const currentMission = this.gameState.missions[this.gameState.currentMissionIndex];
+        if (this.gameState.proposedTeam.length !== currentMission.requiredPlayers) return;
+
+        // Registra time na missão
+        currentMission.team = [...this.gameState.proposedTeam];
+
+        // Avança para votação
+        this.gameState.phase = Phase.TEAM_VOTE;
+        this.addLog(`> ${bot.name} submeteu equipe`);
+        this.broadcastState();
+
+        // Agenda votos dos bots
+        this.scheduleBotsAction();
+    }
+
+    // Bot vota na proposta de time
+    private botVote(bot: Player, mission: Mission) {
+        if (!this.gameState) return;
+
+        let approve: boolean;
+
+        if (bot.role === Role.TERMINATOR) {
+            // Terminators aprovam se há outro Terminator no time, senão 50%
+            const teamHasTerminator = mission.team.some(id => {
+                const p = this.gameState!.players.find(pp => pp.id === id);
+                return p?.role === Role.TERMINATOR;
+            });
+            approve = teamHasTerminator || Math.random() > 0.5;
+        } else {
+            // Humanos aprovam 70% das vezes
+            approve = Math.random() > 0.3;
+        }
+
+        mission.votes[bot.id] = approve;
+        this.addLog(`> ${bot.name} votou`);
+
+        // Verifica se todos votaram (chama lógica inline)
+        this.processVoteResults();
+    }
+
+    // Processa resultado da votação (usado por bots e humanos)
+    private processVoteResults() {
+        if (!this.gameState || this.gameState.phase !== Phase.TEAM_VOTE) return;
+
+        const missionIndex = this.gameState.currentMissionIndex;
+        const mission = this.gameState.missions[missionIndex];
+        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+
+        // Todos votaram?
+        if (Object.keys(mission.votes).length < activePlayers.length) return;
+
+        const votes = Object.values(mission.votes);
+        const approvals = votes.filter(v => v).length;
+        const approved = approvals > activePlayers.length / 2;
+
+        if (approved) {
+            this.gameState.phase = Phase.MISSION_EXECUTION;
+            this.gameState.failedVoteCount = 0;
+            this.addLog(`> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
+            this.broadcastState();
+            // Agenda ações de bots na missão
+            this.scheduleBotsAction();
+        } else {
+            this.gameState.failedVoteCount++;
+            this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
+
+            if (this.gameState.failedVoteCount >= 5) {
+                this.gameState.phase = Phase.GAME_OVER;
+                this.gameState.winner = Role.TERMINATOR;
+                this.addLog(`> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+                this.scheduleRoomClosure();
+            } else {
+                this.gameState.phase = Phase.TEAM_SELECTION;
+                this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
+                this.gameState.proposedTeam = [];
+                mission.votes = {};
+                // Agenda seleção de time pelo próximo líder (se for bot)
+                this.scheduleBotsAction();
+            }
+            this.broadcastState();
+        }
+    }
+
+    // Bot executa ação na missão
+    private botMissionAction(bot: Player, mission: Mission) {
+        if (!this.gameState) return;
+
+        // Terminators sabotam, Humanos ajudam
+        const success = bot.role === Role.HUMAN;
+
+        mission.missionOutcomes.push(success);
+        this.addLog(`> ${bot.name} executou ação`);
+
+        // Verifica se missão completou
+        this.processMissionResults();
+    }
+
+    // Processa resultado da missão (usado por bots e humanos)
+    private processMissionResults() {
+        if (!this.gameState || this.gameState.phase !== Phase.MISSION_EXECUTION) return;
+
+        const missionIndex = this.gameState.currentMissionIndex;
+        const mission = this.gameState.missions[missionIndex];
+
+        // Todos executaram?
+        if (mission.missionOutcomes.length < mission.team.length) return;
+
+        // Conta falhas
+        const failures = mission.missionOutcomes.filter(o => !o).length;
+        const failsRequired = mission.requiresTwoFails ? 2 : 1;
+        const missionFailed = failures >= failsRequired;
+
+        mission.status = missionFailed ? 'FAIL' : 'SUCCESS';
+        this.addLog(`> MISSÃO ${missionIndex + 1}: ${missionFailed ? 'FALHOU' : 'SUCESSO'} (${failures} sabotagem${failures !== 1 ? 'ns' : ''})`);
+
+        // Conta vitórias
+        const successes = this.gameState.missions.filter(m => m.status === 'SUCCESS').length;
+        const fails = this.gameState.missions.filter(m => m.status === 'FAIL').length;
+
+        if (successes >= 3) {
+            this.gameState.phase = Phase.GAME_OVER;
+            this.gameState.winner = Role.HUMAN;
+            this.addLog(`> HUMANOS VENCEM - 3 MISSÕES BEM-SUCEDIDAS`);
+            this.scheduleRoomClosure();
+        } else if (fails >= 3) {
+            this.gameState.phase = Phase.GAME_OVER;
+            this.gameState.winner = Role.TERMINATOR;
+            this.addLog(`> TERMINATORS VENCEM - 3 MISSÕES SABOTADAS`);
+            this.scheduleRoomClosure();
+        } else {
+            // Próxima missão
+            this.gameState.currentMissionIndex++;
+            this.gameState.phase = Phase.TEAM_SELECTION;
+            this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
+            this.gameState.proposedTeam = [];
+            // Agenda seleção de time pelo próximo líder (se for bot)
+            this.scheduleBotsAction();
+        }
+
+        this.broadcastState();
+    }
+
     // Broadcast do estado para todos
     private broadcastState() {
         if (!this.gameState) return;
@@ -480,6 +786,9 @@ export default class ResistServer implements Party.Server {
         this.addLog(`> UNIDADE FORMADA: ${pCount} AGENTES`);
         this.addLog(`> ESCANEANDO ASSINATURAS...`);
         this.broadcastState();
+
+        // Agenda ação se primeiro líder for bot
+        this.scheduleBotsAction();
     }
 
     // Processa SELECT_PLAYER
@@ -537,6 +846,8 @@ export default class ResistServer implements Party.Server {
         this.gameState.phase = Phase.TEAM_VOTE;
         this.addLog(`> ESQUADRÃO PROPOSTO PELO COMANDANTE`);
         this.broadcastState();
+        // Agenda votos dos bots
+        this.scheduleBotsAction();
     }
 
     // Processa VOTE
@@ -556,18 +867,21 @@ export default class ResistServer implements Party.Server {
         this.gameState.missions[missionIndex].votes[player.id] = approve;
 
         // Todos votaram?
-        if (Object.keys(this.gameState.missions[missionIndex].votes).length === this.gameState.players.length) {
+        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+        if (Object.keys(this.gameState.missions[missionIndex].votes).length === activePlayers.length) {
             const votes = Object.values(this.gameState.missions[missionIndex].votes);
             const approvals = votes.filter(v => v).length;
-            const approved = approvals > this.gameState.players.length / 2;
+            const approved = approvals > activePlayers.length / 2;
 
             if (approved) {
                 this.gameState.phase = Phase.MISSION_EXECUTION;
                 this.gameState.failedVoteCount = 0;
-                this.addLog(`> EQUIPE APROVADA (${approvals}/${this.gameState.players.length})`);
+                this.addLog(`> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
+                // Agenda ações de bots na missão
+                this.scheduleBotsAction();
             } else {
                 this.gameState.failedVoteCount++;
-                this.addLog(`> EQUIPE REJEITADA (${approvals}/${this.gameState.players.length})`);
+                this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
 
                 if (this.gameState.failedVoteCount >= 5) {
                     this.gameState.phase = Phase.GAME_OVER;
@@ -580,6 +894,8 @@ export default class ResistServer implements Party.Server {
                     this.gameState.proposedTeam = [];
                     // Limpa votos para próxima rodada
                     this.gameState.missions[missionIndex].votes = {};
+                    // Agenda seleção de time (se próximo líder for bot)
+                    this.scheduleBotsAction();
                 }
             }
         }
@@ -644,6 +960,8 @@ export default class ResistServer implements Party.Server {
                 this.gameState.phase = Phase.TEAM_SELECTION;
                 this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
                 this.gameState.proposedTeam = [];
+                // Agenda seleção de time (se próximo líder for bot)
+                this.scheduleBotsAction();
             }
         }
 
@@ -792,6 +1110,12 @@ export default class ResistServer implements Party.Server {
                     break;
                 case 'DISCONNECT_VOTE':
                     this.handleDisconnectVote(sender, data.endGame);
+                    break;
+                case 'ADD_BOT':
+                    this.handleAddBot(sender);
+                    break;
+                case 'REMOVE_BOT':
+                    this.handleRemoveBot(sender, data.playerId);
                     break;
             }
         } catch (err) {

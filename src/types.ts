@@ -22,6 +22,7 @@ export interface Player {
   avatarSeed: number;
   sessionId?: string;      // ID persistente para reconexão
   disconnected?: boolean;  // true se jogador está offline
+  isBot?: boolean;         // true se é um bot
 }
 
 export interface Mission {

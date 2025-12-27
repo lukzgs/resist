@@ -53,8 +53,8 @@ function getOrCreateSession(roomCode: string, playerName: string): string {
     return newSessionId;
 }
 
-// Limpa sessão do localStorage
-function clearSession() {
+// Limpa sessão do localStorage (exportada para uso externo)
+export function clearSession() {
     try {
         localStorage.removeItem(SESSION_STORAGE_KEY);
         console.log('[Session] Sessão limpa');
@@ -93,6 +93,8 @@ interface UsePartySocketReturn {
     setAnonymousVotes: (enabled: boolean) => void;
     restartGame: () => void;
     disconnectVote: (endGame: boolean) => void;
+    addBot: () => void;
+    removeBot: (playerId: string) => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {
@@ -260,12 +262,12 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         }
     }, [reconnectAttempt, getReconnectDelay, onStateUpdate, onError, onPlayerJoined, onPlayerLeft, onConnectionChange, onRoomClosed]);
 
-    // Desconecta intencionalmente (não tenta reconectar)
+    // Desconecta (não limpa sessão - permite reconexão)
     const disconnect = useCallback(() => {
         console.log('[WS] Desconectando...');
         shouldReconnectRef.current = false;
         clearReconnectTimeout();
-        clearSession();  // Limpa sessão do localStorage
+        // NÃO limpa sessão aqui - permite reconexão automática
 
         if (socketRef.current) {
             socketRef.current.close();
@@ -325,6 +327,14 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'DISCONNECT_VOTE', endGame });
     }, [send]);
 
+    const addBot = useCallback(() => {
+        send({ type: 'ADD_BOT' });
+    }, [send]);
+
+    const removeBot = useCallback((playerId: string) => {
+        send({ type: 'REMOVE_BOT', playerId });
+    }, [send]);
+
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
@@ -353,5 +363,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         setAnonymousVotes,
         restartGame,
         disconnectVote,
+        addBot,
+        removeBot,
     };
 }

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Phase, Player, Role, GameState } from './types';
-import { usePartySocket } from './hooks/usePartySocket';
+import { usePartySocket, clearSession } from './hooks/usePartySocket';
 import HomeView from './views/HomeView';
 import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
@@ -107,6 +107,8 @@ export default function App() {
     setAnonymousVotes,
     restartGame,
     disconnectVote,
+    addBot,
+    removeBot,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -243,10 +245,11 @@ export default function App() {
     }
   }, [selectPlayer, submitTeam, vote, missionAction, restartGame, disconnectVote]);
 
-  // Handler para voltar
+  // Handler para voltar (sai da sala e limpa todas as sessões)
   const handleBack = useCallback(() => {
     disconnect();
-    clearAppSession(); // Limpa sessão ao sair
+    clearSession();     // Limpa sessão de WebSocket (localStorage)
+    clearAppSession();  // Limpa sessão do App (sessionStorage)
     setRoomCode('');
     setGameState(null);
     setView('HOME');
@@ -334,6 +337,8 @@ export default function App() {
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}
           onBack={handleBack}
+          onAddBot={addBot}
+          onRemoveBot={removeBot}
         />
       )}
 
