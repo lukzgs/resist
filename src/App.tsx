@@ -120,6 +120,12 @@ export default function App() {
         setNotification(null);
       }
 
+      // Só navega se ainda estamos conectados a uma sala
+      // Isso evita que mensagens tardias sobrescrevam a navegação para HOME
+      if (!roomCode) {
+        return;
+      }
+
       // Navega para a view correta baseado na fase
       if (state.phase === Phase.LOBBY) {
         setView('LOBBY');
