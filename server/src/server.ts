@@ -305,6 +305,7 @@ export default class ResistServer implements Party.Server {
             logs: [`> PROTOCOLO: ${roomCode}`],
             winner: null,
             anonymousVotes: true,  // Default: votos anônimos
+            showRejectionCount: true,  // Default: mostrar contagem de rejeições
         };
     }
 
@@ -637,10 +638,10 @@ export default class ResistServer implements Party.Server {
                 this.gameState.failedVoteCount++;
                 this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
 
-                if (this.gameState.failedVoteCount >= 5) {
+                if (this.gameState.failedVoteCount >= 3) {
                     this.gameState.phase = Phase.GAME_OVER;
                     this.gameState.winner = Role.TERMINATOR;
-                    this.addLog(`> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+                    this.addLog(`> TERMINATORS VENCEM - 3 REJEIÇÕES`);
                     this.scheduleRoomClosure();
                 } else {
                     this.gameState.phase = Phase.TEAM_SELECTION;
@@ -856,6 +857,17 @@ export default class ResistServer implements Party.Server {
                         if (player?.isHost) {
                             this.gameState.anonymousVotes = data.enabled;
                             this.addLog(`> Votos ${data.enabled ? 'anônimos' : 'públicos'}`);
+                            this.broadcastState();
+                        }
+                    }
+                    break;
+                case 'SET_SHOW_REJECTION_COUNT':
+                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
+                        const playerId = this.connections.get(sender.id);
+                        const player = this.gameState.players.find(p => p.id === playerId);
+                        if (player?.isHost) {
+                            this.gameState.showRejectionCount = data.enabled;
+                            this.addLog(`> Contagem de rejeições ${data.enabled ? 'ativada' : 'desativada'}`);
                             this.broadcastState();
                         }
                     }
