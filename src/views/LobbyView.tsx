@@ -8,10 +8,11 @@ interface Props {
     onRemove: () => void;
     onStart: () => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
+    onToggleShowRejectionCount: (enabled: boolean) => void;
     onBack: () => void;
 }
 
-export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onBack }: Props) {
+export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onBack }: Props) {
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
 
@@ -24,7 +25,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                         <div className="bg-black/60 p-8 rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden flex-1">
                             <div className="absolute top-0 right-0 p-4 font-mono text-xs text-resistance/20">SKYNET_INT_04</div>
                             <span className="text-sm font-mono text-resistance tracking-widest block mb-4 uppercase font-bold border-b border-resistance/20 pb-2">Canal de Comando</span>
-                            <div className="text-6xl font-display font-black text-white tracking-widest mb-4 drop-shadow-glow-blue">{state.roomCode}</div>
+                            <div className="text-6xl font-display font-black text-white tracking-widest mb-4 drop-shadow-glow-blue">{state.roomCode.replace(/0/g, 'Ø')}</div>
                             <button
                                 onClick={onBack}
                                 className="w-full py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 font-mono text-sm uppercase tracking-widest transition-all mb-6 flex items-center justify-center gap-2"
@@ -68,6 +69,17 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!state.anonymousVotes ? 'left-7' : 'left-1'}`}></div>
                                     </div>
                                 </label>
+
+                                {/* Toggle de contagem de rejeições */}
+                                <label className="flex items-center justify-between cursor-pointer group">
+                                    <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">Mostrar Rejeições</span>
+                                    <div
+                                        onClick={() => onToggleShowRejectionCount(!state.showRejectionCount)}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${state.showRejectionCount ? 'bg-resistance' : 'bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${state.showRejectionCount ? 'left-7' : 'left-1'}`}></div>
+                                    </div>
+                                </label>
                             </div>
                         )}
                     </div>
@@ -81,21 +93,19 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {state.players.map((p) => (
-                                    <div key={p.id} className={`group h-20 rounded-2xl border ${p.disconnected ? 'border-red-500/30 bg-red-900/10 opacity-50' : 'border-white/5 bg-black/40'} flex items-center px-4 transition-all hover:border-resistance/40 hover:translate-x-1`}>
-                                        <div className="relative shrink-0">
-                                            <img src={`https://picsum.photos/seed/${p.avatarSeed}/80`} className={`w-10 h-10 rounded-lg border border-slate-800 ${p.disconnected ? 'grayscale' : 'grayscale group-hover:grayscale-0'} transition-all`} alt={p.name} />
-                                            <div className={`absolute -top-1 -left-1 w-2 h-2 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-resistance'} rounded-full border border-dark`}></div>
-                                            {p.isHost && (
-                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full border-2 border-dark flex items-center justify-center text-[8px]">👑</div>
-                                            )}
-                                        </div>
-                                        <div className="ml-4 overflow-hidden flex-1">
-                                            <div className="text-sm font-bold text-white uppercase tracking-wider truncate flex items-center gap-2">
+                                    <div key={p.id} className={`group relative h-16 rounded-2xl border ${p.disconnected ? 'border-red-500/30 bg-red-900/10 opacity-50' : 'border-white/10 bg-black/40'} flex items-center px-5 transition-all hover:border-resistance/40 hover:bg-black/60`}>
+                                        {p.isHost && (
+                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 text-black text-[10px] font-display font-bold px-3 py-0.5 rounded-full z-20 shadow-lg tracking-wider border border-yellow-300/50">
+                                                HOST
+                                            </div>
+                                        )}
+                                        <div className={`w-2 h-2 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full shrink-0 mr-4`}></div>
+                                        <div className="overflow-hidden flex-1">
+                                            <div className="text-lg font-display font-bold text-white uppercase tracking-wide truncate">
                                                 {p.name}
                                             </div>
-                                            <div className="text-xs font-mono text-slate-300 flex items-center gap-2">
-                                                <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
-                                                {p.disconnected ? 'OFFLINE' : 'VITAL_OK'}
+                                            <div className="text-xs font-mono text-slate-300 uppercase tracking-widest">
+                                                {p.disconnected ? 'OFFLINE' : 'ONLINE'}
                                             </div>
                                         </div>
                                     </div>
