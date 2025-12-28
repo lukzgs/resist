@@ -43,7 +43,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                                 <div className="p-4 bg-slate-900/50 rounded-xl border border-white/5 space-y-3">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">AMEAÇA DE MÁQUINA:</span>
+                                        <span className="text-slate-400">TERMINATORS:</span>
                                         <span className="text-spy font-bold">{canStart ? GAME_RULES[pCount].spyCount : '?'} UNIDADES</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
