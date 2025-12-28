@@ -190,31 +190,34 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
             <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
-            {state.players.map(function (p, i) {
-              return (
-                <div
-                  key={p.id}
-                  onClick={function () {
-                    if (isLeader && state.phase === Phase.TEAM_SELECTION) {
-                      sendAction('SELECT_PLAYER', { id: p.id });
-                    }
-                  }}
-                  className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
-                >
-                  <PlayerCard
-                    player={p}
-                    isLeader={i === state.leaderIndex}
-                    isInTeam={state.proposedTeam.includes(p.id)}
-                    showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
-                    vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
-                    isDisconnected={p.disconnected}
-                    isMe={p.name === playerName}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          {/* Player cards - hide on GAME_OVER (identities are shown in the game over screen) */}
+          {state.phase !== Phase.GAME_OVER && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+              {state.players.map(function (p, i) {
+                return (
+                  <div
+                    key={p.id}
+                    onClick={function () {
+                      if (isLeader && state.phase === Phase.TEAM_SELECTION) {
+                        sendAction('SELECT_PLAYER', { id: p.id });
+                      }
+                    }}
+                    className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
+                  >
+                    <PlayerCard
+                      player={p}
+                      isLeader={i === state.leaderIndex}
+                      isInTeam={state.proposedTeam.includes(p.id)}
+                      showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
+                      vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
+                      isDisconnected={p.disconnected}
+                      isMe={p.name === playerName}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="max-w-xl mx-auto text-center p-10 bg-black/80 rounded-[40px] border-2 border-white/5 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
