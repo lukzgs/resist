@@ -22,6 +22,7 @@ export interface Player {
   avatarSeed: number;
   sessionId?: string;      // ID persistente para reconexão
   disconnected?: boolean;  // true se jogador está offline
+  isSpectator?: boolean;   // true se é espectador (entrou após jogo começar)
 }
 
 export interface Mission {

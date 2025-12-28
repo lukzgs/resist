@@ -215,7 +215,7 @@ export default class ResistServer implements Party.Server {
         if (!this.gameState || this.gameState.phase !== Phase.DISCONNECT_VOTE) return;
         if (!this.gameState.disconnectVotes) return;
 
-        const player = this.getPlayerByConnection(conn.id);
+        const player = this.isActivePlayer(conn);
         if (!player) return;
 
         // Não pode votar se está desconectado
@@ -334,6 +334,17 @@ export default class ResistServer implements Party.Server {
         return this.gameState?.players.find(p => p.id === playerId);
     }
 
+    // Verifica se jogador pode realizar ações (não é espectador)
+    private isActivePlayer(conn: Party.Connection): Player | null {
+        const player = this.getPlayerByConnection(conn.id);
+        if (!player) return null;
+        if (player.isSpectator) {
+            this.sendError(conn, 'Espectadores não podem interagir no jogo');
+            return null;
+        }
+        return player;
+    }
+
     // Processa JOIN
     private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string) {
         // Cancela timeout de limpeza da sala se cliente está reconectando
@@ -361,6 +372,11 @@ export default class ResistServer implements Party.Server {
             ? this.gameState.players.find(p => p.sessionId === sessionId)
             : null;
 
+        // Debug: log para verificar reconexão
+        console.log(`[${this.room.id}] JOIN attempt: name=${name}, sessionId=${sessionId?.substring(0, 8)}...`);
+        console.log(`[${this.room.id}] Players sessionIds: ${this.gameState.players.map(p => `${p.name}:${p.sessionId?.substring(0, 8) || 'none'}`).join(', ')}`);
+        console.log(`[${this.room.id}] existingPlayer found: ${existingPlayer?.name || 'null'}`);
+
         // REMOVIDO: Fallback por nome (inseguro)
 
         if (existingPlayer) {
@@ -382,8 +398,14 @@ export default class ResistServer implements Party.Server {
             // Marca como conectado
             existingPlayer.disconnected = false;
 
+            // Debug: verificar estado de pausa
+            console.log(`[${this.room.id}] existingPlayer.id=${existingPlayer.id}`);
+            console.log(`[${this.room.id}] disconnectInfo?.disconnectedPlayerId=${this.gameState.disconnectInfo?.disconnectedPlayerId || 'undefined'}`);
+            console.log(`[${this.room.id}] Match: ${this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id}`);
+
             // Se era o jogador que causou pausa, cancela espera e retoma jogo
             if (this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id) {
+                console.log(`[${this.room.id}] CALLING cancelDisconnectWait()!`);
                 this.cancelDisconnectWait();
             } else {
                 this.addLog(`> ${existingPlayer.name} reconectou`);
@@ -404,8 +426,12 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Verifica se nome está em uso
-        if (this.gameState.players.some(p => p.name === name)) {
+        // Verifica se é tentativa de entrar após jogo começar
+        const isGameInProgress = this.gameState.phase !== Phase.LOBBY;
+
+        // Verifica se nome está em uso (apenas para jogadores ativos, não espectadores)
+        const existingPlayerWithName = this.gameState.players.find(p => p.name === name);
+        if (existingPlayerWithName && !existingPlayerWithName.isSpectator) {
             this.sendError(conn, 'Nome já em uso');
             return;
         }
@@ -413,19 +439,20 @@ export default class ResistServer implements Party.Server {
         // Gera novo sessionId seguro
         const newSessionId = generateUUID();
 
-        // Cria novo jogador
+        // Cria novo jogador (ou espectador se jogo já começou)
         const isFirstPlayer = this.gameState.players.length === 0;
         const newPlayer: Player = {
             id: generateId(),
             name,
-            role: Role.HUMAN, // Será definido ao iniciar
-            isHost: isFirstPlayer,
+            role: Role.HUMAN, // Será definido ao iniciar (irrelevante para espectadores)
+            isHost: isFirstPlayer && !isGameInProgress,
             avatarSeed,
             sessionId: newSessionId,
             disconnected: false,
+            isSpectator: isGameInProgress, // Marca como espectador se jogo já começou
         };
 
-        console.log(`[${this.room.id}] Criando novo jogador: ${name}`);
+        console.log(`[${this.room.id}] Criando ${isGameInProgress ? 'espectador' : 'jogador'}: ${name}`);
 
         // Envia confirmação de sessão segura
         try {
@@ -531,7 +558,8 @@ export default class ResistServer implements Party.Server {
     private handleSelectPlayer(conn: Party.Connection, playerId: string) {
         if (!this.gameState || this.gameState.phase !== Phase.TEAM_SELECTION) return;
 
-        const player = this.getPlayerByConnection(conn.id);
+        const player = this.isActivePlayer(conn);
+        if (!player) return;
         const leader = this.gameState.players[this.gameState.leaderIndex];
 
         if (player?.id !== leader.id) {
@@ -563,7 +591,8 @@ export default class ResistServer implements Party.Server {
     private handleSubmitTeam(conn: Party.Connection) {
         if (!this.gameState || this.gameState.phase !== Phase.TEAM_SELECTION) return;
 
-        const player = this.getPlayerByConnection(conn.id);
+        const player = this.isActivePlayer(conn);
+        if (!player) return;
         const leader = this.gameState.players[this.gameState.leaderIndex];
 
         if (player?.id !== leader.id) {
@@ -588,7 +617,7 @@ export default class ResistServer implements Party.Server {
     private handleVote(conn: Party.Connection, approve: boolean) {
         if (!this.gameState || this.gameState.phase !== Phase.TEAM_VOTE) return;
 
-        const player = this.getPlayerByConnection(conn.id);
+        const player = this.isActivePlayer(conn);
         if (!player) return;
 
         const missionIndex = this.gameState.currentMissionIndex;
@@ -637,7 +666,7 @@ export default class ResistServer implements Party.Server {
     private handleMissionAction(conn: Party.Connection, success: boolean) {
         if (!this.gameState || this.gameState.phase !== Phase.MISSION_EXECUTION) return;
 
-        const player = this.getPlayerByConnection(conn.id);
+        const player = this.isActivePlayer(conn);
         if (!player) return;
 
         // Verifica se está na equipe
