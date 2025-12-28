@@ -15,7 +15,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'error' | 'i
   }, [onClose]);
 
   const borderColor = type === 'error' ? 'border-spy/50' : type === 'success' ? 'border-resistance/50' : 'border-white/20';
-  const iconColor = type === 'error' ? 'text-spy' : type === 'success' ? 'text-resistance' : 'text-slate-400';
+  const iconColor = type === 'error' ? 'text-spy' : type === 'success' ? 'text-resistance' : 'text-slate-300';
   const glowColor = type === 'error' ? 'shadow-glow-red' : type === 'success' ? 'shadow-glow-blue' : '';
 
   return (
@@ -303,7 +303,7 @@ export default function App() {
                 setView('HOME');
                 showNotification('Conexão cancelada.', 'info');
               }}
-              className="mt-4 text-xs font-mono text-slate-400 hover:text-red-400 uppercase tracking-widest transition-colors"
+              className="mt-4 text-xs font-mono text-slate-300 hover:text-red-400 uppercase tracking-widest transition-colors"
             >
               Cancelar
             </button>
@@ -315,7 +315,7 @@ export default function App() {
       {(view === 'LOBBY' || view === 'GAME') && (
         <div className="fixed bottom-4 right-4 z-[9000] flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-2 rounded-full border border-white/10">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-          <span className="font-mono text-xs text-slate-400 uppercase">
+          <span className="font-mono text-xs text-slate-300 uppercase">
             {isConnected ? 'Online' : 'Offline'}
           </span>
         </div>

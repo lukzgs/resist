@@ -25,7 +25,7 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
 
         <div className="space-y-8">
           <div className="space-y-2">
-            <label className="text-sm font-mono text-slate-400 uppercase tracking-widest ml-4">Codename</label>
+            <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">Codename</label>
             <input
               type="text"
               value={playerName}
@@ -37,7 +37,7 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
 
           {isJoin && (
             <div className="space-y-2">
-              <label className="text-sm font-mono text-slate-400 uppercase tracking-widest ml-4">Link Code</label>
+              <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">Link Code</label>
               <input
                 type="text"
                 maxLength={4}
@@ -58,7 +58,7 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
             </button>
             <button
               onClick={onBack}
-              className="w-full text-slate-400 text-sm uppercase font-bold tracking-[0.3em] hover:text-white transition-colors"
+              className="w-full text-slate-300 text-sm uppercase font-bold tracking-[0.3em] hover:text-white transition-colors"
             >
               Abort Mission
             </button>

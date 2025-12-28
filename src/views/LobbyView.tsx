@@ -34,7 +34,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                             <div className="space-y-6 font-mono">
                                 <div>
-                                    <div className="flex justify-between text-sm text-slate-400 uppercase mb-2">Manifesto de Unidades</div>
+                                    <div className="flex justify-between text-sm text-slate-300 uppercase mb-2">Manifesto de Unidades</div>
                                     <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-resistance transition-all duration-1000" style={{ width: `${(pCount / 10) * 100}%` }}></div>
                                     </div>
@@ -43,11 +43,11 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                                 <div className="p-4 bg-slate-900/50 rounded-xl border border-white/5 space-y-3">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">TERMINATORS:</span>
+                                        <span className="text-slate-300">TERMINATORS:</span>
                                         <span className="text-spy font-bold">{canStart ? GAME_RULES[pCount].spyCount : '?'} UNIDADES</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">ESTADO DO BUNKER:</span>
+                                        <span className="text-slate-300">ESTADO DO BUNKER:</span>
                                         <span className="text-green-500 font-bold">ESTÁVEL</span>
                                     </div>
                                 </div>
@@ -56,7 +56,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                         {isHost && (
                             <div className="bg-black/40 p-6 rounded-3xl border border-white/10 backdrop-blur-md">
-                                <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest mb-4">Configurações</h3>
+                                <h3 className="text-sm font-mono text-slate-300 uppercase tracking-widest mb-4">Configurações</h3>
 
                                 {/* Toggle de votos visíveis */}
                                 <label className="flex items-center justify-between cursor-pointer group mb-4">
@@ -93,7 +93,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                             <div className="text-sm font-bold text-white uppercase tracking-wider truncate flex items-center gap-2">
                                                 {p.name}
                                             </div>
-                                            <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
+                                            <div className="text-xs font-mono text-slate-300 flex items-center gap-2">
                                                 <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
                                                 {p.disconnected ? 'OFFLINE' : 'VITAL_OK'}
                                             </div>
@@ -118,7 +118,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                         {!isHost && (
                             <div className="w-full py-6 rounded-2xl bg-slate-800/50 text-center">
-                                <p className="font-mono text-sm text-slate-400 uppercase tracking-widest">
+                                <p className="font-mono text-sm text-slate-300 uppercase tracking-widest">
                                     Aguardando host iniciar o jogo...
                                 </p>
                             </div>

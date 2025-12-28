@@ -66,7 +66,7 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
                     <h2 className="text-2xl font-display font-black text-red-500 uppercase tracking-wider">
                         Votação
                     </h2>
-                    <p className="text-slate-400 font-mono text-sm uppercase tracking-widest mt-2">
+                    <p className="text-slate-300 font-mono text-sm uppercase tracking-widest mt-2">
                         {info.disconnectedPlayerName} não reconectou
                     </p>
                 </div>
@@ -92,7 +92,7 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
                 {/* Botões de voto */}
                 {!hasVoted && me && !me.disconnected ? (
                     <div className="space-y-3">
-                        <p className="text-slate-400 text-sm mb-4">
+                        <p className="text-slate-300 text-sm mb-4">
                             O que deseja fazer?
                         </p>
                         <div className="flex gap-4 justify-center">
@@ -111,13 +111,13 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
                         </div>
                     </div>
                 ) : (
-                    <div className="text-slate-400 font-mono text-sm uppercase tracking-widest">
+                    <div className="text-slate-300 font-mono text-sm uppercase tracking-widest">
                         {hasVoted ? '✓ Voto registrado' : 'Aguardando votação...'}
                     </div>
                 )}
 
                 {/* Info de tentativa */}
-                <p className="text-slate-400 text-xs uppercase tracking-widest">
+                <p className="text-slate-300 text-xs uppercase tracking-widest">
                     Tentativa {info.waitingAttempt} de 3 • Não votar = aguardar
                 </p>
             </div>

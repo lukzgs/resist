@@ -36,7 +36,7 @@ export default function ReconnectView({
                             <div className="space-y-4">
                                 <div className="text-6xl">❌</div>
                                 <h2 className="text-2xl font-display font-bold text-white uppercase">Conexão Falhou</h2>
-                                <p className="text-slate-400 font-mono text-sm">{error}</p>
+                                <p className="text-slate-300 font-mono text-sm">{error}</p>
                             </div>
 
                             <button
@@ -52,7 +52,7 @@ export default function ReconnectView({
                             <div className="space-y-4">
                                 <div className="animate-spin flex justify-center"><IoSyncOutline size={64} color="#eab308" /></div>
                                 <h2 className="text-2xl font-display font-bold text-white uppercase">Conectando...</h2>
-                                <p className="text-slate-400 font-mono text-sm">Estabelecendo uplink com sala {roomCode}</p>
+                                <p className="text-slate-300 font-mono text-sm">Estabelecendo uplink com sala {roomCode}</p>
                             </div>
                         </>
                     ) : (
@@ -61,16 +61,16 @@ export default function ReconnectView({
                             <div className="space-y-4 flex flex-col items-center">
                                 <IoWarningOutline size={64} color="#eab308" />
                                 <h2 className="text-2xl font-display font-bold text-white uppercase">Sessão Detectada</h2>
-                                <p className="text-slate-400 font-mono text-sm">Uma sessão anterior foi encontrada</p>
+                                <p className="text-slate-300 font-mono text-sm">Uma sessão anterior foi encontrada</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 text-left">
                                 <div className="p-4 bg-black/30 rounded-xl border border-white/10">
-                                    <p className="text-xs text-slate-400 uppercase tracking-wider font-mono mb-1">Sala</p>
+                                    <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-1">Sala</p>
                                     <p className="text-xl font-display font-bold text-resistance">{roomCode}</p>
                                 </div>
                                 <div className="p-4 bg-black/30 rounded-xl border border-white/10">
-                                    <p className="text-xs text-slate-400 uppercase tracking-wider font-mono mb-1">Jogador</p>
+                                    <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-1">Jogador</p>
                                     <p className="text-xl font-display font-bold text-white truncate">{playerName}</p>
                                 </div>
                             </div>
@@ -85,7 +85,7 @@ export default function ReconnectView({
 
                                 <button
                                     onClick={onBackToMenu}
-                                    className="w-full p-4 bg-transparent border-2 border-white/20 rounded-xl hover:border-white/40 hover:bg-white/5 transition-all font-display font-bold text-slate-400 uppercase tracking-wide"
+                                    className="w-full p-4 bg-transparent border-2 border-white/20 rounded-xl hover:border-white/40 hover:bg-white/5 transition-all font-display font-bold text-slate-300 uppercase tracking-wide"
                                 >
                                     Voltar ao Menu
                                 </button>
@@ -95,7 +95,7 @@ export default function ReconnectView({
                 </div>
 
                 <div className="pt-4">
-                    <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs font-mono text-slate-300 uppercase tracking-widest">
                         {isConnecting ? 'Uplink em progresso...' : 'Pronto para reconectar'}
                     </p>
                 </div>
