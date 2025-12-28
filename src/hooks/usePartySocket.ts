@@ -11,8 +11,8 @@ const RECONNECT_DELAY_MS = 1000; // Delay inicial entre tentativas
 const MAX_RECONNECT_DELAY_MS = 30000; // Delay máximo (30s)
 const MAX_RECONNECT_ATTEMPTS = 10; // Tentativas máximas antes de desistir
 
-// Chave do localStorage para sessão
-const SESSION_STORAGE_KEY = 'resist_session';
+// Chave do localStorage para sessão - agora única por sala
+const SESSION_STORAGE_PREFIX = 'resist_session_';
 
 interface StoredSession {
     sessionId: string;
@@ -20,14 +20,20 @@ interface StoredSession {
     playerName: string;
 }
 
+// Gera chave única para a sessão (baseada no roomCode)
+function getSessionKey(roomCode: string): string {
+    return `${SESSION_STORAGE_PREFIX}${roomCode}`;
+}
+
 // Recupera sessão do localStorage
 function getStoredSessionId(roomCode: string, playerName: string): string | undefined {
     try {
-        const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+        const key = getSessionKey(roomCode);
+        const stored = localStorage.getItem(key);
         if (stored) {
             const session: StoredSession = JSON.parse(stored);
-            // Se é a mesma sala e jogador, retorna sessionId existente
-            if (session.roomCode === roomCode && session.playerName === playerName) {
+            // Retorna sessionId apenas se é o mesmo jogador
+            if (session.playerName === playerName) {
                 return session.sessionId;
             }
         }
@@ -37,10 +43,33 @@ function getStoredSessionId(roomCode: string, playerName: string): string | unde
     return undefined;
 }
 
-// Limpa sessão do localStorage (exportada para uso externo)
-export function clearSession() {
+// Salva sessão no localStorage
+function saveSessionId(roomCode: string, playerName: string, sessionId: string) {
     try {
-        localStorage.removeItem(SESSION_STORAGE_KEY);
+        const key = getSessionKey(roomCode);
+        const session: StoredSession = { sessionId, roomCode, playerName };
+        localStorage.setItem(key, JSON.stringify(session));
+    } catch (e) {
+        console.warn('[Session] Erro ao salvar sessão:', e);
+    }
+}
+
+// Limpa sessão do localStorage (exportada para uso externo)
+export function clearSession(roomCode?: string) {
+    try {
+        if (roomCode) {
+            localStorage.removeItem(getSessionKey(roomCode));
+        } else {
+            // Limpa todas as sessões resist
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key?.startsWith(SESSION_STORAGE_PREFIX)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
     } catch (e) {
         console.warn('[Session] Erro ao limpar sessão:', e);
     }
@@ -192,12 +221,11 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                         case 'SESSION_ESTABLISHED':
                             // Recebe crachá oficial do servidor e salva
                             try {
-                                const sessionData: StoredSession = {
-                                    sessionId: (data as any).sessionId,
-                                    roomCode: lastRoomCodeRef.current,
-                                    playerName: lastPlayerNameRef.current
-                                };
-                                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+                                saveSessionId(
+                                    lastRoomCodeRef.current,
+                                    lastPlayerNameRef.current,
+                                    (data as any).sessionId
+                                );
                                 console.log('[Session] Sessão segura estabelecida');
                             } catch (e) {
                                 console.error('[Session] Erro ao salvar sessão segura:', e);
