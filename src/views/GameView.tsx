@@ -542,11 +542,14 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
   };
 
   return (
-    <div className="space-y-6 py-4 animate-in fade-in duration-1000">
-      <div className={`text-6xl font-display font-black uppercase tracking-tighter leading-tight ${humanWins ? 'text-resistance drop-shadow-glow-blue' : 'text-spy drop-shadow-glow-red animate-glitch'}`}>
+    <div className="space-y-6 py-4">
+      {/* Título com animação */}
+      <div className={`animate-zoom-in text-6xl font-display font-black uppercase tracking-tighter leading-tight ${humanWins ? 'text-resistance drop-shadow-glow-blue' : 'text-spy drop-shadow-glow-red animate-glitch'}`}>
         {humanWins ? 'Resistance_Won' : 'Skynet_Prevails'}
       </div>
-      <div className="bg-white/5 p-4 rounded-xl border border-white/10 max-w-sm mx-auto">
+
+      {/* Descrição com delay */}
+      <div className="animate-fade-in-up animate-delay-200 bg-white/5 p-4 rounded-xl border border-white/10 max-w-sm mx-auto">
         <p className="text-sm font-mono text-slate-300 uppercase leading-relaxed tracking-widest">
           {humanWins
             ? 'O Dia do Julgamento foi evitado. A linha temporal foi preservada por agora.'
@@ -554,17 +557,18 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
         </p>
       </div>
 
-      {/* Revelação de jogadores */}
-      <div className="bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
+      {/* Revelação de jogadores com delay maior */}
+      <div className="animate-fade-in-up animate-delay-400 bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
         <h3 className="text-xs font-mono text-slate-300 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {state.players.map((player) => (
+          {state.players.map((player, index) => (
             <div
               key={player.id}
-              className={`flex flex-col items-center p-4 rounded-xl border-2 ${player.role === Role.TERMINATOR
+              className={`flex flex-col items-center p-4 rounded-xl border-2 animate-fade-in ${player.role === Role.TERMINATOR
                 ? 'border-spy bg-spy/5'
                 : 'border-resistance bg-resistance/5'
                 }`}
+              style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
             >
               <div className={`w-14 h-14 rounded-full overflow-hidden border-2 mb-2 ${player.role === Role.TERMINATOR ? 'border-spy' : 'border-resistance'
                 }`}>
@@ -588,13 +592,14 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
 
       {/* Countdown */}
       {timeLeft !== null && timeLeft > 0 && (
-        <div className="flex items-center justify-center gap-2 text-slate-300 font-mono text-sm">
+        <div className="animate-fade-in animate-delay-500 flex items-center justify-center gap-2 text-slate-300 font-mono text-sm">
           <span className="uppercase tracking-widest">Sala fecha em</span>
           <span className="text-resistance font-bold text-lg">{formatTime(timeLeft)}</span>
         </div>
       )}
 
-      <div className="flex gap-4 justify-center flex-wrap">
+      {/* Botões */}
+      <div className="animate-fade-in-up animate-delay-500 flex gap-4 justify-center flex-wrap">
         {/* Botão Nova Partida - apenas host */}
         {isHost && (
           <button
