@@ -545,7 +545,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
         <p className="text-sm font-mono text-slate-400 uppercase leading-relaxed tracking-widest">
           {humanWins
             ? 'O Dia do Julgamento foi evitado. A linha temporal foi preservada por agora.'
-            : 'A Resistência foi obliterada. As máquinas agora controlam o futuro.'}
+            : 'A Resistência foi destruída. As máquinas controlam o futuro.'}
         </p>
       </div>
 

@@ -38,7 +38,7 @@ export default function HomeView({ onNavigate }: Props) {
         </div>
 
         <div className="pt-12">
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-widest animate-pulse">Connection Status: Ready for uplink...</p>
+          <p className="text-xs font-mono text-slate-300 uppercase tracking-widest animate-pulse">Connection Status: Ready for uplink...</p>
         </div>
       </div>
     </div>
