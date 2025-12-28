@@ -372,11 +372,6 @@ export default class ResistServer implements Party.Server {
             ? this.gameState.players.find(p => p.sessionId === sessionId)
             : null;
 
-        // Debug: log para verificar reconexão
-        console.log(`[${this.room.id}] JOIN attempt: name=${name}, sessionId=${sessionId?.substring(0, 8)}...`);
-        console.log(`[${this.room.id}] Players sessionIds: ${this.gameState.players.map(p => `${p.name}:${p.sessionId?.substring(0, 8) || 'none'}`).join(', ')}`);
-        console.log(`[${this.room.id}] existingPlayer found: ${existingPlayer?.name || 'null'}`);
-
         // REMOVIDO: Fallback por nome (inseguro)
 
         if (existingPlayer) {
@@ -398,14 +393,8 @@ export default class ResistServer implements Party.Server {
             // Marca como conectado
             existingPlayer.disconnected = false;
 
-            // Debug: verificar estado de pausa
-            console.log(`[${this.room.id}] existingPlayer.id=${existingPlayer.id}`);
-            console.log(`[${this.room.id}] disconnectInfo?.disconnectedPlayerId=${this.gameState.disconnectInfo?.disconnectedPlayerId || 'undefined'}`);
-            console.log(`[${this.room.id}] Match: ${this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id}`);
-
             // Se era o jogador que causou pausa, cancela espera e retoma jogo
             if (this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id) {
-                console.log(`[${this.room.id}] CALLING cancelDisconnectWait()!`);
                 this.cancelDisconnectWait();
             } else {
                 this.addLog(`> ${existingPlayer.name} reconectou`);
@@ -416,7 +405,7 @@ export default class ResistServer implements Party.Server {
             const message: ServerMessage = { type: 'STATE', state: this.gameState };
             conn.send(JSON.stringify(message));
 
-            console.log(`[${this.room.id}] Jogador reconectou: ${existingPlayer.name} (sessionId: ${sessionId || 'none'})`);
+            console.log(`[${this.room.id}] Jogador reconectou: ${existingPlayer.name}`);
             return;
         }
 
