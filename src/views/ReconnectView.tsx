@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IoWarningOutline } from 'react-icons/io5';
+import { IoWarningOutline, IoSyncOutline } from 'react-icons/io5';
 
 interface Props {
     roomCode: string;
@@ -50,7 +50,7 @@ export default function ReconnectView({
                         <>
                             {/* Estado de conexão */}
                             <div className="space-y-4">
-                                <div className="text-6xl animate-spin">⚡</div>
+                                <div className="animate-spin flex justify-center"><IoSyncOutline size={64} color="#eab308" /></div>
                                 <h2 className="text-2xl font-display font-bold text-white uppercase">Conectando...</h2>
                                 <p className="text-slate-400 font-mono text-sm">Estabelecendo uplink com sala {roomCode}</p>
                             </div>
