@@ -122,6 +122,8 @@
 body {
   scrollbar-width: thin;
   scrollbar-color: #334155 #050505;
+  font-size: 18px;
+  /* Aumenta tamanho base de fonte para melhor legibilidade */
 }
 
 /* Custom scrollbar - Webkit (Chrome, Safari, Edge) */

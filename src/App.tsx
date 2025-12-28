@@ -26,8 +26,8 @@ function Toast({ message, type, onClose }: { message: string; type: 'error' | 'i
           {type === 'success' && <span className="text-lg">✓</span>}
           {type === 'info' && <span className="text-lg">›</span>}
         </div>
-        <p className="flex-1 font-mono text-xs uppercase tracking-widest font-bold text-slate-200">{message}</p>
-        <button onClick={onClose} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-xs text-slate-400 hover:text-white">
+        <p className="flex-1 font-mono text-sm uppercase tracking-widest font-bold text-white">{message}</p>
+        <button onClick={onClose} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm text-slate-300 hover:text-white">
           ×
         </button>
       </div>
