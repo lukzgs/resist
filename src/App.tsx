@@ -7,6 +7,9 @@ import LobbyView from './views/LobbyView';
 import GameView from './views/GameView';
 import ReconnectView from './views/ReconnectView';
 
+// Chave para salvar o nome no localStorage (persiste entre sessões)
+const PLAYER_NAME_KEY = 'resist_player_name';
+
 // Componente de Toast para notificações na tela
 function Toast({ message, type, onClose }: { message: string; type: 'error' | 'info' | 'success'; onClose: () => void }) {
   React.useEffect(function () {
@@ -82,7 +85,10 @@ export default function App() {
 
   // Se há sessão salva, vai para RECONNECT em vez de conectar automaticamente
   const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT'>(storedSession ? 'RECONNECT' : 'HOME');
-  const [playerName, setPlayerName] = useState(storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999));
+  // Prioridade: localStorage > storedSession > nome aleatório
+  const [playerName, setPlayerName] = useState(
+    localStorage.getItem(PLAYER_NAME_KEY) || storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999)
+  );
   const [avatarSeed] = useState(storedSession?.avatarSeed || Math.floor(Math.random() * 9000));
   const [roomCode, setRoomCode] = useState(''); // NÃO inicia com roomCode salvo - espera usuário clicar
   const [savedRoomCode] = useState(storedSession?.roomCode || ''); // Guarda para exibir na tela
@@ -107,6 +113,7 @@ export default function App() {
     vote,
     missionAction,
     setAnonymousVotes,
+    setShowRejectionCount,
     restartGame,
     disconnectVote,
   } = usePartySocket({
@@ -192,6 +199,8 @@ export default function App() {
   useEffect(() => {
     if (isConnected && roomCode && playerName) {
       saveSession({ roomCode, playerName, avatarSeed });
+      // Salva o nome separadamente para persistir entre partidas
+      localStorage.setItem(PLAYER_NAME_KEY, playerName);
     }
   }, [isConnected, roomCode, playerName, avatarSeed]);
 
@@ -352,6 +361,7 @@ export default function App() {
           onRemove={removePlayer}
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}
+          onToggleShowRejectionCount={setShowRejectionCount}
           onBack={handleBack}
         />
       )}
