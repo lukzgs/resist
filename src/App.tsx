@@ -273,7 +273,7 @@ export default function App() {
   }, [disconnect]);
 
   return (
-    <main className="min-h-screen bg-dark text-slate-200 font-sans selection:bg-resistance selection:text-white">
+    <div className="min-h-screen bg-dark text-slate-200 font-sans selection:bg-resistance selection:text-white">
       {/* Sistema de notificações */}
       {notification && (
         <Toast
@@ -358,6 +358,6 @@ export default function App() {
           isHost={isHost}
         />
       )}
-    </main>
+    </div>
   );
 }
