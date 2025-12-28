@@ -58,6 +58,7 @@ export interface GameState {
     logs: string[];
     winner: Role | null;
     anonymousVotes: boolean;  // Se true, votos não mostram quem votou o quê
+    showRejectionCount: boolean;  // Se true, mostra contagem de rejeições ao fim da missão
     roomExpiresAt?: number;   // Timestamp de quando a sala fecha (após GAME_OVER)
     disconnectInfo?: DisconnectInfo;  // Info de desconexão durante jogo
     disconnectVotes?: Record<string, boolean>;  // playerId -> true=encerrar
@@ -73,6 +74,7 @@ export type ClientMessage =
     | { type: 'VOTE'; approve: boolean }
     | { type: 'MISSION_ACTION'; success: boolean }
     | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean }
+    | { type: 'SET_SHOW_REJECTION_COUNT'; enabled: boolean }
     | { type: 'RESTART_GAME' }
     | { type: 'DISCONNECT_VOTE'; endGame: boolean };
 

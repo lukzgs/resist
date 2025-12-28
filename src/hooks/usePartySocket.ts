@@ -103,6 +103,7 @@ interface UsePartySocketReturn {
     vote: (approve: boolean) => void;
     missionAction: (success: boolean) => void;
     setAnonymousVotes: (enabled: boolean) => void;
+    setShowRejectionCount: (enabled: boolean) => void;
     restartGame: () => void;
     disconnectVote: (endGame: boolean) => void;
 }
@@ -336,6 +337,10 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'SET_ANONYMOUS_VOTES', enabled });
     }, [send]);
 
+    const setShowRejectionCount = useCallback((enabled: boolean) => {
+        send({ type: 'SET_SHOW_REJECTION_COUNT', enabled });
+    }, [send]);
+
     const restartGame = useCallback(() => {
         send({ type: 'RESTART_GAME' });
     }, [send]);
@@ -370,6 +375,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         vote,
         missionAction,
         setAnonymousVotes,
+        setShowRejectionCount,
         restartGame,
         disconnectVote,
     };
