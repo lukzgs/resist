@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /private/
+Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
