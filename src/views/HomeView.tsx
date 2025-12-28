@@ -25,7 +25,7 @@ export default function HomeView({ onNavigate }: Props) {
               <svg className="w-16 h-16 text-resistance" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" /></svg>
             </div>
             <div className="text-4xl font-display font-black text-white mb-2 uppercase tracking-tighter">Assumir Comando</div>
-            <p className="text-sm text-slate-500 uppercase tracking-widest font-bold font-mono">Host Local Terminal</p>
+            <p className="text-sm text-slate-400 uppercase tracking-widest font-bold font-mono">Host Local Terminal</p>
           </button>
 
           <button
@@ -33,12 +33,12 @@ export default function HomeView({ onNavigate }: Props) {
             className="group relative p-8 bg-black/40 border-2 border-white/10 rounded-3xl hover:border-white/40 transition-all text-left overflow-hidden"
           >
             <div className="text-4xl font-display font-black text-white mb-2 uppercase tracking-tighter">Infiltrar Célula</div>
-            <p className="text-sm text-slate-500 uppercase tracking-widest font-bold font-mono">Sync via Quantum Link</p>
+            <p className="text-sm text-slate-400 uppercase tracking-widest font-bold font-mono">Sync via Quantum Link</p>
           </button>
         </div>
 
         <div className="pt-12">
-          <p className="text-xs font-mono text-slate-600 uppercase tracking-widest animate-pulse">Connection Status: Ready for uplink...</p>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-widest animate-pulse">Connection Status: Ready for uplink...</p>
         </div>
       </div>
     </div>

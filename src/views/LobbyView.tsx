@@ -34,7 +34,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                             <div className="space-y-6 font-mono">
                                 <div>
-                                    <div className="flex justify-between text-sm text-slate-500 uppercase mb-2">Manifesto de Unidades</div>
+                                    <div className="flex justify-between text-sm text-slate-400 uppercase mb-2">Manifesto de Unidades</div>
                                     <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-resistance transition-all duration-1000" style={{ width: `${(pCount / 10) * 100}%` }}></div>
                                     </div>
@@ -56,7 +56,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
                         {isHost && (
                             <div className="bg-black/40 p-6 rounded-3xl border border-white/10 backdrop-blur-md">
-                                <h3 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Configurações</h3>
+                                <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest mb-4">Configurações</h3>
 
                                 {/* Toggle de votos visíveis */}
                                 <label className="flex items-center justify-between cursor-pointer group mb-4">
@@ -93,7 +93,7 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                             <div className="text-sm font-bold text-white uppercase tracking-wider truncate flex items-center gap-2">
                                                 {p.name}
                                             </div>
-                                            <div className="text-xs font-mono text-slate-500 flex items-center gap-2">
+                                            <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
                                                 <span className={`w-1 h-1 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full`}></span>
                                                 {p.disconnected ? 'OFFLINE' : 'VITAL_OK'}
                                             </div>

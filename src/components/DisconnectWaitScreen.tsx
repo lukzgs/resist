@@ -56,7 +56,7 @@ export function DisconnectWaitScreen({ state }: DisconnectWaitScreenProps) {
                     <p className="text-slate-300 font-mono text-sm">
                         <span className="text-yellow-400 font-bold">{info.disconnectedPlayerName}</span> desconectou
                     </p>
-                    <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">
+                    <p className="text-slate-400 text-xs mt-1 uppercase tracking-widest">
                         Tentativa {info.waitingAttempt} de 3
                     </p>
                 </div>
@@ -67,14 +67,14 @@ export function DisconnectWaitScreen({ state }: DisconnectWaitScreenProps) {
                         <div className="text-5xl font-display font-black text-yellow-400 tabular-nums">
                             {formatTime(timeLeft)}
                         </div>
-                        <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">
+                        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest">
                             Tempo para reconectar
                         </p>
                     </div>
                 )}
 
                 {/* Mensagem */}
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-400 text-sm">
                     Se o jogador não reconectar, uma votação será iniciada para decidir se encerra ou continua aguardando.
                 </p>
             </div>

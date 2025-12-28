@@ -297,7 +297,7 @@ export default function App() {
                 setView('HOME');
                 showNotification('Conexão cancelada.', 'info');
               }}
-              className="mt-4 text-xs font-mono text-slate-500 hover:text-red-400 uppercase tracking-widest transition-colors"
+              className="mt-4 text-xs font-mono text-slate-400 hover:text-red-400 uppercase tracking-widest transition-colors"
             >
               Cancelar
             </button>

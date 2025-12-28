@@ -66,11 +66,11 @@ export default function ReconnectView({
 
                             <div className="grid grid-cols-2 gap-4 text-left">
                                 <div className="p-4 bg-black/30 rounded-xl border border-white/10">
-                                    <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-1">Sala</p>
+                                    <p className="text-xs text-slate-400 uppercase tracking-wider font-mono mb-1">Sala</p>
                                     <p className="text-xl font-display font-bold text-resistance">{roomCode}</p>
                                 </div>
                                 <div className="p-4 bg-black/30 rounded-xl border border-white/10">
-                                    <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-1">Jogador</p>
+                                    <p className="text-xs text-slate-400 uppercase tracking-wider font-mono mb-1">Jogador</p>
                                     <p className="text-xl font-display font-bold text-white truncate">{playerName}</p>
                                 </div>
                             </div>
@@ -95,7 +95,7 @@ export default function ReconnectView({
                 </div>
 
                 <div className="pt-4">
-                    <p className="text-xs font-mono text-slate-600 uppercase tracking-widest">
+                    <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">
                         {isConnecting ? 'Uplink em progresso...' : 'Pronto para reconectar'}
                     </p>
                 </div>

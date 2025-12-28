@@ -171,14 +171,14 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs font-mono text-spy uppercase tracking-[0.3em] font-black">Active_Threat_Detected</span>
                 <span className="w-8 h-[1px] bg-spy/40"></span>
-                <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
+                <span className="text-xs font-mono text-slate-400 uppercase tracking-widest font-bold">2029_SYS_LINK</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
-              <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Sala:</span>
+              <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">Sala:</span>
               <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode}</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
           <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
-            <div className="absolute top-2 left-4 text-xs font-mono text-slate-600 uppercase">Operational_Objectives</div>
+            <div className="absolute top-2 left-4 text-xs font-mono text-slate-400 uppercase">Operational_Objectives</div>
             <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
           </div>
 
@@ -223,7 +223,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
 
             <div className="mb-8">
-              <span className="text-sm font-mono text-slate-500 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
+              <span className="text-sm font-mono text-slate-400 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
               <h3 className="text-3xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-glow-blue">
                 {state.phase.replace(/_/g, ' ')}
               </h3>
@@ -237,7 +237,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
               {/* Resultado da última votação (modo anônimo) */}
               {lastVoteResult && state.anonymousVotes && (
                 <div className="flex items-center justify-center gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/10">
-                  <span className="text-xs font-mono text-slate-500 uppercase">Última votação:</span>
+                  <span className="text-xs font-mono text-slate-400 uppercase">Última votação:</span>
                   <div className="flex items-center gap-3">
                     <span className="text-lg font-display font-black text-resistance">{lastVoteResult.approvals}</span>
                     <span className="text-xs text-slate-400">×</span>
@@ -274,7 +274,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
               {logSize === 'minimized' ? 'LOG' : 'SYSTEM_LOG_v3.1'}
             </span>
             <div className="flex items-center gap-1 shrink-0">
-              {logSize !== 'minimized' && <span className="text-[10px] text-slate-600 mr-2">⋮⋮</span>}
+              {logSize !== 'minimized' && <span className="text-[10px] text-slate-400 mr-2">⋮⋮</span>}
               {/* Botões de controle de janela */}
               <button
                 onClick={(e) => { e.stopPropagation(); setLogSize('minimized'); }}
@@ -294,7 +294,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                 {state.logs.slice(-Math.floor((logDimensions.height - 60) / 20)).map(function (log, i) {
                   return (
                     <div key={i} className="text-xs font-mono text-slate-400 border-l border-slate-800 pl-2 leading-tight lowercase">
-                      <span className="text-slate-600 mr-2">[{1024 + i}]</span>
+                      <span className="text-slate-400 mr-2">[{1024 + i}]</span>
                       {log}
                     </div>
                   );
@@ -306,7 +306,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           {/* Resize Handle */}
           {logSize !== 'minimized' && (
             <div
-              className="absolute bottom-1 right-1 w-6 h-6 cursor-se-resize flex items-center justify-center text-slate-600 hover:text-slate-400 transition-colors touch-none"
+              className="absolute bottom-1 right-1 w-6 h-6 cursor-se-resize flex items-center justify-center text-slate-400 hover:text-slate-300 transition-colors touch-none"
               onMouseDown={handleResizeStart}
               onTouchStart={handleResizeStart}
             >
@@ -381,7 +381,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
         </div>
-        <p className="text-slate-500 font-mono text-sm uppercase tracking-widest italic">Comandante {state.players[state.leaderIndex].name} selecionando unidades...</p>
+        <p className="text-slate-400 font-mono text-sm uppercase tracking-widest italic">Comandante {state.players[state.leaderIndex].name} selecionando unidades...</p>
       </div>
     );
   }
@@ -402,13 +402,13 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
           </div>
-          <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Aguardando votos dos outros agentes...</p>
+          <p className="text-slate-400 font-mono text-sm uppercase tracking-widest">Aguardando votos dos outros agentes...</p>
 
           {/* Mostra apenas quantos faltam votar */}
           {remaining > 0 && (
             <div className="flex items-center gap-2 mt-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10">
               <span className="text-lg font-display font-black text-slate-400">{remaining}</span>
-              <span className="text-xs font-mono text-slate-500 uppercase">agente{remaining > 1 ? 's' : ''} pendente{remaining > 1 ? 's' : ''}</span>
+              <span className="text-xs font-mono text-slate-400 uppercase">agente{remaining > 1 ? 's' : ''} pendente{remaining > 1 ? 's' : ''}</span>
             </div>
           )}
         </div>
@@ -453,7 +453,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
           </div>
-          <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+          <p className="text-slate-400 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
         </div>
       );
     }
@@ -500,7 +500,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
       <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
       </div>
-      <p className="text-slate-500 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+      <p className="text-slate-400 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
     </div>
   );
 }
@@ -551,7 +551,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
 
       {/* Revelação de jogadores */}
       <div className="bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
-        <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
+        <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {state.players.map((player) => (
             <div
@@ -583,7 +583,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
 
       {/* Countdown */}
       {timeLeft !== null && timeLeft > 0 && (
-        <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-sm">
+        <div className="flex items-center justify-center gap-2 text-slate-400 font-mono text-sm">
           <span className="uppercase tracking-widest">Sala fecha em</span>
           <span className="text-resistance font-bold text-lg">{formatTime(timeLeft)}</span>
         </div>

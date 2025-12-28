@@ -19,7 +19,7 @@ const MissionTracker: React.FC<Props> = ({ missions, currentMissionIndex }) => {
       <div className="flex justify-between items-center">
         {missions.map((m, idx) => {
           let ringColor = 'border-slate-700 bg-dark';
-          let textColor = 'text-slate-500';
+          let textColor = 'text-slate-400';
           let shadow = '';
           let scale = 'scale-100';
 
@@ -65,7 +65,7 @@ const MissionTracker: React.FC<Props> = ({ missions, currentMissionIndex }) => {
 
               {/* Label */}
               <div className="absolute -bottom-8 flex flex-col items-center">
-                <span className="text-sm uppercase tracking-[0.2em] text-slate-600 font-semibold">
+                <span className="text-sm uppercase tracking-[0.2em] text-slate-400 font-semibold">
                   M-{m.roundNumber}
                 </span>
               </div>

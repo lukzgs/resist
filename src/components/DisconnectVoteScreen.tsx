@@ -111,13 +111,13 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
                         </div>
                     </div>
                 ) : (
-                    <div className="text-slate-500 font-mono text-sm uppercase tracking-widest">
+                    <div className="text-slate-400 font-mono text-sm uppercase tracking-widest">
                         {hasVoted ? '✓ Voto registrado' : 'Aguardando votação...'}
                     </div>
                 )}
 
                 {/* Info de tentativa */}
-                <p className="text-slate-600 text-xs uppercase tracking-widest">
+                <p className="text-slate-400 text-xs uppercase tracking-widest">
                     Tentativa {info.waitingAttempt} de 3 • Não votar = aguardar
                 </p>
             </div>
