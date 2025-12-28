@@ -367,12 +367,10 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Tenta reconexão EXCLUSIVAMENTE por sessionId (segurança contra spoofing)
+        // Tenta reconexão APENAS por sessionId (único identificador válido)
         const existingPlayer = sessionId
             ? this.gameState.players.find(p => p.sessionId === sessionId)
             : null;
-
-        // REMOVIDO: Fallback por nome (inseguro)
 
         if (existingPlayer) {
             // Cancela timeout de remoção se existir
@@ -385,9 +383,10 @@ export default class ResistServer implements Party.Server {
             // Registra nova conexão para o jogador existente
             this.connections.set(conn.id, existingPlayer.id);
 
-            // Atualiza sessionId se fornecido (upgrade de sessão)
-            if (sessionId && !existingPlayer.sessionId) {
-                existingPlayer.sessionId = sessionId;
+            // Atualiza nome se mudou (permite trocar nome ao reconectar)
+            if (existingPlayer.name !== name) {
+                this.addLog(`> ${existingPlayer.name} agora é ${name}`);
+                existingPlayer.name = name;
             }
 
             // Marca como conectado
@@ -409,8 +408,9 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Verifica limite de jogadores
-        if (this.gameState.players.length >= 10) {
+        // Verifica limite de jogadores (não conta espectadores para o limite de jogo)
+        const activePlayersCount = this.gameState.players.filter(p => !p.isSpectator).length;
+        if (activePlayersCount >= 10) {
             this.sendError(conn, 'Sala cheia (máximo 10 jogadores)');
             return;
         }
@@ -418,12 +418,7 @@ export default class ResistServer implements Party.Server {
         // Verifica se é tentativa de entrar após jogo começar
         const isGameInProgress = this.gameState.phase !== Phase.LOBBY;
 
-        // Verifica se nome está em uso (apenas para jogadores ativos, não espectadores)
-        const existingPlayerWithName = this.gameState.players.find(p => p.name === name);
-        if (existingPlayerWithName && !existingPlayerWithName.isSpectator) {
-            this.sendError(conn, 'Nome já em uso');
-            return;
-        }
+        // NOMES DUPLICADOS SÃO PERMITIDOS - nome é apenas display, não identificador
 
         // Gera novo sessionId seguro
         const newSessionId = generateUUID();
@@ -500,25 +495,34 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        const pCount = this.gameState.players.length;
+        // Conta apenas jogadores ativos (não espectadores e conectados)
+        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
+        const pCount = activePlayers.length;
+
         if (pCount < 5 || pCount > 10) {
-            this.sendError(conn, 'Precisa de 5-10 jogadores');
+            this.sendError(conn, `Precisa de 5-10 jogadores conectados (atual: ${pCount})`);
             return;
         }
 
         const rules = GAME_RULES[pCount];
 
-        // Distribui papéis
+        // Distribui papéis apenas para jogadores ativos
         const roles: Role[] = [];
         for (let i = 0; i < rules.spyCount; i++) roles.push(Role.TERMINATOR);
         for (let i = 0; i < pCount - rules.spyCount; i++) roles.push(Role.HUMAN);
         const shuffledRoles = shuffle(roles);
 
-        // Atribui papéis aos jogadores
-        this.gameState.players = this.gameState.players.map((p, i) => ({
-            ...p,
-            role: shuffledRoles[i],
-        }));
+        // Atribui papéis apenas aos jogadores ativos
+        let roleIndex = 0;
+        this.gameState.players = this.gameState.players.map((p) => {
+            if (p.isSpectator || p.disconnected) {
+                return p; // Mantém espectadores/desconectados sem papel
+            }
+            return {
+                ...p,
+                role: shuffledRoles[roleIndex++],
+            };
+        });
 
         // Cria missões
         this.gameState.missions = rules.missionSizes.map((size, i) => ({
@@ -736,16 +740,40 @@ export default class ResistServer implements Party.Server {
                 // Marca como desconectado
                 player.disconnected = true;
 
-                // No lobby, remove imediatamente
+                // No lobby, dá 30 segundos para reconexão antes de remover
                 if (this.gameState.phase === Phase.LOBBY) {
-                    this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
-
-                    // Se era host, passa para próximo
-                    if (player.isHost && this.gameState.players.length > 0) {
-                        this.gameState.players[0].isHost = true;
-                    }
-
                     this.broadcastState();
+
+                    // Agenda remoção após 30 segundos
+                    const lobbyReconnectTimeout = setTimeout(() => {
+                        if (this.gameState && this.gameState.phase === Phase.LOBBY) {
+                            const playerStillDisconnected = this.gameState.players.find(
+                                p => p.id === playerId && p.disconnected
+                            );
+
+                            if (playerStillDisconnected) {
+                                // Remove o jogador
+                                this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
+
+                                // Se era host, passa para próximo jogador conectado
+                                if (playerStillDisconnected.isHost && this.gameState.players.length > 0) {
+                                    const nextHost = this.gameState.players.find(p => !p.disconnected);
+                                    if (nextHost) {
+                                        nextHost.isHost = true;
+                                    } else if (this.gameState.players.length > 0) {
+                                        this.gameState.players[0].isHost = true;
+                                    }
+                                }
+
+                                this.addLog(`> ${playerStillDisconnected.name} removido por inatividade`);
+                                this.broadcastState();
+                                console.log(`[${this.room.id}] Jogador removido do lobby após timeout: ${playerStillDisconnected.name}`);
+                            }
+                        }
+                    }, 30000); // 30 segundos de graça no lobby
+
+                    // Armazena o timeout para poder cancelar se reconectar
+                    this.disconnectedPlayers.set(playerId, lobbyReconnectTimeout);
                 } else if (this.gameState.phase === Phase.GAME_OVER) {
                     // No GAME_OVER, apenas marca como desconectado
                     this.broadcastState();
