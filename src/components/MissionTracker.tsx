@@ -40,6 +40,18 @@ const MissionTracker: React.FC<Props> = ({ missions, currentMissionIndex }) => {
 
           return (
             <div key={idx} className={`relative flex flex-col items-center group transition-all duration-500 ${scale}`}>
+              {/* 2 Fails Indicator - ABOVE the circle */}
+              {m.requiresTwoFails && (
+                <span className="absolute -top-9 text-xs text-red-500 font-bold whitespace-nowrap px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">
+                  2 FAILS
+                </span>
+              )}
+
+              {/* Active Indicator */}
+              {idx === currentMissionIndex && (
+                <div className="absolute -top-3 w-1.5 h-1.5 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,1)]" />
+              )}
+
               {/* Node */}
               <div className={`
                     w-12 h-12 md:w-16 md:h-16 rounded-full border-2 md:border-4 flex items-center justify-center
@@ -56,17 +68,7 @@ const MissionTracker: React.FC<Props> = ({ missions, currentMissionIndex }) => {
                 <span className="text-sm uppercase tracking-[0.2em] text-slate-600 font-semibold">
                   M-{m.roundNumber}
                 </span>
-                {m.requiresTwoFails && (
-                  <span className="text-xs text-red-500 font-bold whitespace-nowrap mt-0.5 px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">
-                    2 FAILS
-                  </span>
-                )}
               </div>
-
-              {/* Active Indicator */}
-              {idx === currentMissionIndex && (
-                <div className="absolute -top-3 w-1.5 h-1.5 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,1)]" />
-              )}
             </div>
           );
         })}

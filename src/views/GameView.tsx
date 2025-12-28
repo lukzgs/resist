@@ -415,7 +415,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     // Ainda não votou - mostra botões
     return (
       <div className="space-y-6 animate-in slide-in-from-bottom-4">
-        <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">Validar Integridade Biológica?</p>
+        <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">Validar Equipe?</p>
         <div className="flex gap-4 justify-center">
           <button
             onClick={function () {
@@ -554,8 +554,8 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
             <div
               key={player.id}
               className={`flex flex-col items-center p-4 rounded-xl border-2 ${player.role === Role.TERMINATOR
-                  ? 'border-spy bg-spy/5'
-                  : 'border-resistance bg-resistance/5'
+                ? 'border-spy bg-spy/5'
+                : 'border-resistance bg-resistance/5'
                 }`}
             >
               <div className={`w-14 h-14 rounded-full overflow-hidden border-2 mb-2 ${player.role === Role.TERMINATOR ? 'border-spy' : 'border-resistance'
@@ -568,8 +568,8 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
               </div>
               <p className="text-white font-bold text-sm truncate max-w-full">{player.name}</p>
               <span className={`text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded mt-1 ${player.role === Role.TERMINATOR
-                  ? 'bg-spy/20 text-spy border border-spy/30'
-                  : 'bg-resistance/20 text-resistance border border-resistance/30'
+                ? 'bg-spy/20 text-spy border border-spy/30'
+                : 'bg-resistance/20 text-resistance border border-resistance/30'
                 }`}>
                 {player.role === Role.TERMINATOR ? 'TERM' : 'HUMAN'}
               </span>
