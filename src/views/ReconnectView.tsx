@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { IoWarningOutline } from 'react-icons/io5';
 
 interface Props {
     roomCode: string;
@@ -57,8 +58,8 @@ export default function ReconnectView({
                     ) : (
                         <>
                             {/* Estado inicial */}
-                            <div className="space-y-4">
-                                <div className="text-6xl">🔌</div>
+                            <div className="space-y-4 flex flex-col items-center">
+                                <IoWarningOutline size={64} color="#eab308" />
                                 <h2 className="text-2xl font-display font-bold text-white uppercase">Sessão Detectada</h2>
                                 <p className="text-slate-400 font-mono text-sm">Uma sessão anterior foi encontrada</p>
                             </div>

@@ -546,6 +546,38 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
         </p>
       </div>
 
+      {/* Revelação de jogadores */}
+      <div className="bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
+        <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {state.players.map((player) => (
+            <div
+              key={player.id}
+              className={`flex flex-col items-center p-4 rounded-xl border-2 ${player.role === Role.TERMINATOR
+                  ? 'border-spy bg-spy/5'
+                  : 'border-resistance bg-resistance/5'
+                }`}
+            >
+              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 mb-2 ${player.role === Role.TERMINATOR ? 'border-spy' : 'border-resistance'
+                }`}>
+                <img
+                  src={`https://picsum.photos/seed/${player.avatarSeed}/80`}
+                  className="w-full h-full object-cover"
+                  alt={player.name}
+                />
+              </div>
+              <p className="text-white font-bold text-sm truncate max-w-full">{player.name}</p>
+              <span className={`text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded mt-1 ${player.role === Role.TERMINATOR
+                  ? 'bg-spy/20 text-spy border border-spy/30'
+                  : 'bg-resistance/20 text-resistance border border-resistance/30'
+                }`}>
+                {player.role === Role.TERMINATOR ? 'TERM' : 'HUMAN'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Countdown */}
       {timeLeft !== null && timeLeft > 0 && (
         <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-sm">
