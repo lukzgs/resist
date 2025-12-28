@@ -40,8 +40,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
     lastPhase.current = state.phase;
   }, [state.phase, state.currentMissionIndex, state.missions]);
 
-  // Estado para posição e tamanho do log arrastável
-  const [logPosition, setLogPosition] = useState({ x: 16, y: 100 });
+  // Estado para posição e tamanho do log arrastável - começa no canto inferior direito
+  const [logPosition, setLogPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth - 200 : 16, y: typeof window !== 'undefined' ? window.innerHeight - 180 : 100 });
   const [logDimensions, setLogDimensions] = useState({ width: 280, height: 160 });
   const [logSize, setLogSize] = useState<'minimized' | 'normal' | 'expanded'>('minimized'); // Start minimized on mobile
   const [isDragging, setIsDragging] = useState(false);
@@ -177,9 +177,14 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Badge de terminators */}
+            <div className="hidden md:flex items-center gap-2 bg-spy/10 px-3 py-2 rounded-lg border border-spy/30">
+              <span className="text-xs font-mono text-spy uppercase tracking-widest">Terminators:</span>
+              <span className="text-lg font-display font-black text-spy">{state.players.filter(p => p.role === Role.TERMINATOR).length}</span>
+            </div>
             <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
               <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">Sala:</span>
-              <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode}</span>
+              <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode.replace(/0/g, 'Ø')}</span>
             </div>
           </div>
         </header>
@@ -187,7 +192,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
         <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
           <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
             <div className="absolute top-2 left-4 text-xs font-mono text-slate-300 uppercase">Operational_Objectives</div>
-            <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} />
+            <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} showRejectionCount={state.showRejectionCount} />
           </div>
 
           {/* Player cards - hide on GAME_OVER (identities are shown in the game over screen) */}
