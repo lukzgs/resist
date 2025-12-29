@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/fira-code": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/rajdhani": "^5.2.7",
     "@tailwindcss/vite": "^4.1.18",
     "partysocket": "^1.1.10",
     "react": "^19.2.3",
