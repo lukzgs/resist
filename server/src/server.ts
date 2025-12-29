@@ -713,7 +713,7 @@ export default class ResistServer implements Party.Server {
                 }
 
                 this.broadcastState();
-            }, 1500); // 1.5s delay para ver os votos
+            }, 750); // 0.75s delay para ver os votos antes de iniciar missão
 
             return; // Não fazer broadcast novamente abaixo
         }
@@ -773,11 +773,22 @@ export default class ResistServer implements Party.Server {
                 this.addLog(`> SKYNET PREVALECE!`);
                 this.scheduleRoomClosure();
             } else {
-                // Próxima missão
-                this.gameState.currentMissionIndex++;
-                this.gameState.phase = Phase.TEAM_SELECTION;
-                this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
-                this.gameState.proposedTeam = [];
+                // Broadcast resultado antes de mudar de fase
+                this.broadcastState();
+
+                // Delay de 0.5s antes de próximo round
+                setTimeout(() => {
+                    if (!this.gameState) return;
+
+                    // Próxima missão
+                    this.gameState.currentMissionIndex++;
+                    this.gameState.phase = Phase.TEAM_SELECTION;
+                    this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
+                    this.gameState.proposedTeam = [];
+                    this.broadcastState();
+                }, 500); // 0.5s delay antes do próximo round
+
+                return; // Não fazer broadcast novamente
             }
         }
 

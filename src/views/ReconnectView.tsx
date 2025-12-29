@@ -22,14 +22,14 @@ export default function ReconnectView({
         <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-scan opacity-5 pointer-events-none"></div>
 
-            <div className="z-10 text-center space-y-8 max-w-lg">
+            <div className="z-10 text-center space-y-8 max-w-lg view-enter">
                 <div className="space-y-2 animate-float">
                     <h1 className="text-6xl font-display font-black tracking-tighter text-white drop-shadow-glow-blue italic">SKYNET</h1>
                     <p className="text-sm font-mono text-resistance tracking-[0.5em] uppercase font-bold">Reconnect Protocol</p>
                 </div>
 
                 {/* Card de reconexão */}
-                <div className="p-8 bg-black/40 border-2 border-white/20 rounded-3xl space-y-6">
+                <div className="p-8 bg-black/40 border-2 border-white/20 rounded-3xl space-y-6 card-animate">
                     {error ? (
                         <>
                             {/* Estado de erro */}

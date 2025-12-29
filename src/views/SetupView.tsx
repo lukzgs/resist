@@ -16,7 +16,7 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
-      <div className="w-full max-w-md bg-black/60 backdrop-blur-3xl p-10 rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-md bg-black/60 backdrop-blur-3xl p-10 rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden view-enter">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/50 to-transparent"></div>
 
         <h2 className="text-3xl font-display font-black text-white mb-8 uppercase tracking-[0.2em] text-center italic">
@@ -52,13 +52,13 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
           <div className="pt-4 space-y-4">
             <button
               onClick={() => isJoin ? onJoin(code) : onInit()}
-              className="w-full bg-resistance text-black py-5 rounded-2xl font-display font-black text-2xl shadow-glow-blue uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+              className="btn-animate w-full bg-resistance text-black py-5 rounded-2xl font-display font-black text-2xl shadow-glow-blue uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
             >
               {isJoin ? 'Establish Link' : 'Initialize Terminal'}
             </button>
             <button
               onClick={onBack}
-              className="w-full text-slate-300 text-sm uppercase font-bold tracking-[0.3em] hover:text-white transition-colors"
+              className="btn-animate w-full text-slate-300 text-sm uppercase font-bold tracking-[0.3em] hover:text-white transition-colors"
             >
               Abort Mission
             </button>
