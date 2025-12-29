@@ -196,33 +196,39 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           </div>
 
           {/* Player cards - hide on GAME_OVER (identities are shown in the game over screen) */}
-          {state.phase !== Phase.GAME_OVER && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
-              {state.players.map(function (p, i) {
-                return (
-                  <div
-                    key={p.id}
-                    onClick={function () {
-                      if (isLeader && state.phase === Phase.TEAM_SELECTION) {
-                        sendAction('SELECT_PLAYER', { id: p.id });
-                      }
-                    }}
-                    className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
-                  >
-                    <PlayerCard
-                      player={p}
-                      isLeader={i === state.leaderIndex}
-                      isInTeam={state.proposedTeam.includes(p.id)}
-                      showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
-                      vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
-                      isDisconnected={p.disconnected}
-                      isMe={p.name === playerName}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {state.phase !== Phase.GAME_OVER && (() => {
+            // Filtra espectadores - eles não devem ter cards
+            const activePlayers = state.players.filter(p => !p.isSpectator);
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+                {activePlayers.map(function (p) {
+                  // Encontra o índice original do jogador para verificar se é líder
+                  const originalIndex = state.players.findIndex(player => player.id === p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={function () {
+                        if (isLeader && state.phase === Phase.TEAM_SELECTION && !p.isSpectator) {
+                          sendAction('SELECT_PLAYER', { id: p.id });
+                        }
+                      }}
+                      className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
+                    >
+                      <PlayerCard
+                        player={p}
+                        isLeader={originalIndex === state.leaderIndex}
+                        isInTeam={state.proposedTeam.includes(p.id)}
+                        showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
+                        vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
+                        isDisconnected={p.disconnected}
+                        isMe={p.name === playerName}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           <div className="max-w-xl mx-auto text-center p-10 bg-black/80 rounded-[40px] border-2 border-white/5 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
@@ -557,11 +563,11 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
         </p>
       </div>
 
-      {/* Revelação de jogadores com delay maior */}
+      {/* Revelação de jogadores com delay maior - filtra espectadores */}
       <div className="animate-fade-in-up animate-delay-400 bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
         <h3 className="text-xs font-mono text-slate-300 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {state.players.map((player, index) => (
+          {state.players.filter(p => !p.isSpectator).map((player, index) => (
             <div
               key={player.id}
               className={`flex flex-col items-center p-4 rounded-xl border-2 animate-fade-in ${player.role === Role.TERMINATOR
