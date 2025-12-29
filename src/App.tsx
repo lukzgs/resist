@@ -96,6 +96,7 @@ export default function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
   const [reconnectError, setReconnectError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);  // true se criando sala, false se entrando
 
   const showNotification = useCallback((message: string, type: 'error' | 'info' | 'success' = 'info') => {
     setNotification({ message, type });
@@ -120,6 +121,7 @@ export default function App() {
     roomCode,
     playerName,
     avatarSeed,
+    isCreating,
     onStateUpdate: (state) => {
       setGameState(state);
       // Limpa notificações de "conectando"
@@ -173,6 +175,7 @@ export default function App() {
   // Handler para criar sala
   const handleCreate = useCallback(() => {
     const code = generateCode();
+    setIsCreating(true);  // Marcando como criação
     setRoomCode(code);
     showNotification('Criando sala...', 'info');
     // O connect será chamado pelo useEffect quando roomCode mudar
@@ -184,6 +187,7 @@ export default function App() {
       showNotification('Digite um código de sala válido', 'error');
       return;
     }
+    setIsCreating(false);  // Marcando como entrada (não criação)
     setRoomCode(code.toUpperCase());
     showNotification('Conectando à sala...', 'info');
   }, [showNotification]);

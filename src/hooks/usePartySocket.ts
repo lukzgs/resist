@@ -79,6 +79,7 @@ interface UsePartySocketOptions {
     roomCode: string;
     playerName: string;
     avatarSeed: number;
+    isCreating?: boolean;  // true se está criando sala, false se entrando em existente
     onStateUpdate: (state: GameState) => void;
     onError: (message: string) => void;
     onPlayerJoined?: (name: string) => void;
@@ -113,6 +114,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         roomCode,
         playerName,
         avatarSeed,
+        isCreating,
         onStateUpdate,
         onError,
         onPlayerJoined,
@@ -132,13 +134,15 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
     const lastRoomCodeRef = useRef(roomCode);
     const lastPlayerNameRef = useRef(playerName);
     const lastAvatarSeedRef = useRef(avatarSeed);
+    const isCreatingRef = useRef(isCreating);
 
     // Atualiza as refs quando os valores mudam
     useEffect(() => {
         lastRoomCodeRef.current = roomCode;
         lastPlayerNameRef.current = playerName;
         lastAvatarSeedRef.current = avatarSeed;
-    }, [roomCode, playerName, avatarSeed]);
+        isCreatingRef.current = isCreating;
+    }, [roomCode, playerName, avatarSeed, isCreating]);
 
     // Limpa timeout de reconexão
     const clearReconnectTimeout = useCallback(() => {
@@ -194,6 +198,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                     name: currentPlayerName,
                     avatarSeed: currentAvatarSeed,
                     sessionId,
+                    isCreating: isCreatingRef.current,
                 }));
             });
 

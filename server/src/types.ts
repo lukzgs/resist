@@ -66,7 +66,7 @@ export interface GameState {
 
 // Mensagens do cliente para o servidor
 export type ClientMessage =
-    | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string }
+    | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean }
     | { type: 'REMOVE_PLAYER' }
     | { type: 'START_GAME' }
     | { type: 'SELECT_PLAYER'; playerId: string }
@@ -88,9 +88,9 @@ export type ServerMessage =
     | { type: 'SESSION_ESTABLISHED'; sessionId: string; playerId: string };
 
 // Regras do jogo por número de jogadores
-export const GAME_RULES: Record<number, { spyCount: number; missionSizes: number[]; twoFailsRequiredRound4?: boolean }> = {
+export const GAME_RULES: Record<number, { spyCount: number; missionSizes: number[]; twoFailsRequiredRound4?: boolean; twoFailsRequiredRound5?: boolean }> = {
     5: { spyCount: 2, missionSizes: [2, 3, 2, 3, 3] },
-    6: { spyCount: 2, missionSizes: [2, 3, 4, 3, 4] },
+    6: { spyCount: 2, missionSizes: [2, 3, 4, 3, 3] },
     7: { spyCount: 3, missionSizes: [2, 3, 3, 4, 4], twoFailsRequiredRound4: true },
     8: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },
     9: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },

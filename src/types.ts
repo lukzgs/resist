@@ -40,6 +40,7 @@ export interface GameConfig {
   spyCount: number;
   missionSizes: number[];
   twoFailsRequiredRound4?: boolean;
+  twoFailsRequiredRound5?: boolean;
 }
 
 // Informações de desconexão durante o jogo
@@ -71,7 +72,7 @@ export interface GameState {
 }
 
 export type ClientMessage =
-  | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string }
+  | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean }
   | { type: 'REMOVE_PLAYER' }
   | { type: 'START_GAME' }
   | { type: 'SELECT_PLAYER'; playerId: string }
