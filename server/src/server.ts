@@ -394,8 +394,9 @@ export default class ResistServer implements Party.Server {
             // Registra nova conexão para o jogador existente
             this.connections.set(conn.id, existingPlayer.id);
 
-            // Atualiza nome se mudou (permite trocar nome ao reconectar)
-            if (existingPlayer.name !== name) {
+            // Atualiza nome se mudou - MAS APENAS NO LOBBY
+            // Durante o jogo, o nome original é mantido (não pode trocar)
+            if (existingPlayer.name !== name && this.gameState.phase === Phase.LOBBY) {
                 this.addLog(`> ${existingPlayer.name} agora é ${name}`);
                 existingPlayer.name = name;
             }
@@ -924,10 +925,12 @@ export default class ResistServer implements Party.Server {
                             this.gameState.failedVoteCount = 0;
                             this.gameState.proposedTeam = [];
 
-                            // Reseta roles dos jogadores
+                            // Reseta roles dos jogadores e converte espectadores em jogadores
                             this.gameState.players = this.gameState.players.map(p => ({
                                 ...p,
-                                role: Role.HUMAN,  // Será redistribuído ao iniciar
+                                role: Role.HUMAN,       // Será redistribuído ao iniciar
+                                isSpectator: false,     // Espectadores viram jogadores no próximo jogo
+                                disconnected: false,    // Reseta status de desconexão
                             }));
 
                             this.addLog(`> NOVA PARTIDA INICIADA`);
