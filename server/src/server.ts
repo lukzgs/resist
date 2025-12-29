@@ -806,20 +806,36 @@ export default class ResistServer implements Party.Server {
                 // Marca como desconectado
                 player.disconnected = true;
 
-                // No lobby, remove jogador IMEDIATAMENTE (não há jogo em andamento)
+                // No lobby, dá breve período de graça (3s) para reconexões rápidas
+                // Isso evita duplicação quando a conexão cai brevemente
                 if (this.gameState.phase === Phase.LOBBY) {
-                    // Remove o jogador
-                    this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
-
-                    // Se era host, passa para próximo jogador
-                    if (player.isHost && this.gameState.players.length > 0) {
-                        this.gameState.players[0].isHost = true;
-                        this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
-                    }
-
-                    this.addLog(`> ${player.name} saiu da sala`);
                     this.broadcastState();
-                    console.log(`[${this.room.id}] Jogador removido do lobby: ${player.name}`);
+
+                    // Timeout curto para reconexão no lobby (3 segundos)
+                    const lobbyTimeout = setTimeout(() => {
+                        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
+
+                        const playerStillDisconnected = this.gameState.players.find(
+                            p => p.id === playerId && p.disconnected
+                        );
+
+                        if (playerStillDisconnected) {
+                            // Remove o jogador
+                            this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
+
+                            // Se era host, passa para próximo jogador
+                            if (playerStillDisconnected.isHost && this.gameState.players.length > 0) {
+                                this.gameState.players[0].isHost = true;
+                                this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
+                            }
+
+                            this.addLog(`> ${playerStillDisconnected.name} saiu da sala`);
+                            this.broadcastState();
+                            console.log(`[${this.room.id}] Jogador removido do lobby: ${playerStillDisconnected.name}`);
+                        }
+                    }, 3000); // 3 segundos de graça no lobby
+
+                    this.disconnectedPlayers.set(playerId, lobbyTimeout);
                 } else if (this.gameState.phase === Phase.GAME_OVER) {
                     // No GAME_OVER, apenas marca como desconectado
                     this.broadcastState();
