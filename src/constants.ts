@@ -10,7 +10,7 @@ export const GAME_RULES: Record<number, GameConfig> = {
   6: {
     playerCount: 6,
     spyCount: 2,
-    missionSizes: [2, 3, 4, 3, 4],
+    missionSizes: [2, 3, 4, 3, 3],
   },
   7: {
     playerCount: 7,
