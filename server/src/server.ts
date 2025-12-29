@@ -496,6 +496,42 @@ export default class ResistServer implements Party.Server {
         }
     }
 
+    // Processa LEAVE_ROOM - saída voluntária (remove imediatamente)
+    private handleLeaveRoom(conn: Party.Connection) {
+        if (!this.gameState) return;
+
+        const playerId = this.connections.get(conn.id);
+        if (!playerId) return;
+
+        const playerIndex = this.gameState.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1) return;
+
+        const player = this.gameState.players[playerIndex];
+
+        // Cancela qualquer timeout de remoção pendente
+        const timeout = this.disconnectedPlayers.get(playerId);
+        if (timeout) {
+            clearTimeout(timeout);
+            this.disconnectedPlayers.delete(playerId);
+        }
+
+        // Remove o jogador imediatamente
+        this.gameState.players.splice(playerIndex, 1);
+        this.connections.delete(conn.id);
+
+        // Se era o host e ainda tem jogadores, passa o host para o próximo
+        if (player.isHost && this.gameState.players.length > 0) {
+            this.gameState.players[0].isHost = true;
+            this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
+        }
+
+        this.addLog(`> ${player.name} saiu da sala`);
+        this.broadcastState();
+
+        // Fecha a conexão
+        conn.close();
+    }
+
     // Processa START_GAME
     private handleStartGame(conn: Party.Connection) {
         if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
@@ -757,40 +793,20 @@ export default class ResistServer implements Party.Server {
                 // Marca como desconectado
                 player.disconnected = true;
 
-                // No lobby, dá 30 segundos para reconexão antes de remover
+                // No lobby, remove jogador IMEDIATAMENTE (não há jogo em andamento)
                 if (this.gameState.phase === Phase.LOBBY) {
+                    // Remove o jogador
+                    this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
+
+                    // Se era host, passa para próximo jogador
+                    if (player.isHost && this.gameState.players.length > 0) {
+                        this.gameState.players[0].isHost = true;
+                        this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
+                    }
+
+                    this.addLog(`> ${player.name} saiu da sala`);
                     this.broadcastState();
-
-                    // Agenda remoção após 30 segundos
-                    const lobbyReconnectTimeout = setTimeout(() => {
-                        if (this.gameState && this.gameState.phase === Phase.LOBBY) {
-                            const playerStillDisconnected = this.gameState.players.find(
-                                p => p.id === playerId && p.disconnected
-                            );
-
-                            if (playerStillDisconnected) {
-                                // Remove o jogador
-                                this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
-
-                                // Se era host, passa para próximo jogador conectado
-                                if (playerStillDisconnected.isHost && this.gameState.players.length > 0) {
-                                    const nextHost = this.gameState.players.find(p => !p.disconnected);
-                                    if (nextHost) {
-                                        nextHost.isHost = true;
-                                    } else if (this.gameState.players.length > 0) {
-                                        this.gameState.players[0].isHost = true;
-                                    }
-                                }
-
-                                this.addLog(`> ${playerStillDisconnected.name} removido por inatividade`);
-                                this.broadcastState();
-                                console.log(`[${this.room.id}] Jogador removido do lobby após timeout: ${playerStillDisconnected.name}`);
-                            }
-                        }
-                    }, 30000); // 30 segundos de graça no lobby
-
-                    // Armazena o timeout para poder cancelar se reconectar
-                    this.disconnectedPlayers.set(playerId, lobbyReconnectTimeout);
+                    console.log(`[${this.room.id}] Jogador removido do lobby: ${player.name}`);
                 } else if (this.gameState.phase === Phase.GAME_OVER) {
                     // No GAME_OVER, apenas marca como desconectado
                     this.broadcastState();
@@ -847,6 +863,9 @@ export default class ResistServer implements Party.Server {
             switch (data.type) {
                 case 'JOIN':
                     this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
+                    break;
+                case 'LEAVE_ROOM':
+                    this.handleLeaveRoom(sender);
                     break;
                 case 'REMOVE_PLAYER':
                     this.handleRemovePlayer(sender);
