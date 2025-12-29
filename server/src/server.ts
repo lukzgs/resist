@@ -677,33 +677,45 @@ export default class ResistServer implements Party.Server {
             const approvals = votes.filter(v => v).length;
             const approved = approvals > activePlayers.length / 2;
 
-            if (approved) {
-                this.gameState.phase = Phase.MISSION_EXECUTION;
-                this.gameState.failedVoteCount = 0;
-                this.addLog(`> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
-            } else {
-                this.gameState.failedVoteCount++;
-                this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
+            // Broadcast imediato para mostrar todos os votos
+            this.broadcastState();
 
-                if (this.gameState.failedVoteCount >= 3) {
-                    this.gameState.phase = Phase.GAME_OVER;
-                    this.gameState.winner = Role.TERMINATOR;
-                    this.addLog(`> TERMINATORS VENCEM - 3 REJEIÇÕES`);
-                    this.scheduleRoomClosure();
+            // Delay de 1.5s para jogadores visualizarem os votos antes da transição
+            setTimeout(() => {
+                if (!this.gameState) return;
+
+                if (approved) {
+                    this.gameState.phase = Phase.MISSION_EXECUTION;
+                    this.gameState.failedVoteCount = 0;
+                    this.addLog(`> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
                 } else {
-                    this.gameState.phase = Phase.TEAM_SELECTION;
-                    // Avança líder apenas entre jogadores ativos (não espectadores)
-                    const activePlayerIds = activePlayers.map(p => p.id);
-                    const currentLeaderId = this.gameState.players[this.gameState.leaderIndex].id;
-                    const currentLeaderActiveIndex = activePlayerIds.indexOf(currentLeaderId);
-                    const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
-                    const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
-                    this.gameState.leaderIndex = this.gameState.players.findIndex(p => p.id === nextLeaderId);
-                    this.gameState.proposedTeam = [];
-                    // Limpa votos para próxima rodada
-                    this.gameState.missions[missionIndex].votes = {};
+                    this.gameState.failedVoteCount++;
+                    this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
+
+                    if (this.gameState.failedVoteCount >= 3) {
+                        this.gameState.phase = Phase.GAME_OVER;
+                        this.gameState.winner = Role.TERMINATOR;
+                        this.addLog(`> TERMINATORS VENCEM - 3 REJEIÇÕES`);
+                        this.scheduleRoomClosure();
+                    } else {
+                        this.gameState.phase = Phase.TEAM_SELECTION;
+                        // Avança líder apenas entre jogadores ativos (não espectadores)
+                        const activePlayerIds = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected).map(p => p.id);
+                        const currentLeaderId = this.gameState.players[this.gameState.leaderIndex].id;
+                        const currentLeaderActiveIndex = activePlayerIds.indexOf(currentLeaderId);
+                        const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
+                        const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
+                        this.gameState.leaderIndex = this.gameState.players.findIndex(p => p.id === nextLeaderId);
+                        this.gameState.proposedTeam = [];
+                        // Limpa votos para próxima rodada
+                        this.gameState.missions[missionIndex].votes = {};
+                    }
                 }
-            }
+
+                this.broadcastState();
+            }, 1500); // 1.5s delay para ver os votos
+
+            return; // Não fazer broadcast novamente abaixo
         }
 
         this.broadcastState();

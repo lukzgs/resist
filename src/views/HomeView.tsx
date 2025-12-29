@@ -10,7 +10,7 @@ export default function HomeView({ onNavigate }: Props) {
     <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-scan opacity-5 pointer-events-none"></div>
 
-      <div className="z-10 text-center space-y-12 max-w-lg">
+      <div className="z-10 text-center space-y-12 max-w-lg view-enter">
         <div className="space-y-2 animate-float">
           <h1 className="text-8xl font-display font-black tracking-tighter text-white drop-shadow-glow-blue italic">SKYNET</h1>
           <p className="text-base font-mono text-resistance tracking-[0.5em] uppercase font-bold">Infiltration Protocol</p>
@@ -19,7 +19,7 @@ export default function HomeView({ onNavigate }: Props) {
         <div className="grid gap-6">
           <button
             onClick={() => onNavigate('CREATE')}
-            className="group relative p-8 bg-black/40 border-2 border-resistance/30 rounded-3xl hover:border-resistance hover:bg-resistance/10 transition-all text-left overflow-hidden"
+            className="btn-animate group relative p-8 bg-black/40 border-2 border-resistance/30 rounded-3xl hover:border-resistance hover:bg-resistance/10 transition-all text-left overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
               <svg className="w-16 h-16 text-resistance" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" /></svg>
@@ -30,7 +30,7 @@ export default function HomeView({ onNavigate }: Props) {
 
           <button
             onClick={() => onNavigate('JOIN')}
-            className="group relative p-8 bg-black/40 border-2 border-white/10 rounded-3xl hover:border-white/40 transition-all text-left overflow-hidden"
+            className="btn-animate group relative p-8 bg-black/40 border-2 border-white/10 rounded-3xl hover:border-white/40 transition-all text-left overflow-hidden"
           >
             <div className="text-5xl font-display font-black text-white mb-2 uppercase tracking-tighter">Infiltrar Célula</div>
             <p className="text-base text-slate-300 uppercase tracking-widest font-bold font-mono">Sync via Quantum Link</p>

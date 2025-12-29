@@ -189,8 +189,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)]">
-          <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-[radial-gradient(circle_at_center,_#111827_0%,_#050505_100%)] view-enter">
+          <div className="max-w-4xl mx-auto bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm relative card-animate">
             <div className="absolute top-2 left-4 text-xs font-mono text-slate-300 uppercase">Operational_Objectives</div>
             <MissionTracker missions={state.missions} currentMissionIndex={state.currentMissionIndex} showRejectionCount={state.showRejectionCount} />
           </div>
@@ -233,14 +233,14 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           <div className="max-w-xl mx-auto text-center p-10 bg-black/80 rounded-[40px] border-2 border-white/5 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
 
-            <div className="mb-8">
+            <div className="mb-8 phase-content">
               <span className="text-sm font-mono text-slate-300 uppercase tracking-[0.5em] block mb-2">Protocol_Status</span>
               <h3 className="text-3xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-glow-blue">
                 {state.phase.replace(/_/g, ' ')}
               </h3>
             </div>
 
-            <div className="min-h-[120px] flex flex-col justify-center items-center">
+            <div className="min-h-[120px] flex flex-col justify-center items-center phase-content">
               <PhaseControls state={state} me={me} sendAction={sendAction} isHost={isHost} />
             </div>
 

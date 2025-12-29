@@ -18,17 +18,17 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
 
     return (
         <div className="min-h-screen overflow-y-auto pb-8 flex items-center justify-center">
-            <div className="flex flex-col items-center p-6 max-w-7xl mx-auto w-full">
+            <div className="flex flex-col items-center p-6 max-w-7xl mx-auto w-full view-enter">
                 <div className="w-full grid lg:grid-cols-12 gap-8 items-stretch">
 
                     <div className="lg:col-span-4 flex flex-col gap-6">
-                        <div className="bg-black/60 p-8 rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden flex-1">
+                        <div className="bg-black/60 p-8 rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden flex-1 card-animate">
                             <div className="absolute top-0 right-0 p-4 font-mono text-xs text-resistance/20">SKYNET_INT_04</div>
                             <span className="text-sm font-mono text-resistance tracking-widest block mb-4 uppercase font-bold border-b border-resistance/20 pb-2">Canal de Comando</span>
                             <div className="text-6xl font-display font-black text-white tracking-widest mb-4 drop-shadow-glow-blue">{state.roomCode.replace(/0/g, 'Ø')}</div>
                             <button
                                 onClick={onBack}
-                                className="w-full py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 font-mono text-sm uppercase tracking-widest transition-all mb-6 flex items-center justify-center gap-2"
+                                className="btn-animate w-full py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 font-mono text-sm uppercase tracking-widest transition-all mb-6 flex items-center justify-center gap-2"
                             >
                                 ← Sair da Sala
                             </button>
@@ -117,9 +117,9 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                             <button
                                 onClick={onStart}
                                 disabled={!canStart}
-                                className={`w-full py-6 rounded-2xl font-display font-black text-3xl uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${canStart
+                                className={`btn-animate w-full py-6 rounded-2xl font-display font-black text-3xl uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${canStart
                                     ? 'bg-spy text-white shadow-glow-red hover:scale-[1.01]'
-                                    : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
+                                    : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed waiting-pulse'
                                     }`}
                             >
                                 {canStart ? 'Iniciar Incursão' : `Aguardando Unidades (${pCount}/5)`}

@@ -212,3 +212,226 @@ body {
   background: #334155;
   border-radius: 10px;
 }
+
+/* ===================================
+   Smooth Transitions System
+   =================================== */
+
+/* Fade transitions for views */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(14, 165, 233, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.6);
+  }
+}
+
+/* View transition classes */
+.view-enter {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.view-enter-right {
+  animation: slideInFromRight 0.4s ease-out forwards;
+}
+
+.view-enter-left {
+  animation: slideInFromLeft 0.4s ease-out forwards;
+}
+
+.view-enter-bottom {
+  animation: slideInFromBottom 0.4s ease-out forwards;
+}
+
+.view-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Phase transition - content that changes between game phases */
+.phase-content {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Card transitions */
+.card-animate {
+  transition: all 0.3s ease;
+}
+
+.card-animate:hover {
+  transform: translateY(-2px);
+}
+
+/* Button transitions */
+.btn-animate {
+  transition: all 0.2s ease;
+}
+
+.btn-animate:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-animate:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Badge pop-in animation */
+@keyframes badgePopIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.badge-animate {
+  animation: badgePopIn 0.3s ease-out forwards;
+}
+
+/* Vote result delay animation */
+.vote-result-delay {
+  animation: fadeIn 0.3s ease-out 1.5s forwards;
+  opacity: 0;
+}
+
+/* Staggered list items */
+.stagger-item {
+  opacity: 0;
+  animation: slideInFromBottom 0.4s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.stagger-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stagger-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.stagger-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.stagger-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.stagger-item:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.stagger-item:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.stagger-item:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+.stagger-item:nth-child(9) {
+  animation-delay: 0.45s;
+}
+
+.stagger-item:nth-child(10) {
+  animation-delay: 0.5s;
+}
+
+/* Smooth opacity transitions for conditional elements */
+.smooth-appear {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Pulse animation for waiting states */
+.waiting-pulse {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Log message slide in */
+@keyframes logSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.log-message {
+  animation: logSlideIn 0.2s ease-out;
+}
