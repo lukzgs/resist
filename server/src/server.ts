@@ -227,8 +227,8 @@ export default class ResistServer implements Party.Server {
         this.gameState.disconnectVotes[player.id] = endGame;
         this.broadcastState();
 
-        // Verifica se todos votaram
-        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+        // Verifica se todos votaram (exclui espectadores)
+        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
         const voteCount = Object.keys(this.gameState.disconnectVotes).length;
 
         if (voteCount === activePlayers.length) {
@@ -249,7 +249,7 @@ export default class ResistServer implements Party.Server {
 
         const info = this.gameState.disconnectInfo;
         const votes = this.gameState.disconnectVotes || {};
-        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
 
         // Conta votos para encerrar
         const endGameVotes = Object.values(votes).filter(v => v === true).length;
@@ -347,7 +347,7 @@ export default class ResistServer implements Party.Server {
     }
 
     // Processa JOIN
-    private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string) {
+    private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string, isCreating?: boolean) {
         // Cancela timeout de limpeza da sala se cliente está reconectando
         if (this.roomCleanupTimeout) {
             console.log(`[${this.room.id}] Cliente reconectando - cancelando limpeza da sala`);
@@ -355,7 +355,17 @@ export default class ResistServer implements Party.Server {
             this.roomCleanupTimeout = null;
         }
 
-        // Inicializa estado se necessário
+        // Se está tentando entrar (não criar) em uma sala que não existe ou está vazia
+        // e não tem sessionId (não é reconexão), rejeita
+        const roomIsEmpty = !this.gameState || this.gameState.players.length === 0;
+        if (!isCreating && roomIsEmpty && !sessionId) {
+            this.sendError(conn, 'Sala não encontrada');
+            // Fecha conexão após enviar erro
+            setTimeout(() => conn.close(), 100);
+            return;
+        }
+
+        // Inicializa estado se necessário (apenas para criar sala)
         if (!this.gameState) {
             this.gameState = this.createInitialState(this.room.id);
         }
@@ -529,7 +539,7 @@ export default class ResistServer implements Party.Server {
         this.gameState.missions = rules.missionSizes.map((size, i) => ({
             roundNumber: i + 1,
             requiredPlayers: size,
-            requiresTwoFails: !!(rules.twoFailsRequiredRound4 && i === 3),
+            requiresTwoFails: !!((rules.twoFailsRequiredRound4 && i === 3) || (rules.twoFailsRequiredRound5 && i === 4)),
             status: 'PENDING',
             team: [],
             votes: {},
@@ -623,8 +633,8 @@ export default class ResistServer implements Party.Server {
         // Registra voto
         this.gameState.missions[missionIndex].votes[player.id] = approve;
 
-        // Todos votaram?
-        const activePlayers = this.gameState.players.filter(p => !p.disconnected);
+        // Todos votaram? (conta apenas jogadores ativos que iniciaram a partida, exclui espectadores)
+        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
         if (Object.keys(this.gameState.missions[missionIndex].votes).length === activePlayers.length) {
             const votes = Object.values(this.gameState.missions[missionIndex].votes);
             const approvals = votes.filter(v => v).length;
@@ -645,7 +655,13 @@ export default class ResistServer implements Party.Server {
                     this.scheduleRoomClosure();
                 } else {
                     this.gameState.phase = Phase.TEAM_SELECTION;
-                    this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
+                    // Avança líder apenas entre jogadores ativos (não espectadores)
+                    const activePlayerIds = activePlayers.map(p => p.id);
+                    const currentLeaderId = this.gameState.players[this.gameState.leaderIndex].id;
+                    const currentLeaderActiveIndex = activePlayerIds.indexOf(currentLeaderId);
+                    const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
+                    const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
+                    this.gameState.leaderIndex = this.gameState.players.findIndex(p => p.id === nextLeaderId);
                     this.gameState.proposedTeam = [];
                     // Limpa votos para próxima rodada
                     this.gameState.missions[missionIndex].votes = {};
@@ -830,7 +846,7 @@ export default class ResistServer implements Party.Server {
 
             switch (data.type) {
                 case 'JOIN':
-                    this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId);
+                    this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
                     break;
                 case 'REMOVE_PLAYER':
                     this.handleRemovePlayer(sender);
