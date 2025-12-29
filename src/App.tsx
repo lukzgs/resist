@@ -189,7 +189,9 @@ export default function App() {
       return;
     }
     setIsCreating(false);  // Marcando como entrada (não criação)
-    setRoomCode(code.toUpperCase());
+    // Converte Ø de volta para 0 (display mostra Ø mas código usa 0)
+    const normalizedCode = code.toUpperCase().replace(/Ø/g, '0');
+    setRoomCode(normalizedCode);
     showNotification('Conectando à sala...', 'info');
   }, [showNotification]);
 

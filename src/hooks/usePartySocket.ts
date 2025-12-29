@@ -213,6 +213,13 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                             break;
                         case 'ERROR':
                             onError(data.message);
+                            // Erros fatais: para de tentar reconectar
+                            if (data.message.includes('não encontrada') ||
+                                data.message.includes('cheia') ||
+                                data.message.includes('not found')) {
+                                shouldReconnectRef.current = false;
+                                clearReconnectTimeout();
+                            }
                             break;
                         case 'PLAYER_JOINED':
                             onPlayerJoined?.(data.name);
