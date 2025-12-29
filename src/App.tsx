@@ -107,6 +107,7 @@ export default function App() {
     isConnecting,
     connect,
     disconnect,
+    leaveRoom,
     removePlayer,
     startGame,
     selectPlayer,
@@ -265,7 +266,7 @@ export default function App() {
 
   // Handler para voltar (sai da sala e limpa todas as sessões)
   const handleBack = useCallback(() => {
-    disconnect();
+    disconnect();       // Desconecta - no lobby, servidor remove imediatamente
     clearSession();     // Limpa sessão de WebSocket (localStorage)
     clearAppSession();  // Limpa sessão do App (sessionStorage)
     setRoomCode('');

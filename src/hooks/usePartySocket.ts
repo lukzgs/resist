@@ -97,6 +97,7 @@ interface UsePartySocketReturn {
     disconnect: () => void;
     send: (message: any) => void;
     // Ações do jogo
+    leaveRoom: () => void;
     removePlayer: () => void;
     startGame: () => void;
     selectPlayer: (playerId: string) => void;
@@ -314,6 +315,11 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
     }, [isConnected]);
 
     // Ações do jogo
+    const leaveRoom = useCallback(() => {
+        send({ type: 'LEAVE_ROOM' });
+        // O servidor vai fechar a conexão após processar
+    }, [send]);
+
     const removePlayer = useCallback(() => {
         send({ type: 'REMOVE_PLAYER' });
     }, [send]);
@@ -373,6 +379,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         connect,
         disconnect,
         send,
+        leaveRoom,
         removePlayer,
         startGame,
         selectPlayer,

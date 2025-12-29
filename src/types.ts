@@ -73,6 +73,7 @@ export interface GameState {
 
 export type ClientMessage =
   | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean }
+  | { type: 'LEAVE_ROOM' }
   | { type: 'REMOVE_PLAYER' }
   | { type: 'START_GAME' }
   | { type: 'SELECT_PLAYER'; playerId: string }
