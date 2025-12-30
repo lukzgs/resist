@@ -853,6 +853,10 @@ export default class ResistServer implements Party.Server {
                 } else if (this.gameState.phase === Phase.PAUSED_DISCONNECT || this.gameState.phase === Phase.DISCONNECT_VOTE) {
                     // Já está pausado, apenas atualiza estado
                     this.broadcastState();
+                } else if (player.isSpectator) {
+                    // Espectadores não pausam o jogo - apenas marca como desconectado e continua
+                    this.broadcastState();
+                    console.log(`[${this.room.id}] Espectador desconectou: ${player.name} - jogo continua normalmente`);
                 } else {
                     // Durante o jogo normal: pausa e inicia sistema de espera
                     this.startDisconnectWait({ id: player.id, name: player.name });
