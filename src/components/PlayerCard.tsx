@@ -10,6 +10,7 @@ interface PlayerCardProps {
   showIdentity: boolean;
   compact?: boolean;
   vote?: boolean | null;
+  hasVoted?: boolean;  // Para modo anônimo - indica que votou sem revelar o voto
   isDisconnected?: boolean;
   isMe?: boolean;
 }
@@ -21,6 +22,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   showIdentity,
   compact = false,
   vote = undefined,
+  hasVoted = false,
   isDisconnected = false,
   isMe = false
 }) => {
@@ -97,7 +99,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           {isDisconnected && <span className="text-[8px] font-bold text-white">✕</span>}
         </div>
 
-        {/* Vote Badge */}
+        {/* Vote Badge - mostra voto explícito (modo não-anônimo) */}
         {vote !== undefined && (
           <div className={`absolute -bottom-1 -right-1 w-7 h-7 flex items-center justify-center rounded-full border-2 border-slate-900 text-xs font-bold shadow-lg z-10 ${vote === null
             ? 'bg-slate-600 text-white animate-pulse'
@@ -106,6 +108,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               : 'bg-red-500 text-white'
             }`}>
             {vote === null ? '...' : vote ? 'YES' : 'NO'}
+          </div>
+        )}
+
+        {/* Badge de "votou" - modo anônimo (não revela o voto) */}
+        {vote === undefined && hasVoted && (
+          <div className="absolute -bottom-1 -right-1 w-7 h-7 flex items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-green-400 text-sm font-bold shadow-lg z-10">
+            ✓
           </div>
         )}
       </div>
