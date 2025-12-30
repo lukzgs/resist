@@ -113,7 +113,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
         {/* Badge de "votou" - modo anônimo (não revela o voto) */}
         {vote === undefined && hasVoted && (
-          <div className="absolute -bottom-1 -right-1 w-7 h-7 flex items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-green-400 text-sm font-bold shadow-lg z-10">
+          <div className="absolute -bottom-1 -right-1 w-7 h-7 flex items-center justify-center rounded-full border-2 border-cyan-500/70 bg-black/90 text-cyan-400 text-sm font-bold shadow-[0_0_8px_rgba(34,211,238,0.4)] z-10">
             ✓
           </div>
         )}
