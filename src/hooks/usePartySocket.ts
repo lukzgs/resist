@@ -173,7 +173,11 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
             return;
         }
 
-        shouldReconnectRef.current = true;
+        // Só reseta shouldReconnect quando é conexão inicial (não durante reconexões)
+        // Isso preserva o flag false setado quando recebe erro fatal como "sala não encontrada"
+        if (reconnectAttempt === 0) {
+            shouldReconnectRef.current = true;
+        }
         setIsConnecting(true);
         onConnectionChange?.('connecting');
 
