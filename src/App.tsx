@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Phase, Player, Role, GameState } from './types';
-import { usePartySocket, clearSession } from './hooks/usePartySocket';
+import { usePartySocket, clearSession, checkServerHealth } from './hooks/usePartySocket';
 import HomeView from './views/HomeView';
 import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
@@ -214,12 +214,20 @@ export default function App() {
     showNotification('Conectando à sala...', 'info');
   }, [showNotification]);
 
-  // Conecta quando roomCode é definido
+  // Conecta quando roomCode é definido (com health check)
   useEffect(() => {
     if (roomCode && !isConnected && !isConnecting) {
-      connect();
+      // Verifica se servidor está disponível antes de conectar
+      checkServerHealth().then(isAvailable => {
+        if (isAvailable) {
+          connect();
+        } else {
+          showNotification('Servidor indisponível. Tente novamente em instantes.', 'error');
+          setRoomCode('');
+        }
+      });
     }
-  }, [roomCode, isConnected, isConnecting, connect]);
+  }, [roomCode, isConnected, isConnecting, connect, showNotification]);
 
   // Salva sessão no localStorage quando conectado
   useEffect(() => {

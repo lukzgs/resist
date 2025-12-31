@@ -11,6 +11,31 @@ const RECONNECT_DELAY_MS = 1000; // Delay inicial entre tentativas
 const MAX_RECONNECT_DELAY_MS = 30000; // Delay máximo (30s)
 const MAX_RECONNECT_ATTEMPTS = 10; // Tentativas máximas antes de desistir
 
+// Health check timeout (2 segundos)
+const HEALTH_CHECK_TIMEOUT_MS = 2000;
+
+// Verifica se o servidor está disponível antes de conectar
+export async function checkServerHealth(): Promise<boolean> {
+    try {
+        const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
+        const url = `${protocol}://${PARTYKIT_HOST}/party/health`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        return response.ok;
+    } catch (e) {
+        // Servidor não disponível ou timeout
+        return false;
+    }
+}
+
 // Chave do localStorage para sessão - agora única por sala
 const SESSION_STORAGE_PREFIX = 'resist_session_';
 

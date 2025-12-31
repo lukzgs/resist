@@ -996,4 +996,25 @@ export default class ResistServer implements Party.Server {
             this.sendError(sender, `Erro ao processar mensagem: ${errorType}`);
         }
     }
+
+    // HTTP endpoint para health check
+    async onRequest(req: Party.Request): Promise<Response> {
+        // Health check endpoint
+        if (req.method === 'GET') {
+            return new Response(JSON.stringify({
+                status: 'ok',
+                timestamp: Date.now(),
+                roomId: this.room.id
+            }), {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        }
+
+        return new Response('Method not allowed', { status: 405 });
+    }
 }
+
