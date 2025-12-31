@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { GameState } from '../types';
 import { GAME_RULES } from '../constants';
 
@@ -15,6 +16,19 @@ interface Props {
 export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onBack }: Props) {
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
+    const [linkCopied, setLinkCopied] = useState(false);
+
+    const copyLink = async () => {
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/?room=${state.roomCode}`;
+        try {
+            await navigator.clipboard.writeText(link);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+        } catch (err) {
+            console.error('Erro ao copiar link:', err);
+        }
+    };
 
     return (
         <div className="min-h-screen overflow-y-auto pb-8 flex items-center justify-center">
@@ -25,7 +39,16 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                         <div className="bg-black/60 p-8 rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden flex-1 card-animate">
                             <div className="absolute top-0 right-0 p-4 font-mono text-xs text-resistance/20">SKYNET_INT_04</div>
                             <span className="text-sm font-mono text-resistance tracking-widest block mb-4 uppercase font-bold border-b border-resistance/20 pb-2">Canal de Comando</span>
-                            <div className="text-6xl font-display font-black text-white tracking-widest mb-4 drop-shadow-glow-blue">{state.roomCode.replace(/0/g, 'Ø')}</div>
+                            <div className="text-6xl font-display font-black text-white tracking-widest mb-2 drop-shadow-glow-blue">{state.roomCode.replace(/0/g, 'Ø')}</div>
+                            <button
+                                onClick={copyLink}
+                                className={`btn-animate w-full py-2 px-4 rounded-xl border font-mono text-sm uppercase tracking-widest transition-all mb-4 flex items-center justify-center gap-2 ${linkCopied
+                                    ? 'border-green-500/50 bg-green-500/20 text-green-400'
+                                    : 'border-resistance/30 bg-resistance/10 text-resistance hover:bg-resistance/20 hover:border-resistance/50'
+                                    }`}
+                            >
+                                {linkCopied ? <><IoCheckmarkOutline /> Link Copiado!</> : <><IoCopyOutline /> Copiar Link</>}
+                            </button>
                             <button
                                 onClick={onBack}
                                 className="btn-animate w-full py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 font-mono text-sm uppercase tracking-widest transition-all mb-6 flex items-center justify-center gap-2"
