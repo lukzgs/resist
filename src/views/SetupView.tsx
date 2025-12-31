@@ -8,11 +8,13 @@ interface Props {
   onInit: () => void;
   onJoin: (code: string) => void;
   onBack: () => void;
+  prefillCode?: string | null; // Código preenchido via URL
 }
 
-export default function SetupView({ mode, playerName, onNameChange, onInit, onJoin, onBack }: Props) {
-  const [code, setCode] = React.useState('');
+export default function SetupView({ mode, playerName, onNameChange, onInit, onJoin, onBack, prefillCode }: Props) {
+  const [code, setCode] = React.useState(prefillCode || '');
   const isJoin = mode === 'JOIN';
+  const hasPrefilledCode = !!prefillCode;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
@@ -37,13 +39,16 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
 
           {isJoin && (
             <div className="space-y-2">
-              <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">Link Code</label>
+              <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">
+                Link Code {hasPrefilledCode && <span className="text-resistance">(via link)</span>}
+              </label>
               <input
                 type="text"
                 maxLength={4}
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
-                className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none text-center text-5xl font-display tracking-[0.5em] focus:border-resistance transition-all"
+                readOnly={hasPrefilledCode}
+                className={`w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none text-center text-5xl font-display tracking-[0.5em] transition-all ${hasPrefilledCode ? 'bg-resistance/10 border-resistance/30' : 'focus:border-resistance'}`}
                 placeholder="0000"
               />
             </div>

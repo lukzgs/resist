@@ -79,12 +79,25 @@ function clearAppSession() {
 }
 
 export default function App() {
+  // Verifica se há código de sala na URL (?room=XXXX)
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get('room')?.toUpperCase().replace(/Ø/g, '0') || null;
+
   // Tenta restaurar sessão anterior
   const storedSession = getStoredSession();
   const isRestoringSession = React.useRef(!!storedSession); // Track if we started from a stored session
 
-  // Se há sessão salva, vai para RECONNECT em vez de conectar automaticamente
-  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT'>(storedSession ? 'RECONNECT' : 'HOME');
+  // Determina view inicial:
+  // 1. Se veio da URL com room → vai para JOIN (mostrar SetupView)
+  // 2. Se tem sessão salva → vai para RECONNECT
+  // 3. Senão → HOME
+  const getInitialView = () => {
+    if (roomFromUrl) return 'JOIN';
+    if (storedSession) return 'RECONNECT';
+    return 'HOME';
+  };
+
+  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT'>(getInitialView());
   // Prioridade: localStorage > storedSession > nome aleatório
   const [playerName, setPlayerName] = useState(
     localStorage.getItem(PLAYER_NAME_KEY) || storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999)
@@ -92,6 +105,7 @@ export default function App() {
   const [avatarSeed] = useState(storedSession?.avatarSeed || Math.floor(Math.random() * 9000));
   const [roomCode, setRoomCode] = useState(''); // NÃO inicia com roomCode salvo - espera usuário clicar
   const [savedRoomCode] = useState(storedSession?.roomCode || ''); // Guarda para exibir na tela
+  const [roomFromUrlCode] = useState(roomFromUrl); // Guarda código da URL para passar ao SetupView
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'info' | 'success' } | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
@@ -139,6 +153,10 @@ export default function App() {
       // Navega para a view correta baseado na fase
       if (state.phase === Phase.LOBBY) {
         setView('LOBBY');
+        // Limpa o parâmetro ?room= da URL após conectar
+        if (window.location.search) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       } else {
         setView('GAME');
       }
@@ -358,6 +376,7 @@ export default function App() {
           onInit={handleCreate}
           onJoin={handleJoin}
           onBack={handleBack}
+          prefillCode={view === 'JOIN' ? roomFromUrlCode : null}
         />
       )}
 
