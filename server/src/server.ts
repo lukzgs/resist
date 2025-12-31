@@ -420,15 +420,24 @@ export default class ResistServer implements Party.Server {
             return;
         }
 
-        // Verifica limite de jogadores (não conta espectadores para o limite de jogo)
+        // Verifica limite de jogadores/espectadores
+        // Máximo: 10 jogadores ativos + até 15 total (jogadores + espectadores)
         const activePlayersCount = this.gameState.players.filter(p => !p.isSpectator).length;
-        if (activePlayersCount >= 10) {
+        const spectatorsCount = this.gameState.players.filter(p => p.isSpectator).length;
+        const totalCount = this.gameState.players.length;
+        const isGameInProgress = this.gameState.phase !== Phase.LOBBY;
+
+        // Jogadores ativos: máximo 10
+        if (!isGameInProgress && activePlayersCount >= 10) {
             this.sendError(conn, 'Sala cheia (máximo 10 jogadores)');
             return;
         }
 
-        // Verifica se é tentativa de entrar após jogo começar
-        const isGameInProgress = this.gameState.phase !== Phase.LOBBY;
+        // Total (jogadores + espectadores): máximo 15
+        if (totalCount >= 15) {
+            this.sendError(conn, 'Sala cheia (máximo 15 participantes)');
+            return;
+        }
 
         // NOMES DUPLICADOS SÃO PERMITIDOS - nome é apenas display, não identificador
 
