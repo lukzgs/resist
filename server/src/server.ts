@@ -113,10 +113,7 @@ export default class ResistServer implements Party.Server {
             this.gameState.roomExpiresAt = expiresAt;
         }
 
-        console.log(`[${this.room.id}] Sala expira em ${ResistServer.ROOM_EXPIRY_MS / 1000}s`);
-
         this.gameOverTimeout = setTimeout(() => {
-            console.log(`[${this.room.id}] Tempo expirado - fechando sala`);
 
             // Notifica todos os clientes
             this.room.broadcast(JSON.stringify({ type: 'ROOM_CLOSED' } as ServerMessage));
@@ -169,8 +166,6 @@ export default class ResistServer implements Party.Server {
         this.addLog(`> ${player.name} desconectou - aguardando ${ResistServer.DISCONNECT_WAIT_MS / 1000}s...`);
         this.broadcastState();
 
-        console.log(`[${this.room.id}] Aguardando reconexão de ${player.name} (tentativa ${attempt}/${ResistServer.MAX_DISCONNECT_ATTEMPTS})`);
-
         // Timer para iniciar votação
         this.disconnectWaitTimer = setTimeout(() => {
             this.startDisconnectVote();
@@ -192,8 +187,6 @@ export default class ResistServer implements Party.Server {
 
         this.addLog(`> Jogador reconectou - retomando jogo`);
         this.broadcastState();
-
-        console.log(`[${this.room.id}] Jogador reconectou - jogo retomado`);
     }
 
     // Cancela todos os timers de desconexão
@@ -221,8 +214,6 @@ export default class ResistServer implements Party.Server {
 
         this.addLog(`> Votação: encerrar partida ou aguardar ${info.disconnectedPlayerName}?`);
         this.broadcastState();
-
-        console.log(`[${this.room.id}] Votação de desconexão iniciada`);
 
         // Timer para resolver votação automaticamente
         this.disconnectVoteTimer = setTimeout(() => {
@@ -275,8 +266,6 @@ export default class ResistServer implements Party.Server {
         const endGameVotes = Object.values(votes).filter(v => v === true).length;
         const majorityNeeded = Math.ceil(activePlayers.length / 2);
 
-        console.log(`[${this.room.id}] Votação: ${endGameVotes}/${activePlayers.length} votaram encerrar (maioria: ${majorityNeeded})`);
-
         if (endGameVotes >= majorityNeeded) {
             // Maioria votou encerrar
             this.cancelGame(`Jogadores votaram para encerrar (${info.disconnectedPlayerName} desconectou)`);
@@ -307,8 +296,6 @@ export default class ResistServer implements Party.Server {
         this.addLog(`> PARTIDA CANCELADA: ${reason}`);
         this.scheduleRoomClosure();
         this.broadcastState();
-
-        console.log(`[${this.room.id}] Partida cancelada: ${reason}`);
     }
 
     // Cria estado inicial do jogo
@@ -370,7 +357,6 @@ export default class ResistServer implements Party.Server {
     private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string, isCreating?: boolean) {
         // Cancela timeout de limpeza da sala se cliente está reconectando
         if (this.roomCleanupTimeout) {
-            console.log(`[${this.room.id}] Cliente reconectando - cancelando limpeza da sala`);
             clearTimeout(this.roomCleanupTimeout);
             this.roomCleanupTimeout = null;
         }
@@ -435,8 +421,6 @@ export default class ResistServer implements Party.Server {
             // Envia estado atual
             const message: ServerMessage = { type: 'STATE', state: this.gameState };
             conn.send(JSON.stringify(message));
-
-            console.log(`[${this.room.id}] Jogador reconectou: ${existingPlayer.name}`);
             return;
         }
 
@@ -477,8 +461,6 @@ export default class ResistServer implements Party.Server {
             isSpectator: isGameInProgress, // Marca como espectador se jogo já começou
         };
 
-        console.log(`[${this.room.id}] Criando ${isGameInProgress ? 'espectador' : 'jogador'}: ${name}`);
-
         // Envia confirmação de sessão segura
         try {
             conn.send(JSON.stringify({
@@ -487,7 +469,7 @@ export default class ResistServer implements Party.Server {
                 playerId: newPlayer.id
             } as ServerMessage));
         } catch (e) {
-            console.error(`[${this.room.id}] Erro ao enviar SESSION_ESTABLISHED:`, e);
+            console.error(`[${this.room.id}] Erro ao enviar SESSION_ESTABLISHED para ${name}:`, e instanceof Error ? e.message : e);
         }
 
         // Registra conexão e adiciona jogador
@@ -826,8 +808,6 @@ export default class ResistServer implements Party.Server {
 
     // Quando um cliente conecta
     onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-        console.log(`[${this.room.id}] Nova conexão: ${conn.id}`);
-
         // Se existe estado, envia para reconexão
         if (this.gameState) {
             const message: ServerMessage = { type: 'STATE', state: this.gameState };
@@ -841,8 +821,6 @@ export default class ResistServer implements Party.Server {
         if (playerId && this.gameState) {
             const player = this.gameState.players.find(p => p.id === playerId);
             if (player) {
-                console.log(`[${this.room.id}] Desconectou: ${player.name}`);
-
                 // Marca como desconectado
                 player.disconnected = true;
 
@@ -871,7 +849,6 @@ export default class ResistServer implements Party.Server {
 
                             this.addLog(`> ${playerStillDisconnected.name} saiu da sala`);
                             this.broadcastState();
-                            console.log(`[${this.room.id}] Jogador removido do lobby: ${playerStillDisconnected.name}`);
                         }
                     }, 3000); // 3 segundos de graça no lobby
 
@@ -885,7 +862,6 @@ export default class ResistServer implements Party.Server {
                 } else if (player.isSpectator) {
                     // Espectadores não pausam o jogo - apenas marca como desconectado e continua
                     this.broadcastState();
-                    console.log(`[${this.room.id}] Espectador desconectou: ${player.name} - jogo continua normalmente`);
                 } else {
                     // Durante o jogo normal: pausa e inicia sistema de espera
                     this.startDisconnectWait({ id: player.id, name: player.name });
@@ -897,12 +873,9 @@ export default class ResistServer implements Party.Server {
         // Quando não há mais conexões ativas, espera 2 minutos antes de limpar
         // Isso permite que todos reconectem se caírem simultaneamente
         if (this.connections.size === 0 && !this.roomCleanupTimeout) {
-            console.log(`[${this.room.id}] Nenhuma conexão ativa - aguardando ${ResistServer.EMPTY_ROOM_CLEANUP_MS / 1000}s antes de limpar...`);
-
             this.roomCleanupTimeout = setTimeout(() => {
                 // Verifica novamente se não há conexões
                 if (this.connections.size === 0) {
-                    console.log(`[${this.room.id}] Sem reconexão - limpando estado da sala`);
 
                     // Cancela timeout de fechamento da sala se existir
                     if (this.gameOverTimeout) {
@@ -931,7 +904,6 @@ export default class ResistServer implements Party.Server {
     onMessage(message: string, sender: Party.Connection) {
         try {
             const data: ClientMessage = JSON.parse(message);
-            console.log(`[${this.room.id}] Mensagem de ${sender.id}:`, data.type);
 
             switch (data.type) {
                 case 'JOIN':
@@ -1007,7 +979,6 @@ export default class ResistServer implements Party.Server {
 
                             this.addLog(`> NOVA PARTIDA INICIADA`);
                             this.broadcastState();
-                            console.log(`[${this.room.id}] Jogo reiniciado pelo host`);
                         } else {
                             this.sendError(sender, 'Apenas o host pode reiniciar o jogo');
                         }
@@ -1017,9 +988,12 @@ export default class ResistServer implements Party.Server {
                     this.handleDisconnectVote(sender, data.endGame);
                     break;
             }
-        } catch (err) {
-            console.error(`[${this.room.id}] Erro ao processar mensagem:`, err);
-            this.sendError(sender, 'Erro ao processar mensagem');
+        } catch (e) {
+            const errorType = e instanceof SyntaxError ? 'JSON inválido' :
+                e instanceof TypeError ? 'Tipo inválido' :
+                    'Erro desconhecido';
+            console.error(`[${this.room.id}] Erro ao processar mensagem (${errorType}):`, e instanceof Error ? e.message : e);
+            this.sendError(sender, `Erro ao processar mensagem: ${errorType}`);
         }
     }
 }
