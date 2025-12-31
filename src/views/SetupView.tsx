@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from '../i18n';
 
 interface Props {
   mode: 'CREATE' | 'JOIN';
@@ -8,10 +9,11 @@ interface Props {
   onInit: () => void;
   onJoin: (code: string) => void;
   onBack: () => void;
-  prefillCode?: string | null; // Código preenchido via URL
+  prefillCode?: string | null;
 }
 
 export default function SetupView({ mode, playerName, onNameChange, onInit, onJoin, onBack, prefillCode }: Props) {
+  const { t } = useTranslation();
   const [code, setCode] = React.useState(prefillCode || '');
   const isJoin = mode === 'JOIN';
   const hasPrefilledCode = !!prefillCode;
@@ -22,25 +24,25 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-resistance/50 to-transparent"></div>
 
         <h2 className="text-3xl font-display font-black text-white mb-8 uppercase tracking-[0.2em] text-center italic">
-          {isJoin ? 'Quantum Sync' : 'Unit Identification'}
+          {isJoin ? t('setup.join.title') : t('setup.create.title')}
         </h2>
 
         <div className="space-y-8">
           <div className="space-y-2">
-            <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">Codename</label>
+            <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">{t('setup.name')}</label>
             <input
               type="text"
               value={playerName}
               onChange={e => onNameChange(e.target.value)}
               className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-resistance transition-all font-mono text-xl"
-              placeholder="Ex: T-800"
+              placeholder={t('setup.name.placeholder')}
             />
           </div>
 
           {isJoin && (
             <div className="space-y-2">
               <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">
-                Link Code {hasPrefilledCode && <span className="text-resistance">(via link)</span>}
+                {t('setup.code')} {hasPrefilledCode && <span className="text-resistance">{t('setup.code.via_link')}</span>}
               </label>
               <input
                 type="text"
@@ -59,13 +61,13 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
               onClick={() => isJoin ? onJoin(code) : onInit()}
               className="btn-animate w-full bg-resistance text-black py-5 rounded-2xl font-display font-black text-2xl shadow-glow-blue uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
             >
-              {isJoin ? 'Establish Link' : 'Initialize Terminal'}
+              {isJoin ? t('setup.join.button') : t('setup.create.button')}
             </button>
             <button
               onClick={onBack}
               className="btn-animate w-full text-slate-300 text-sm uppercase font-bold tracking-[0.3em] hover:text-white transition-colors"
             >
-              Abort Mission
+              {t('setup.back')}
             </button>
           </div>
         </div>
@@ -73,3 +75,4 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
     </div>
   );
 }
+

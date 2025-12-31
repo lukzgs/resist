@@ -6,6 +6,7 @@ import MissionTracker from '../components/MissionTracker';
 import VoteTracker from '../components/VoteTracker';
 import { DisconnectWaitScreen } from '../components/DisconnectWaitScreen';
 import { DisconnectVoteScreen } from '../components/DisconnectVoteScreen';
+import { useTranslation } from '../i18n';
 
 interface Props {
   state: GameState;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function GameView({ state, playerName, isHost, sendAction }: Props) {
+  const { t } = useTranslation();
   const [showId, setShowId] = useState(false);
   const me = state.players.find(function (p) { return p.name === playerName; });
   const isLeader = state.players[state.leaderIndex].name === playerName;
@@ -179,11 +181,11 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           <div className="flex items-center gap-4">
             {/* Badge de terminators */}
             <div className="hidden md:flex items-center gap-2 bg-spy/10 px-3 py-2 rounded-lg border border-spy/30">
-              <span className="text-xs font-mono text-spy uppercase tracking-widest">Terminators:</span>
+              <span className="text-xs font-mono text-spy uppercase tracking-widest">{t('game.terminators_count')}:</span>
               <span className="text-lg font-display font-black text-spy">{state.players.filter(p => p.role === Role.TERMINATOR).length}</span>
             </div>
             <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
-              <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">Sala:</span>
+              <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">{t('game.room')}:</span>
               <span className="text-lg font-display font-black text-resistance tracking-widest">{state.roomCode.replace(/0/g, 'Ø')}</span>
             </div>
           </div>
@@ -249,14 +251,14 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
               {/* Resultado da última votação (modo anônimo) */}
               {lastVoteResult && state.anonymousVotes && (
                 <div className="flex items-center justify-center gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/10">
-                  <span className="text-xs font-mono text-slate-300 uppercase">Última votação:</span>
+                  <span className="text-xs font-mono text-slate-300 uppercase">{t('game.last_vote')}:</span>
                   <div className="flex items-center gap-3">
                     <span className="text-lg font-display font-black text-resistance">{lastVoteResult.approvals}</span>
                     <span className="text-xs text-slate-300">×</span>
                     <span className="text-lg font-display font-black text-spy">{lastVoteResult.rejections}</span>
                   </div>
                   <span className={`text-xs font-mono uppercase font-bold ${lastVoteResult.approved ? 'text-green-400' : 'text-red-400'}`}>
-                    {lastVoteResult.approved ? 'Aprovado' : 'Rejeitado'}
+                    {lastVoteResult.approved ? t('game.approved') : t('game.rejected')}
                   </span>
                 </div>
               )}
@@ -341,6 +343,7 @@ interface PhaseControlsProps {
 }
 
 function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
+  const { t } = useTranslation();
   const [pendingVote, setPendingVote] = useState<boolean | null>(null);
   const [pendingMissionAction, setPendingMissionAction] = useState<boolean>(false);
 
@@ -361,7 +364,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
   if (!me) {
     return (
       <div className="text-red-400 font-mono text-sm uppercase tracking-widest">
-        Erro: jogador não encontrado. Recarregue a página.
+        {t('game.error_player')}
       </div>
     );
   }
@@ -374,14 +377,14 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
       <div className="space-y-6 animate-in fade-in zoom-in duration-500">
         <div className="flex items-center gap-3 justify-center mb-2">
           <span className="w-2 h-2 bg-resistance animate-ping rounded-full"></span>
-          <p className="text-sm font-mono text-resistance uppercase tracking-widest font-bold">Aguardando Seleção de Alvos: {state.proposedTeam.length}/{currentMission.requiredPlayers}</p>
+          <p className="text-sm font-mono text-resistance uppercase tracking-widest font-bold">{t('game.select_team')}: {state.proposedTeam.length}/{currentMission.requiredPlayers}</p>
         </div>
         <button
           onClick={function () { sendAction('SUBMIT_TEAM', {}); }}
           disabled={state.proposedTeam.length !== currentMission.requiredPlayers}
           className="bg-resistance text-black px-16 py-4 rounded-full font-display font-black text-xl uppercase tracking-widest shadow-glow-blue disabled:opacity-30 disabled:grayscale transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
         >
-          Confirmar Esquadrão
+          {t('game.submit_team')}
           <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
         </button>
       </div>
@@ -393,7 +396,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
           <div className="w-2 h-2 bg-slate-700 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
         </div>
-        <p className="text-slate-300 font-mono text-sm uppercase tracking-widest italic">Comandante {state.players[state.leaderIndex].name} selecionando unidades...</p>
+        <p className="text-slate-300 font-mono text-sm uppercase tracking-widest italic">{t('game.commander_selecting')}</p>
       </div>
     );
   }
@@ -414,13 +417,13 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
           </div>
-          <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">Aguardando votos dos outros agentes...</p>
+          <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">{t('game.waiting_vote')}</p>
 
           {/* Mostra apenas quantos faltam votar */}
           {remaining > 0 && (
             <div className="flex items-center gap-2 mt-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10">
               <span className="text-lg font-display font-black text-slate-300">{remaining}</span>
-              <span className="text-xs font-mono text-slate-300 uppercase">agente{remaining > 1 ? 's' : ''} pendente{remaining > 1 ? 's' : ''}</span>
+              <span className="text-xs font-mono text-slate-300 uppercase">{remaining > 1 ? t('game.agents_pending') : t('game.agent_pending')}</span>
             </div>
           )}
         </div>
@@ -430,7 +433,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     // Ainda não votou - mostra botões
     return (
       <div className="space-y-6 animate-in slide-in-from-bottom-4">
-        <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">Validar Equipe?</p>
+        <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">{t('game.validate_team')}</p>
         <div className="flex gap-4 justify-center">
           <button
             onClick={function () {
@@ -439,7 +442,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
             }}
             className="bg-resistance text-black px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
-            Aprovar
+            {t('game.approve')}
             <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
           </button>
           <button
@@ -449,7 +452,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
             }}
             className="bg-spy text-white px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-red transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
-            Rejeitar
+            {t('game.reject')}
             <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
           </button>
         </div>
@@ -465,7 +468,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
           </div>
-          <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+          <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">{t('game.waiting_mission')}</p>
         </div>
       );
     }
@@ -474,7 +477,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     return (
       <div className="space-y-6 animate-in zoom-in duration-300">
         <div className="relative inline-block">
-          <p className="text-sm font-black text-resistance uppercase tracking-[0.4em] mb-2 animate-pulse">Operação em Campo Ativa</p>
+          <p className="text-sm font-black text-resistance uppercase tracking-[0.4em] mb-2 animate-pulse">{t('game.field_operation')}</p>
           <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-resistance/50"></div>
         </div>
         <div className="flex gap-6 justify-center">
@@ -485,7 +488,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
             }}
             className="group relative bg-black border-2 border-resistance text-resistance px-12 py-4 rounded-xl font-display font-black uppercase tracking-widest hover:bg-resistance hover:text-black transition-all"
           >
-            [ Sucesso ]
+            [ {t('game.success')} ]
           </button>
           {me.role === Role.TERMINATOR && (
             <button
@@ -495,7 +498,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
               }}
               className="group relative bg-black border-2 border-spy text-spy px-12 py-4 rounded-xl font-display font-black uppercase tracking-widest hover:bg-spy hover:text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)]"
             >
-              [ Sabotar ]
+              [ {t('game.fail')} ]
             </button>
           )}
         </div>
@@ -512,7 +515,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
       <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-resistance w-1/2 animate-infinite-scroll"></div>
       </div>
-      <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">Sincronizando dados táticos da unidade...</p>
+      <p className="text-slate-300 font-mono text-sm uppercase tracking-widest">{t('game.waiting_mission')}</p>
     </div>
   );
 }
@@ -525,6 +528,7 @@ interface GameOverScreenProps {
 }
 
 function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
+  const { t } = useTranslation();
   const humanWins = state.winner === Role.HUMAN;
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
@@ -552,21 +556,19 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
     <div className="space-y-6 py-4">
       {/* Título com animação */}
       <div className={`animate-zoom-in text-6xl font-display font-black uppercase tracking-tighter leading-tight ${humanWins ? 'text-resistance drop-shadow-glow-blue' : 'text-spy drop-shadow-glow-red animate-glitch'}`}>
-        {humanWins ? 'Resistance_Won' : 'Skynet_Prevails'}
+        {humanWins ? t('game.resistance_wins') : t('game.skynet_wins')}
       </div>
 
       {/* Descrição com delay */}
       <div className="animate-fade-in-up animate-delay-200 bg-white/5 p-4 rounded-xl border border-white/10 max-w-sm mx-auto">
         <p className="text-sm font-mono text-slate-300 uppercase leading-relaxed tracking-widest">
-          {humanWins
-            ? 'O Dia do Julgamento foi evitado. A linha temporal foi preservada por agora.'
-            : 'A Resistência foi destruída. As máquinas controlam o futuro.'}
+          {humanWins ? t('game.win_human_desc') : t('game.win_skynet_desc')}
         </p>
       </div>
 
       {/* Revelação de jogadores com delay maior - filtra espectadores */}
       <div className="animate-fade-in-up animate-delay-400 bg-black/40 border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto">
-        <h3 className="text-xs font-mono text-slate-300 uppercase tracking-widest mb-4 text-center">Identidades Reveladas</h3>
+        <h3 className="text-xs font-mono text-slate-300 uppercase tracking-widest mb-4 text-center">{t('game.identities_revealed')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {state.players.filter(p => !p.isSpectator).map((player, index) => (
             <div
@@ -600,7 +602,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
       {/* Countdown */}
       {timeLeft !== null && timeLeft > 0 && (
         <div className="animate-fade-in animate-delay-500 flex items-center justify-center gap-2 text-slate-300 font-mono text-sm">
-          <span className="uppercase tracking-widest">Sala fecha em</span>
+          <span className="uppercase tracking-widest">{t('game.room_closes_in')}</span>
           <span className="text-resistance font-bold text-lg">{formatTime(timeLeft)}</span>
         </div>
       )}
@@ -613,7 +615,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
             onClick={function () { sendAction('RESTART_GAME', {}); }}
             className="bg-resistance text-black px-8 py-3 rounded-full font-display font-black text-lg uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95"
           >
-            Nova Partida
+            {t('game.play_again')}
           </button>
         )}
 
@@ -622,7 +624,7 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
           onClick={function () { sessionStorage.clear(); window.location.reload(); }}
           className="bg-white/5 text-slate-300 px-8 py-3 rounded-full font-mono text-sm uppercase font-black tracking-[0.3em] hover:bg-white/10 hover:text-white transition-all border border-white/10"
         >
-          Sair
+          {t('game.back_menu')}
         </button>
       </div>
     </div>
