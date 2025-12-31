@@ -6,6 +6,7 @@ import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
 import GameView from './views/GameView';
 import ReconnectView from './views/ReconnectView';
+import LanguageSelector from './components/LanguageSelector';
 
 // Chave para salvar o nome no localStorage (persiste entre sessões)
 const PLAYER_NAME_KEY = 'resist_player_name';
@@ -314,6 +315,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-dark text-slate-200 font-sans selection:bg-resistance selection:text-white">
+      {/* Seletor de idioma global */}
+      <LanguageSelector />
+
       {/* Sistema de notificações */}
       {notification && (
         <Toast

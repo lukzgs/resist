@@ -7,35 +7,11 @@ interface Props {
 }
 
 export default function HomeView({ onNavigate }: Props) {
-  const { t, language, setLanguage } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-scan opacity-5 pointer-events-none"></div>
-
-      {/* Selector de idioma */}
-      <div className="absolute top-4 right-4 z-20">
-        <div className="flex gap-2 bg-black/40 rounded-lg p-1 border border-white/10">
-          <button
-            onClick={() => setLanguage('pt')}
-            className={`px-3 py-1 rounded font-mono text-sm transition-all ${language === 'pt'
-                ? 'bg-resistance text-black font-bold'
-                : 'text-slate-400 hover:text-white'
-              }`}
-          >
-            PT
-          </button>
-          <button
-            onClick={() => setLanguage('en')}
-            className={`px-3 py-1 rounded font-mono text-sm transition-all ${language === 'en'
-                ? 'bg-resistance text-black font-bold'
-                : 'text-slate-400 hover:text-white'
-              }`}
-          >
-            EN
-          </button>
-        </div>
-      </div>
 
       <div className="z-10 text-center space-y-12 max-w-lg view-enter">
         <div className="space-y-2 animate-float">
