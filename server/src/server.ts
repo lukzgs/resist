@@ -205,6 +205,7 @@ export default class ResistServer implements Party.Server {
             cancelDisconnectWait: this.cancelDisconnectWait,
             createInitialState: createInitialState,
             cancelRoomCleanup: this.cancelRoomCleanup,
+            setGameState: (state: GameState) => { this.gameState = state; },
         };
     }
 
@@ -327,10 +328,7 @@ export default class ResistServer implements Party.Server {
 
             switch (data.type) {
                 case 'JOIN': {
-                    const ctx = this.getJoinContext();
-                    handleJoin(ctx, sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
-                    // Atualiza referência do gameState após JOIN (pode ter sido criado)
-                    if (ctx.gameState) this.gameState = ctx.gameState;
+                    handleJoin(this.getJoinContext(), sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
                     break;
                 }
                 case 'LEAVE_ROOM':

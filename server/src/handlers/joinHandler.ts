@@ -15,6 +15,7 @@ export interface HandlerContext {
     cancelDisconnectWait: () => void;
     createInitialState: (roomCode: string) => GameState;
     cancelRoomCleanup: () => void;
+    setGameState: (state: GameState) => void;  // Para criar novo estado
 }
 
 /**
@@ -49,7 +50,9 @@ export function handleJoin(
 
     // Inicializa estado se necessário
     if (!ctx.gameState) {
-        ctx.gameState = ctx.createInitialState(ctx.room.id);
+        const newState = ctx.createInitialState(ctx.room.id);
+        ctx.setGameState(newState);
+        ctx.gameState = newState;
     }
 
     // Verifica se já está conectado com esta conexão
