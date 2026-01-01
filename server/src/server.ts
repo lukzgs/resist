@@ -1,63 +1,40 @@
 import type * as Party from "partykit/server";
 import {
     GameState,
-    Player,
     Phase,
     Role,
-    Mission,
     ClientMessage,
     ServerMessage,
-    GAME_RULES
 } from "./types";
 
-// Gera bytes aleatórios seguros usando crypto
-function getSecureRandomBytes(length: number): Uint8Array {
-    const bytes = new Uint8Array(length);
-    crypto.getRandomValues(bytes);
-    return bytes;
-}
-
-// Gera ID único seguro (8 caracteres alfanuméricos)
-function generateId(): string {
-    const bytes = getSecureRandomBytes(6);
-    // Converte para base36 (0-9, a-z)
-    let result = '';
-    for (const byte of bytes) {
-        result += byte.toString(36).padStart(2, '0');
-    }
-    return result.slice(0, 8);
-}
-
-// Shuffle array (Fisher-Yates) - usa crypto para aleatoriedade
-function shuffle<T>(array: T[]): T[] {
-    const arr = [...array];
-    const randomBytes = getSecureRandomBytes(arr.length * 4);
-    for (let i = arr.length - 1; i > 0; i--) {
-        // Usa 4 bytes para gerar número aleatório com boa distribuição
-        const randomValue = (randomBytes[i * 4] << 24 | randomBytes[i * 4 + 1] << 16 |
-            randomBytes[i * 4 + 2] << 8 | randomBytes[i * 4 + 3]) >>> 0;
-        const j = randomValue % (i + 1);
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
-// Gera UUID seguro (compatível com diversos ambientes)
-function generateUUID(): string {
-    // Tenta usar crypto.randomUUID nativo (Node.js 19+, Cloudflare Workers, Browsers)
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-        return crypto.randomUUID();
-    }
-
-    // Fallback seguro usando crypto.getRandomValues
-    const bytes = getSecureRandomBytes(16);
-    // Define versão 4 (random) e variante (10xx)
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;  // versão 4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;  // variante
-
-    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
+// Importações dos módulos refatorados
+import { createInitialState, getSanitizedState, addLog, getPlayerByConnection } from './game/state';
+import {
+    handleJoin,
+    handleLeaveRoom,
+    handleRemovePlayer,
+    HandlerContext,
+} from './handlers/joinHandler';
+import {
+    handleStartGame,
+    handleSelectPlayer,
+    handleSubmitTeam,
+    handleVote,
+    handleMissionAction,
+    handleSetAnonymousVotes,
+    handleSetShowRejectionCount,
+    handleRestartGame,
+    GameHandlerContext,
+} from './handlers/gameHandlers';
+import {
+    handleDisconnectVote,
+    startDisconnectWait as _startDisconnectWait,
+    cancelDisconnectWait as _cancelDisconnectWait,
+    startDisconnectVote as _startDisconnectVote,
+    resolveDisconnectVote,
+    cancelGame,
+    DisconnectHandlerContext,
+} from './handlers/disconnectHandlers';
 
 export default class ResistServer implements Party.Server {
     // Estado do jogo
@@ -81,33 +58,25 @@ export default class ResistServer implements Party.Server {
     // Timer para limpeza da sala quando vazia
     roomCleanupTimeout: NodeJS.Timeout | null = null;
 
-    // Tempo para limpar sala vazia (2 minutos) - permite reconexão se todos caírem
-    static readonly EMPTY_ROOM_CLEANUP_MS = 120000;
-
-    // Tempo de graça para reconexão (5 minutos)
-    static readonly RECONNECT_GRACE_PERIOD_MS = 300000;
-
-    // Tempo até a sala fechar após GAME_OVER (3 minutos)
-    static readonly ROOM_EXPIRY_MS = 180000;
-
-    // Tempo de espera para reconexão (2 minutos)
-    static readonly DISCONNECT_WAIT_MS = 120000;
-
-    // Tempo de votação (15 segundos)
-    static readonly DISCONNECT_VOTE_MS = 15000;
-
-    // Máximo de tentativas de espera
+    // Constantes de tempo
+    static readonly EMPTY_ROOM_CLEANUP_MS = 120000;  // 2 minutos
+    static readonly RECONNECT_GRACE_PERIOD_MS = 300000;  // 5 minutos
+    static readonly ROOM_EXPIRY_MS = 180000;  // 3 minutos
+    static readonly DISCONNECT_WAIT_MS = 120000;  // 2 minutos
+    static readonly DISCONNECT_VOTE_MS = 15000;  // 15 segundos
     static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
-    // Rate limiting: máximo de mensagens por minuto por conexão
+    // Rate limiting
     static readonly MAX_MESSAGES_PER_MINUTE = 30;
     private rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
 
     constructor(public room: Party.Room) { }
 
-    // Agenda fechamento da sala após GAME_OVER
-    private scheduleRoomClosure() {
-        // Cancela timeout anterior se existir
+    // ============================================================
+    // GERENCIAMENTO DE TIMERS
+    // ============================================================
+
+    private scheduleRoomClosure = (): void => {
         if (this.gameOverTimeout) {
             clearTimeout(this.gameOverTimeout);
         }
@@ -118,24 +87,17 @@ export default class ResistServer implements Party.Server {
         }
 
         this.gameOverTimeout = setTimeout(() => {
-
-            // Notifica todos os clientes
             this.room.broadcast(JSON.stringify({ type: 'ROOM_CLOSED' } as ServerMessage));
-
-            // Desconecta todos
             for (const conn of this.room.getConnections()) {
                 conn.close();
             }
-
-            // Limpa estado
             this.gameState = null;
             this.connections.clear();
             this.disconnectedPlayers.clear();
         }, ResistServer.ROOM_EXPIRY_MS);
-    }
+    };
 
-    // Cancela o fechamento agendado da sala
-    private cancelRoomClosure() {
+    private cancelRoomClosure = (): void => {
         if (this.gameOverTimeout) {
             clearTimeout(this.gameOverTimeout);
             this.gameOverTimeout = null;
@@ -143,58 +105,9 @@ export default class ResistServer implements Party.Server {
         if (this.gameState) {
             this.gameState.roomExpiresAt = undefined;
         }
-    }
+    };
 
-    // Inicia espera de reconexão quando jogador desconecta durante o jogo
-    private startDisconnectWait(player: { id: string; name: string }, attempt: number = 1) {
-        if (!this.gameState) return;
-
-        // Cancela timers anteriores
-        this.cancelDisconnectTimers();
-
-        const now = Date.now();
-        const expiresAt = now + ResistServer.DISCONNECT_WAIT_MS;
-
-        // Salva estado anterior e pausa o jogo
-        this.gameState.disconnectInfo = {
-            disconnectedPlayerId: player.id,
-            disconnectedPlayerName: player.name,
-            pausedPhase: this.gameState.phase,
-            waitingAttempt: attempt,
-            pausedAt: now,
-            expiresAt,
-        };
-        this.gameState.phase = Phase.PAUSED_DISCONNECT;
-        this.gameState.disconnectVotes = {};
-
-        this.addLog(`> ${player.name} desconectou - aguardando ${ResistServer.DISCONNECT_WAIT_MS / 1000}s...`);
-        this.broadcastState();
-
-        // Timer para iniciar votação
-        this.disconnectWaitTimer = setTimeout(() => {
-            this.startDisconnectVote();
-        }, ResistServer.DISCONNECT_WAIT_MS);
-    }
-
-    // Cancela espera de reconexão (jogador reconectou)
-    private cancelDisconnectWait() {
-        if (!this.gameState || !this.gameState.disconnectInfo) return;
-
-        this.cancelDisconnectTimers();
-
-        const info = this.gameState.disconnectInfo;
-
-        // Restaura fase anterior
-        this.gameState.phase = info.pausedPhase;
-        this.gameState.disconnectInfo = undefined;
-        this.gameState.disconnectVotes = undefined;
-
-        this.addLog(`> Jogador reconectou - retomando jogo`);
-        this.broadcastState();
-    }
-
-    // Cancela todos os timers de desconexão
-    private cancelDisconnectTimers() {
+    private cancelDisconnectTimers = (): void => {
         if (this.disconnectWaitTimer) {
             clearTimeout(this.disconnectWaitTimer);
             this.disconnectWaitTimer = null;
@@ -203,657 +116,145 @@ export default class ResistServer implements Party.Server {
             clearTimeout(this.disconnectVoteTimer);
             this.disconnectVoteTimer = null;
         }
-    }
+    };
 
-    // Inicia votação para decidir se encerra ou continua esperando
-    private startDisconnectVote() {
-        if (!this.gameState || !this.gameState.disconnectInfo) return;
-
-        const info = this.gameState.disconnectInfo;
-        const expiresAt = Date.now() + ResistServer.DISCONNECT_VOTE_MS;
-
-        this.gameState.phase = Phase.DISCONNECT_VOTE;
-        this.gameState.disconnectInfo.expiresAt = expiresAt;
-        this.gameState.disconnectVotes = {};
-
-        this.addLog(`> Votação: encerrar partida ou aguardar ${info.disconnectedPlayerName}?`);
-        this.broadcastState();
-
-        // Timer para resolver votação automaticamente
-        this.disconnectVoteTimer = setTimeout(() => {
-            this.resolveDisconnectVote();
-        }, ResistServer.DISCONNECT_VOTE_MS);
-    }
-
-    // Processa voto de desconexão
-    private handleDisconnectVote(conn: Party.Connection, endGame: boolean) {
-        if (!this.gameState || this.gameState.phase !== Phase.DISCONNECT_VOTE) return;
-        if (!this.gameState.disconnectVotes) return;
-
-        const player = this.isActivePlayer(conn);
-        if (!player) return;
-
-        // Não pode votar se está desconectado
-        if (player.disconnected) return;
-
-        // Já votou?
-        if (player.id in this.gameState.disconnectVotes) return;
-
-        this.gameState.disconnectVotes[player.id] = endGame;
-        this.broadcastState();
-
-        // Verifica se todos votaram (exclui espectadores)
-        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
-        const voteCount = Object.keys(this.gameState.disconnectVotes).length;
-
-        if (voteCount === activePlayers.length) {
-            // Todos votaram, resolve imediatamente
-            if (this.disconnectVoteTimer) {
-                clearTimeout(this.disconnectVoteTimer);
-                this.disconnectVoteTimer = null;
-            }
-            this.resolveDisconnectVote();
-        }
-    }
-
-    // Resolve votação de desconexão
-    private resolveDisconnectVote() {
-        if (!this.gameState || !this.gameState.disconnectInfo) return;
-
-        this.cancelDisconnectTimers();
-
-        const info = this.gameState.disconnectInfo;
-        const votes = this.gameState.disconnectVotes || {};
-        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
-
-        // Conta votos para encerrar
-        const endGameVotes = Object.values(votes).filter(v => v === true).length;
-        const majorityNeeded = Math.ceil(activePlayers.length / 2);
-
-        if (endGameVotes >= majorityNeeded) {
-            // Maioria votou encerrar
-            this.cancelGame(`Jogadores votaram para encerrar (${info.disconnectedPlayerName} desconectou)`);
-        } else if (info.waitingAttempt >= ResistServer.MAX_DISCONNECT_ATTEMPTS) {
-            // Máximo de tentativas atingido
-            this.cancelGame(`${info.disconnectedPlayerName} não reconectou após ${ResistServer.MAX_DISCONNECT_ATTEMPTS} tentativas`);
-        } else {
-            // Continua esperando - nova tentativa
-            this.addLog(`> Jogadores votaram para aguardar - tentativa ${info.waitingAttempt + 1}/${ResistServer.MAX_DISCONNECT_ATTEMPTS}`);
-
-            // Mantém info mas incrementa tentativa
-            const playerInfo = { id: info.disconnectedPlayerId, name: info.disconnectedPlayerName };
-            this.startDisconnectWait(playerInfo, info.waitingAttempt + 1);
-        }
-    }
-
-    // Cancela partida (sem vencedor)
-    private cancelGame(reason: string) {
-        if (!this.gameState) return;
-
-        this.cancelDisconnectTimers();
-
-        this.gameState.phase = Phase.GAME_OVER;
-        this.gameState.winner = null;  // Sem vencedor
-        this.gameState.disconnectInfo = undefined;
-        this.gameState.disconnectVotes = undefined;
-
-        this.addLog(`> PARTIDA CANCELADA: ${reason}`);
-        this.scheduleRoomClosure();
-        this.broadcastState();
-    }
-
-    // Cria estado inicial do jogo
-    private createInitialState(roomCode: string): GameState {
-        return {
-            phase: Phase.LOBBY,
-            players: [],
-            roomCode,
-            leaderIndex: 0,
-            currentMissionIndex: 0,
-            missions: [],
-            failedVoteCount: 0,
-            proposedTeam: [],
-            logs: [`> PROTOCOLO: ${roomCode}`],
-            winner: null,
-            anonymousVotes: true,  // Default: votos anônimos
-            showRejectionCount: true,  // Default: mostrar contagem de rejeições
-        };
-    }
-
-    // Adiciona log ao estado
-    private addLog(message: string) {
-        if (this.gameState) {
-            this.gameState.logs = [...this.gameState.logs.slice(-20), message];
-        }
-    }
-
-    // Retorna estado sanitizado (sem sessionIds) para enviar aos clientes
-    private getSanitizedState(): GameState {
-        if (!this.gameState) throw new Error('No game state');
-        return {
-            ...this.gameState,
-            players: this.gameState.players.map(p => ({
-                ...p,
-                sessionId: undefined
-            }))
-        };
-    }
-
-    // Broadcast do estado para todos (remove sessionIds por segurança)
-    private broadcastState() {
-        if (!this.gameState) return;
-        const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
-        this.room.broadcast(JSON.stringify(message));
-    }
-
-    // Envia erro para um cliente específico
-    private sendError(conn: Party.Connection, message: string) {
-        const error: ServerMessage = { type: 'ERROR', message };
-        conn.send(JSON.stringify(error));
-    }
-
-    // Encontra jogador pelo ID da conexão
-    private getPlayerByConnection(connId: string): Player | undefined {
-        const playerId = this.connections.get(connId);
-        return this.gameState?.players.find(p => p.id === playerId);
-    }
-
-    // Verifica se jogador pode realizar ações (não é espectador)
-    private isActivePlayer(conn: Party.Connection): Player | null {
-        const player = this.getPlayerByConnection(conn.id);
-        if (!player) return null;
-        if (player.isSpectator) {
-            this.sendError(conn, 'Espectadores não podem interagir no jogo');
-            return null;
-        }
-        return player;
-    }
-
-    // Processa JOIN
-    private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string, isCreating?: boolean) {
-        // Sanitiza e valida o nome: apenas letras e números, máximo 10 caracteres
-        const sanitizedName = (name || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
-        if (sanitizedName.length < 1) {
-            this.sendError(conn, 'Nome inválido: deve conter pelo menos 1 caractere alfanumérico');
-            return;
-        }
-        name = sanitizedName;
-
-        // Cancela timeout de limpeza da sala se cliente está reconectando
+    private cancelRoomCleanup = (): void => {
         if (this.roomCleanupTimeout) {
             clearTimeout(this.roomCleanupTimeout);
             this.roomCleanupTimeout = null;
         }
+    };
 
-        // Se está tentando entrar (não criar) em uma sala que não existe ou está vazia
-        // e não tem sessionId (não é reconexão), rejeita
-        const roomIsEmpty = !this.gameState || this.gameState.players.length === 0;
-        if (!isCreating && roomIsEmpty && !sessionId) {
-            this.sendError(conn, 'Sala não encontrada');
-            // Fecha conexão após enviar erro
-            setTimeout(() => conn.close(), 100);
-            return;
-        }
+    // ============================================================
+    // SISTEMA DE DESCONEXÃO
+    // ============================================================
 
-        // Inicializa estado se necessário (apenas para criar sala)
-        if (!this.gameState) {
-            this.gameState = this.createInitialState(this.room.id);
-        }
-
-        // Verifica se já está conectado com esta conexão
-        if (this.connections.has(conn.id)) {
-            // Reconexão pela mesma conexão - apenas envia estado atual
-            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
-            conn.send(JSON.stringify(message));
-            return;
-        }
-
-        // Tenta reconexão APENAS por sessionId (único identificador válido)
-        const existingPlayer = sessionId
-            ? this.gameState.players.find(p => p.sessionId === sessionId)
-            : null;
-
-        if (existingPlayer) {
-            // Cancela timeout de remoção se existir
-            const timeout = this.disconnectedPlayers.get(existingPlayer.id);
-            if (timeout) {
-                clearTimeout(timeout);
-                this.disconnectedPlayers.delete(existingPlayer.id);
-            }
-
-            // Registra nova conexão para o jogador existente
-            this.connections.set(conn.id, existingPlayer.id);
-
-            // Atualiza nome se mudou - MAS APENAS NO LOBBY
-            // Durante o jogo, o nome original é mantido (não pode trocar)
-            if (existingPlayer.name !== name && this.gameState.phase === Phase.LOBBY) {
-                this.addLog(`> ${existingPlayer.name} agora é ${name}`);
-                existingPlayer.name = name;
-            }
-
-            // Marca como conectado
-            existingPlayer.disconnected = false;
-
-            // Se era o jogador que causou pausa, cancela espera e retoma jogo
-            if (this.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id) {
-                this.cancelDisconnectWait();
-            } else {
-                this.addLog(`> ${existingPlayer.name} reconectou`);
-                this.broadcastState();
-            }
-
-            // Envia estado atual
-            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
-            conn.send(JSON.stringify(message));
-            return;
-        }
-
-        // Verifica limite de jogadores/espectadores
-        // Máximo: 10 jogadores ativos + até 15 total (jogadores + espectadores)
-        const activePlayersCount = this.gameState.players.filter(p => !p.isSpectator).length;
-        const spectatorsCount = this.gameState.players.filter(p => p.isSpectator).length;
-        const totalCount = this.gameState.players.length;
-        const isGameInProgress = this.gameState.phase !== Phase.LOBBY;
-
-        // Jogadores ativos: máximo 10
-        if (!isGameInProgress && activePlayersCount >= 10) {
-            this.sendError(conn, 'Sala cheia (máximo 10 jogadores)');
-            return;
-        }
-
-        // Total (jogadores + espectadores): máximo 15
-        if (totalCount >= 15) {
-            this.sendError(conn, 'Sala cheia (máximo 15 participantes)');
-            return;
-        }
-
-        // NOMES DUPLICADOS SÃO PERMITIDOS - nome é apenas display, não identificador
-
-        // Gera novo sessionId seguro
-        const newSessionId = generateUUID();
-
-        // Cria novo jogador (ou espectador se jogo já começou)
-        const isFirstPlayer = this.gameState.players.length === 0;
-        const newPlayer: Player = {
-            id: generateId(),
-            name,
-            role: Role.HUMAN, // Será definido ao iniciar (irrelevante para espectadores)
-            isHost: isFirstPlayer && !isGameInProgress,
-            avatarSeed,
-            sessionId: newSessionId,
-            disconnected: false,
-            isSpectator: isGameInProgress, // Marca como espectador se jogo já começou
-        };
-
-        // Envia confirmação de sessão segura
-        try {
-            conn.send(JSON.stringify({
-                type: 'SESSION_ESTABLISHED',
-                sessionId: newSessionId,
-                playerId: newPlayer.id
-            } as ServerMessage));
-        } catch (e) {
-            console.error(`[${this.room.id}] Erro ao enviar SESSION_ESTABLISHED para ${name}:`, e instanceof Error ? e.message : e);
-        }
-
-        // Registra conexão e adiciona jogador
-        this.connections.set(conn.id, newPlayer.id);
-        this.gameState.players.push(newPlayer);
-        this.addLog(`> ${name} conectou`);
-
-        // Broadcast para todos (incluindo o novo jogador, teoricamente)
-        this.broadcastState();
-
-        // GARANTIA: Envia estado explicitamente para o novo jogador
-        // Isso resolve casos onde o broadcast pode falhar ou ter race condition
-        const stateMsg: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
-        conn.send(JSON.stringify(stateMsg));
-
-        // Notifica entrada
-        this.room.broadcast(JSON.stringify({ type: 'PLAYER_JOINED', name } as ServerMessage));
-    }
-
-    // Processa REMOVE_PLAYER
-    private handleRemovePlayer(conn: Party.Connection) {
-        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
-
-        const player = this.getPlayerByConnection(conn.id);
-        if (!player?.isHost) {
-            this.sendError(conn, 'Apenas o host pode remover jogadores');
-            return;
-        }
-
-        if (this.gameState.players.length <= 1) return;
-
-        const removed = this.gameState.players.pop();
-        if (removed) {
-            this.addLog(`> ${removed.name} removido`);
-            this.broadcastState();
-        }
-    }
-
-    // Processa LEAVE_ROOM - saída voluntária (remove imediatamente)
-    private handleLeaveRoom(conn: Party.Connection) {
+    private startDisconnectWait = (player: { id: string; name: string }, attempt: number = 1): void => {
         if (!this.gameState) return;
 
-        const playerId = this.connections.get(conn.id);
-        if (!playerId) return;
+        const ctx = this.getDisconnectContext();
+        _startDisconnectWait(ctx, player, attempt, ResistServer.DISCONNECT_WAIT_MS);
 
-        const playerIndex = this.gameState.players.findIndex(p => p.id === playerId);
-        if (playerIndex === -1) return;
+        // Timer para iniciar votação
+        this.disconnectWaitTimer = setTimeout(() => {
+            this.startDisconnectVote();
+        }, ResistServer.DISCONNECT_WAIT_MS);
+    };
 
-        const player = this.gameState.players[playerIndex];
+    private cancelDisconnectWait = (): void => {
+        if (!this.gameState || !this.gameState.disconnectInfo) return;
+        const ctx = this.getDisconnectContext();
+        _cancelDisconnectWait(ctx);
+    };
 
-        // Cancela qualquer timeout de remoção pendente
-        const timeout = this.disconnectedPlayers.get(playerId);
-        if (timeout) {
-            clearTimeout(timeout);
-            this.disconnectedPlayers.delete(playerId);
+    private startDisconnectVote = (): void => {
+        if (!this.gameState) return;
+        const ctx = this.getDisconnectContext();
+        _startDisconnectVote(ctx, ResistServer.DISCONNECT_VOTE_MS);
+
+        this.disconnectVoteTimer = setTimeout(() => {
+            this.resolveDisconnectVote();
+        }, ResistServer.DISCONNECT_VOTE_MS);
+    };
+
+    private resolveDisconnectVote = (): void => {
+        if (!this.gameState || !this.gameState.disconnectInfo) return;
+
+        const ctx = this.getDisconnectContext();
+        const result = resolveDisconnectVote(ctx, ResistServer.MAX_DISCONNECT_ATTEMPTS);
+
+        const info = this.gameState.disconnectInfo;
+
+        switch (result) {
+            case 'END_GAME':
+                cancelGame(ctx, `Jogadores votaram para encerrar (${info.disconnectedPlayerName} desconectou)`);
+                break;
+            case 'MAX_ATTEMPTS':
+                cancelGame(ctx, `${info.disconnectedPlayerName} não reconectou após ${ResistServer.MAX_DISCONNECT_ATTEMPTS} tentativas`);
+                break;
+            case 'CONTINUE':
+                const playerInfo = { id: info.disconnectedPlayerId, name: info.disconnectedPlayerName };
+                this.startDisconnectWait(playerInfo, info.waitingAttempt + 1);
+                break;
         }
+    };
 
-        // Remove o jogador imediatamente
-        this.gameState.players.splice(playerIndex, 1);
-        this.connections.delete(conn.id);
+    // ============================================================
+    // HELPERS
+    // ============================================================
 
-        // Se era o host e ainda tem jogadores, passa o host para o próximo
-        if (player.isHost && this.gameState.players.length > 0) {
-            this.gameState.players[0].isHost = true;
-            this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
-        }
+    private broadcastState = (): void => {
+        if (!this.gameState) return;
+        const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState) };
+        this.room.broadcast(JSON.stringify(message));
+    };
 
-        this.addLog(`> ${player.name} saiu da sala`);
-        this.broadcastState();
+    private sendError = (conn: Party.Connection, message: string): void => {
+        const error: ServerMessage = { type: 'ERROR', message };
+        conn.send(JSON.stringify(error));
+    };
 
-        // Fecha a conexão
-        conn.close();
+    private getJoinContext(): HandlerContext {
+        return {
+            room: this.room,
+            gameState: this.gameState,
+            connections: this.connections,
+            disconnectedPlayers: this.disconnectedPlayers,
+            sendError: this.sendError,
+            broadcastState: this.broadcastState,
+            cancelDisconnectWait: this.cancelDisconnectWait,
+            createInitialState: createInitialState,
+            cancelRoomCleanup: this.cancelRoomCleanup,
+        };
     }
 
-    // Processa START_GAME
-    private handleStartGame(conn: Party.Connection) {
-        if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
-
-        const player = this.getPlayerByConnection(conn.id);
-        if (!player?.isHost) {
-            this.sendError(conn, 'Apenas o host pode iniciar');
-            return;
-        }
-
-        // Conta apenas jogadores ativos (não espectadores e conectados)
-        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
-        const pCount = activePlayers.length;
-
-        if (pCount < 5 || pCount > 10) {
-            this.sendError(conn, `Precisa de 5-10 jogadores conectados (atual: ${pCount})`);
-            return;
-        }
-
-        const rules = GAME_RULES[pCount];
-
-        // Distribui papéis apenas para jogadores ativos
-        const roles: Role[] = [];
-        for (let i = 0; i < rules.spyCount; i++) roles.push(Role.TERMINATOR);
-        for (let i = 0; i < pCount - rules.spyCount; i++) roles.push(Role.HUMAN);
-        const shuffledRoles = shuffle(roles);
-
-        // Atribui papéis apenas aos jogadores ativos
-        let roleIndex = 0;
-        this.gameState.players = this.gameState.players.map((p) => {
-            if (p.isSpectator || p.disconnected) {
-                return p; // Mantém espectadores/desconectados sem papel
-            }
-            return {
-                ...p,
-                role: shuffledRoles[roleIndex++],
-            };
-        });
-
-        // Cria missões
-        this.gameState.missions = rules.missionSizes.map((size, i) => ({
-            roundNumber: i + 1,
-            requiredPlayers: size,
-            requiresTwoFails: !!((rules.twoFailsRequiredRound4 && i === 3) || (rules.twoFailsRequiredRound5 && i === 4)),
-            status: 'PENDING',
-            team: [],
-            votes: {},
-            missionOutcomes: [],
-        }));
-
-        // Configura estado inicial
-        this.gameState.phase = Phase.TEAM_SELECTION;
-        this.gameState.leaderIndex = Math.floor(Math.random() * pCount);
-        this.gameState.currentMissionIndex = 0;
-        this.gameState.failedVoteCount = 0;
-        this.gameState.proposedTeam = [];
-
-        this.addLog(`> UNIDADE FORMADA: ${pCount} AGENTES`);
-        this.addLog(`> ESCANEANDO ASSINATURAS...`);
-        this.broadcastState();
+    private getGameContext(): GameHandlerContext {
+        if (!this.gameState) throw new Error('No game state');
+        return {
+            room: this.room,
+            gameState: this.gameState,
+            connections: this.connections,
+            sendError: this.sendError,
+            broadcastState: this.broadcastState,
+            scheduleRoomClosure: this.scheduleRoomClosure,
+        };
     }
 
-    // Processa SELECT_PLAYER
-    private handleSelectPlayer(conn: Party.Connection, playerId: string) {
-        if (!this.gameState || this.gameState.phase !== Phase.TEAM_SELECTION) return;
-
-        const player = this.isActivePlayer(conn);
-        if (!player) return;
-        const leader = this.gameState.players[this.gameState.leaderIndex];
-
-        if (player?.id !== leader.id) {
-            this.sendError(conn, 'Apenas o líder pode selecionar');
-            return;
-        }
-
-        // Valida se o jogador alvo existe
-        if (!this.gameState.players.some(p => p.id === playerId)) {
-            this.sendError(conn, 'Jogador não encontrado');
-            return;
-        }
-
-        const currentMission = this.gameState.missions[this.gameState.currentMissionIndex];
-        const team = this.gameState.proposedTeam;
-
-        if (team.includes(playerId)) {
-            // Remove da equipe
-            this.gameState.proposedTeam = team.filter(id => id !== playerId);
-        } else if (team.length < currentMission.requiredPlayers) {
-            // Adiciona à equipe
-            this.gameState.proposedTeam = [...team, playerId];
-        }
-
-        this.broadcastState();
+    private getDisconnectContext(): DisconnectHandlerContext {
+        if (!this.gameState) throw new Error('No game state');
+        return {
+            room: this.room,
+            gameState: this.gameState,
+            connections: this.connections,
+            disconnectedPlayers: this.disconnectedPlayers,
+            sendError: this.sendError,
+            broadcastState: this.broadcastState,
+            scheduleRoomClosure: this.scheduleRoomClosure,
+            cancelDisconnectTimers: this.cancelDisconnectTimers,
+            startDisconnectWait: this.startDisconnectWait,
+        };
     }
 
-    // Processa SUBMIT_TEAM
-    private handleSubmitTeam(conn: Party.Connection) {
-        if (!this.gameState || this.gameState.phase !== Phase.TEAM_SELECTION) return;
+    // ============================================================
+    // LIFECYCLE WebSocket
+    // ============================================================
 
-        const player = this.isActivePlayer(conn);
-        if (!player) return;
-        const leader = this.gameState.players[this.gameState.leaderIndex];
-
-        if (player?.id !== leader.id) {
-            this.sendError(conn, 'Apenas o líder pode submeter');
-            return;
-        }
-
-        const currentMission = this.gameState.missions[this.gameState.currentMissionIndex];
-        if (this.gameState.proposedTeam.length !== currentMission.requiredPlayers) {
-            this.sendError(conn, `Selecione exatamente ${currentMission.requiredPlayers} jogadores`);
-            return;
-        }
-
-        // Limpa votos anteriores
-        this.gameState.missions[this.gameState.currentMissionIndex].votes = {};
-        this.gameState.phase = Phase.TEAM_VOTE;
-        this.addLog(`> ESQUADRÃO PROPOSTO PELO COMANDANTE`);
-        this.broadcastState();
-    }
-
-    // Processa VOTE
-    private handleVote(conn: Party.Connection, approve: boolean) {
-        if (!this.gameState || this.gameState.phase !== Phase.TEAM_VOTE) return;
-
-        const player = this.isActivePlayer(conn);
-        if (!player) return;
-
-        const missionIndex = this.gameState.currentMissionIndex;
-        const mission = this.gameState.missions[missionIndex];
-
-        // Já votou?
-        if (player.id in mission.votes) return;
-
-        // Registra voto
-        this.gameState.missions[missionIndex].votes[player.id] = approve;
-
-        // Todos votaram? (conta apenas jogadores ativos que iniciaram a partida, exclui espectadores)
-        const activePlayers = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected);
-        if (Object.keys(this.gameState.missions[missionIndex].votes).length === activePlayers.length) {
-            const votes = Object.values(this.gameState.missions[missionIndex].votes);
-            const approvals = votes.filter(v => v).length;
-            const approved = approvals > activePlayers.length / 2;
-
-            // Broadcast imediato para mostrar todos os votos
-            this.broadcastState();
-
-            // Delay de 1.5s para jogadores visualizarem os votos antes da transição
-            setTimeout(() => {
-                if (!this.gameState) return;
-
-                if (approved) {
-                    this.gameState.phase = Phase.MISSION_EXECUTION;
-                    this.gameState.failedVoteCount = 0;
-                    this.addLog(`> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
-                } else {
-                    this.gameState.failedVoteCount++;
-                    this.addLog(`> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
-
-                    if (this.gameState.failedVoteCount >= 3) {
-                        this.gameState.phase = Phase.GAME_OVER;
-                        this.gameState.winner = Role.TERMINATOR;
-                        this.addLog(`> TERMINATORS VENCEM - 3 REJEIÇÕES`);
-                        this.scheduleRoomClosure();
-                    } else {
-                        this.gameState.phase = Phase.TEAM_SELECTION;
-                        // Avança líder apenas entre jogadores ativos (não espectadores)
-                        const activePlayerIds = this.gameState.players.filter(p => !p.isSpectator && !p.disconnected).map(p => p.id);
-                        const currentLeaderId = this.gameState.players[this.gameState.leaderIndex].id;
-                        const currentLeaderActiveIndex = activePlayerIds.indexOf(currentLeaderId);
-                        const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
-                        const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
-                        this.gameState.leaderIndex = this.gameState.players.findIndex(p => p.id === nextLeaderId);
-                        this.gameState.proposedTeam = [];
-                        // Limpa votos para próxima rodada
-                        this.gameState.missions[missionIndex].votes = {};
-                    }
-                }
-
-                this.broadcastState();
-            }, 750); // 0.75s delay para ver os votos antes de iniciar missão
-
-            return; // Não fazer broadcast novamente abaixo
-        }
-
-        this.broadcastState();
-    }
-
-    // Processa MISSION_ACTION
-    private handleMissionAction(conn: Party.Connection, success: boolean) {
-        if (!this.gameState || this.gameState.phase !== Phase.MISSION_EXECUTION) return;
-
-        const player = this.isActivePlayer(conn);
-        if (!player) return;
-
-        // Verifica se está na equipe
-        if (!this.gameState.proposedTeam.includes(player.id)) {
-            this.sendError(conn, 'Você não está na equipe');
-            return;
-        }
-
-        const missionIndex = this.gameState.currentMissionIndex;
-        const mission = this.gameState.missions[missionIndex];
-
-        // Já contribuiu?
-        const teamIndex = this.gameState.proposedTeam.indexOf(player.id);
-        if (mission.missionOutcomes[teamIndex] !== undefined) return;
-
-        // Humanos sempre devem passar sucesso
-        const outcome = player.role === Role.HUMAN ? true : success;
-
-        // Registra outcome
-        while (this.gameState.missions[missionIndex].missionOutcomes.length <= teamIndex) {
-            this.gameState.missions[missionIndex].missionOutcomes.push(undefined as any);
-        }
-        this.gameState.missions[missionIndex].missionOutcomes[teamIndex] = outcome;
-
-        // Verifica se missão está completa
-        const outcomes = this.gameState.missions[missionIndex].missionOutcomes.filter(o => o !== undefined);
-        if (outcomes.length === mission.requiredPlayers) {
-            const fails = outcomes.filter(o => !o).length;
-            const isFailed = mission.requiresTwoFails ? fails >= 2 : fails >= 1;
-
-            this.gameState.missions[missionIndex].status = isFailed ? 'FAIL' : 'SUCCESS';
-            this.addLog(`> MISSÃO ${missionIndex + 1}: ${isFailed ? 'FALHOU' : 'SUCESSO'} (${fails} sabotagem${fails !== 1 ? 's' : ''})`);
-
-            const successes = this.gameState.missions.filter(m => m.status === 'SUCCESS').length;
-            const failures = this.gameState.missions.filter(m => m.status === 'FAIL').length;
-
-            if (successes >= 3) {
-                this.gameState.winner = Role.HUMAN;
-                this.gameState.phase = Phase.GAME_OVER;
-                this.addLog(`> RESISTÊNCIA VENCE!`);
-                this.scheduleRoomClosure();
-            } else if (failures >= 3) {
-                this.gameState.winner = Role.TERMINATOR;
-                this.gameState.phase = Phase.GAME_OVER;
-                this.addLog(`> SKYNET PREVALECE!`);
-                this.scheduleRoomClosure();
-            } else {
-                // Broadcast resultado antes de mudar de fase
-                this.broadcastState();
-
-                // Delay de 0.5s antes de próximo round
-                setTimeout(() => {
-                    if (!this.gameState) return;
-
-                    // Próxima missão
-                    this.gameState.currentMissionIndex++;
-                    this.gameState.phase = Phase.TEAM_SELECTION;
-                    this.gameState.leaderIndex = (this.gameState.leaderIndex + 1) % this.gameState.players.length;
-                    this.gameState.proposedTeam = [];
-                    this.broadcastState();
-                }, 500); // 0.5s delay antes do próximo round
-
-                return; // Não fazer broadcast novamente
-            }
-        }
-
-        this.broadcastState();
-    }
-
-    // Quando um cliente conecta
-    onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-        // Se existe estado, envia para reconexão
+    onConnect(conn: Party.Connection, ctx: Party.ConnectionContext): void {
         if (this.gameState) {
-            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
+            const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState) };
             conn.send(JSON.stringify(message));
         }
     }
 
-    // Quando um cliente desconecta
-    onClose(conn: Party.Connection) {
+    onClose(conn: Party.Connection): void {
         const playerId = this.connections.get(conn.id);
         if (playerId && this.gameState) {
             const player = this.gameState.players.find(p => p.id === playerId);
             if (player) {
-                // Marca como desconectado
                 player.disconnected = true;
 
-                // No lobby, dá breve período de graça (3s) para reconexões rápidas
-                // Isso evita duplicação quando a conexão cai brevemente
                 if (this.gameState.phase === Phase.LOBBY) {
                     this.broadcastState();
-
-                    // Timeout curto para reconexão no lobby (3 segundos)
                     const lobbyTimeout = setTimeout(() => {
                         if (!this.gameState || this.gameState.phase !== Phase.LOBBY) return;
 
@@ -862,62 +263,43 @@ export default class ResistServer implements Party.Server {
                         );
 
                         if (playerStillDisconnected) {
-                            // Remove o jogador
                             this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
-
-                            // Se era host, passa para próximo jogador
                             if (playerStillDisconnected.isHost && this.gameState.players.length > 0) {
                                 this.gameState.players[0].isHost = true;
-                                this.addLog(`> ${this.gameState.players[0].name} agora é o host`);
+                                addLog(this.gameState, `> ${this.gameState.players[0].name} agora é o host`);
                             }
-
-                            this.addLog(`> ${playerStillDisconnected.name} saiu da sala`);
+                            addLog(this.gameState, `> ${playerStillDisconnected.name} saiu da sala`);
                             this.broadcastState();
                         }
-                    }, 3000); // 3 segundos de graça no lobby
-
+                    }, 3000);
                     this.disconnectedPlayers.set(playerId, lobbyTimeout);
                 } else if (this.gameState.phase === Phase.GAME_OVER) {
-                    // No GAME_OVER, apenas marca como desconectado
                     this.broadcastState();
                 } else if (this.gameState.phase === Phase.PAUSED_DISCONNECT || this.gameState.phase === Phase.DISCONNECT_VOTE) {
-                    // Já está pausado, apenas atualiza estado
                     this.broadcastState();
                 } else if (player.isSpectator) {
-                    // Espectadores não pausam o jogo - apenas marca como desconectado e continua
                     this.broadcastState();
                 } else {
-                    // Durante o jogo normal: pausa e inicia sistema de espera
                     this.startDisconnectWait({ id: player.id, name: player.name });
                 }
             }
         }
-        this.connections.delete(conn.id);
-        this.rateLimits.delete(conn.id);  // Limpa rate limit da conexão
 
-        // Quando não há mais conexões ativas, espera 2 minutos antes de limpar
-        // Isso permite que todos reconectem se caírem simultaneamente
+        this.connections.delete(conn.id);
+        this.rateLimits.delete(conn.id);
+
         if (this.connections.size === 0 && !this.roomCleanupTimeout) {
             this.roomCleanupTimeout = setTimeout(() => {
-                // Verifica novamente se não há conexões
                 if (this.connections.size === 0) {
-
-                    // Cancela timeout de fechamento da sala se existir
                     if (this.gameOverTimeout) {
                         clearTimeout(this.gameOverTimeout);
                         this.gameOverTimeout = null;
                     }
-
-                    // Cancela timers de desconexão
                     this.cancelDisconnectTimers();
-
-                    // Cancela todos os timeouts de reconexão pendentes
                     for (const timeout of this.disconnectedPlayers.values()) {
                         clearTimeout(timeout);
                     }
                     this.disconnectedPlayers.clear();
-
-                    // Limpa o estado do jogo
                     this.gameState = null;
                 }
                 this.roomCleanupTimeout = null;
@@ -925,9 +307,8 @@ export default class ResistServer implements Party.Server {
         }
     }
 
-    // Quando recebe mensagem
-    onMessage(message: string, sender: Party.Connection) {
-        // Rate limiting: verifica se conexão excedeu limite
+    onMessage(message: string, sender: Party.Connection): void {
+        // Rate limiting
         const now = Date.now();
         const limit = this.rateLimits.get(sender.id);
 
@@ -945,100 +326,56 @@ export default class ResistServer implements Party.Server {
             const data: ClientMessage = JSON.parse(message);
 
             switch (data.type) {
-                case 'JOIN':
-                    this.handleJoin(sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
+                case 'JOIN': {
+                    const ctx = this.getJoinContext();
+                    handleJoin(ctx, sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
+                    // Atualiza referência do gameState após JOIN (pode ter sido criado)
+                    if (ctx.gameState) this.gameState = ctx.gameState;
                     break;
+                }
                 case 'LEAVE_ROOM':
-                    this.handleLeaveRoom(sender);
+                    handleLeaveRoom(this.getJoinContext(), sender);
                     break;
                 case 'REMOVE_PLAYER':
-                    this.handleRemovePlayer(sender);
+                    if (this.gameState) handleRemovePlayer(this.getJoinContext(), sender);
                     break;
                 case 'START_GAME':
-                    this.handleStartGame(sender);
+                    if (this.gameState) handleStartGame(this.getGameContext(), sender);
                     break;
                 case 'SELECT_PLAYER':
-                    this.handleSelectPlayer(sender, data.playerId);
+                    if (this.gameState) handleSelectPlayer(this.getGameContext(), sender, data.playerId);
                     break;
                 case 'SUBMIT_TEAM':
-                    this.handleSubmitTeam(sender);
+                    if (this.gameState) handleSubmitTeam(this.getGameContext(), sender);
                     break;
                 case 'VOTE':
-                    this.handleVote(sender, data.approve);
+                    if (this.gameState) handleVote(this.getGameContext(), sender, data.approve);
                     break;
                 case 'MISSION_ACTION':
-                    this.handleMissionAction(sender, data.success);
+                    if (this.gameState) handleMissionAction(this.getGameContext(), sender, data.success);
                     break;
                 case 'SET_ANONYMOUS_VOTES':
-                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
-                        const playerId = this.connections.get(sender.id);
-                        const player = this.gameState.players.find(p => p.id === playerId);
-                        if (player?.isHost) {
-                            this.gameState.anonymousVotes = data.enabled;
-                            this.addLog(`> Votos ${data.enabled ? 'anônimos' : 'públicos'}`);
-                            this.broadcastState();
-                        }
-                    }
+                    if (this.gameState) handleSetAnonymousVotes(this.getGameContext(), sender, data.enabled);
                     break;
                 case 'SET_SHOW_REJECTION_COUNT':
-                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
-                        const playerId = this.connections.get(sender.id);
-                        const player = this.gameState.players.find(p => p.id === playerId);
-                        if (player?.isHost) {
-                            this.gameState.showRejectionCount = data.enabled;
-                            this.addLog(`> Contagem de rejeições ${data.enabled ? 'ativada' : 'desativada'}`);
-                            this.broadcastState();
-                        }
-                    }
+                    if (this.gameState) handleSetShowRejectionCount(this.getGameContext(), sender, data.enabled);
                     break;
                 case 'RESTART_GAME':
-                    if (this.gameState && this.gameState.phase === Phase.GAME_OVER) {
-                        const playerId = this.connections.get(sender.id);
-                        const player = this.gameState.players.find(p => p.id === playerId);
-                        if (player?.isHost) {
-                            // Cancela o timeout de fechamento
-                            this.cancelRoomClosure();
-
-                            // Reseta para lobby mantendo jogadores
-                            this.gameState.phase = Phase.LOBBY;
-                            this.gameState.winner = null;
-                            this.gameState.leaderIndex = 0;
-                            this.gameState.currentMissionIndex = 0;
-                            this.gameState.missions = [];
-                            this.gameState.failedVoteCount = 0;
-                            this.gameState.proposedTeam = [];
-
-                            // Reseta roles dos jogadores e converte espectadores em jogadores
-                            this.gameState.players = this.gameState.players.map(p => ({
-                                ...p,
-                                role: Role.HUMAN,       // Será redistribuído ao iniciar
-                                isSpectator: false,     // Espectadores viram jogadores no próximo jogo
-                                disconnected: false,    // Reseta status de desconexão
-                            }));
-
-                            this.addLog(`> NOVA PARTIDA INICIADA`);
-                            this.broadcastState();
-                        } else {
-                            this.sendError(sender, 'Apenas o host pode reiniciar o jogo');
-                        }
-                    }
+                    if (this.gameState) handleRestartGame(this.getGameContext(), sender, this.cancelRoomClosure);
                     break;
                 case 'DISCONNECT_VOTE':
-                    this.handleDisconnectVote(sender, data.endGame);
+                    if (this.gameState) handleDisconnectVote(this.getDisconnectContext(), sender, data.endGame);
                     break;
             }
         } catch (e) {
             const errorType = e instanceof SyntaxError ? 'JSON inválido' :
-                e instanceof TypeError ? 'Tipo inválido' :
-                    'Erro desconhecido';
+                e instanceof TypeError ? 'Tipo inválido' : 'Erro desconhecido';
             console.error(`[${this.room.id}] Erro ao processar mensagem (${errorType}):`, e instanceof Error ? e.message : e);
             this.sendError(sender, `Erro ao processar mensagem: ${errorType}`);
         }
     }
 
-    // HTTP endpoint para health check
     async onRequest(req: Party.Request): Promise<Response> {
-        // Health check endpoint
         if (req.method === 'GET') {
             return new Response(JSON.stringify({
                 status: 'ok',
@@ -1056,4 +393,3 @@ export default class ResistServer implements Party.Server {
         return new Response('Method not allowed', { status: 405 });
     }
 }
-
