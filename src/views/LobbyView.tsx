@@ -7,14 +7,15 @@ import { useTranslation } from '../i18n';
 interface Props {
     state: GameState;
     isHost: boolean;
-    onRemove: () => void;
+    myPlayerId?: string;
+    onRemove: (playerId: string) => void;
     onStart: () => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onToggleShowRejectionCount: (enabled: boolean) => void;
     onBack: () => void;
 }
 
-export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onBack }: Props) {
+export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onBack }: Props) {
     const { t } = useTranslation();
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
@@ -131,6 +132,15 @@ export default function LobbyView({ state, isHost, onRemove, onStart, onToggleAn
                                                 {p.disconnected ? t('lobby.offline') : t('lobby.online')}
                                             </div>
                                         </div>
+                                        {isHost && !p.isHost && p.id !== myPlayerId && (
+                                            <button
+                                                onClick={() => onRemove(p.id)}
+                                                className="opacity-0 group-hover:opacity-100 ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 transition-all"
+                                                title="Remover jogador"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>

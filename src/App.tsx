@@ -187,6 +187,19 @@ export default function App() {
       setView('HOME');
       showNotification('A sala foi fechada.', 'info');
     },
+    onKicked: () => {
+      clearAppSession();
+      setRoomCode('');
+      setGameState(null);
+      setView('HOME');
+      showNotification('Você foi removido da sala pelo host.', 'error');
+    },
+    onFatalError: () => {
+      // Limpa roomCode para impedir que o useEffect dispare connect() novamente
+      setRoomCode('');
+      setGameState(null);
+      setView('HOME');
+    },
   });
 
   // Gera código de sala (para criar)
@@ -399,6 +412,7 @@ export default function App() {
         <LobbyView
           state={gameState}
           isHost={isHost}
+          myPlayerId={storedPlayerId}
           onRemove={removePlayer}
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}

@@ -127,6 +127,8 @@ interface UsePartySocketOptions {
     onPlayerLeft?: (name: string) => void;
     onConnectionChange?: (status: 'connecting' | 'connected' | 'disconnected' | 'reconnecting') => void;
     onRoomClosed?: () => void;
+    onKicked?: () => void;  // Chamado quando jogador é removido pelo host
+    onFatalError?: () => void;  // Chamado em erros fatais que impedem conexão (sala não existe, cheia, etc.)
 }
 
 interface UsePartySocketReturn {
@@ -139,7 +141,7 @@ interface UsePartySocketReturn {
     send: (message: any) => void;
     // Ações do jogo
     leaveRoom: () => void;
-    removePlayer: () => void;
+    removePlayer: (playerId: string) => void;
     startGame: () => void;
     selectPlayer: (playerId: string) => void;
     submitTeam: () => void;
@@ -162,7 +164,9 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         onPlayerJoined,
         onPlayerLeft,
         onConnectionChange,
-        onRoomClosed
+        onRoomClosed,
+        onKicked,
+        onFatalError
     } = options;
 
     const [isConnected, setIsConnected] = useState(false);
@@ -261,9 +265,25 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                             // Erros fatais: para de tentar reconectar
                             if (data.message.includes('não encontrada') ||
                                 data.message.includes('cheia') ||
-                                data.message.includes('not found')) {
+                                data.message.includes('not found') ||
+                                data.message.includes('removido')) {
                                 shouldReconnectRef.current = false;
                                 clearReconnectTimeout();
+
+                                // Fecha socket imediatamente para impedir reconexão
+                                if (socketRef.current) {
+                                    socketRef.current.close();
+                                    socketRef.current = null;
+                                }
+
+                                // Se foi kickado, limpa sessão e notifica
+                                if (data.message.includes('removido')) {
+                                    clearSession(lastRoomCodeRef.current);
+                                    onKicked?.();
+                                } else {
+                                    // Outros erros fatais (sala não existe, cheia, etc.)
+                                    onFatalError?.();
+                                }
                             }
                             break;
                         case 'PLAYER_JOINED':
@@ -373,8 +393,8 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         // O servidor vai fechar a conexão após processar
     }, [send]);
 
-    const removePlayer = useCallback(() => {
-        send({ type: 'REMOVE_PLAYER' });
+    const removePlayer = useCallback((playerId: string) => {
+        send({ type: 'REMOVE_PLAYER', playerId });
     }, [send]);
 
     const startGame = useCallback(() => {

@@ -206,22 +206,57 @@ export function handleLeaveRoom(ctx: HandlerContext, conn: Party.Connection): vo
 }
 
 /**
- * Processa REMOVE_PLAYER (host remove último jogador)
+ * Processa REMOVE_PLAYER (host remove jogador específico)
  */
-export function handleRemovePlayer(ctx: HandlerContext, conn: Party.Connection): void {
+export function handleRemovePlayer(ctx: HandlerContext, conn: Party.Connection, playerId: string): void {
     if (!ctx.gameState || ctx.gameState.phase !== Phase.LOBBY) return;
 
-    const player = getPlayerByConnection(ctx.gameState, ctx.connections, conn.id);
-    if (!player?.isHost) {
+    const requestingPlayer = getPlayerByConnection(ctx.gameState, ctx.connections, conn.id);
+    if (!requestingPlayer?.isHost) {
         ctx.sendError(conn, 'Apenas o host pode remover jogadores');
         return;
     }
 
-    if (ctx.gameState.players.length <= 1) return;
-
-    const removed = ctx.gameState.players.pop();
-    if (removed) {
-        addLog(ctx.gameState, `> ${removed.name} removido`);
-        ctx.broadcastState();
+    // Não pode remover a si mesmo
+    if (requestingPlayer.id === playerId) {
+        ctx.sendError(conn, 'Você não pode remover a si mesmo');
+        return;
     }
+
+    const playerIndex = ctx.gameState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+        ctx.sendError(conn, 'Jogador não encontrado');
+        return;
+    }
+
+    const removed = ctx.gameState.players[playerIndex];
+    ctx.gameState.players.splice(playerIndex, 1);
+
+    // Encontra e fecha a conexão do jogador removido
+    for (const [connId, pId] of ctx.connections.entries()) {
+        if (pId === playerId) {
+            ctx.connections.delete(connId);
+            // Encontra a conexão e notifica/fecha
+            for (const c of ctx.room.getConnections()) {
+                if (c.id === connId) {
+                    try {
+                        // Envia mensagem de kick antes de fechar
+                        c.send(JSON.stringify({
+                            type: 'ERROR',
+                            message: 'Você foi removido da sala pelo host'
+                        } as ServerMessage));
+                    } catch (e) {
+                        // Ignora erro de envio
+                    }
+                    // Fecha a conexão imediatamente
+                    c.close();
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    addLog(ctx.gameState, `> ${removed.name} removido pelo host`);
+    ctx.broadcastState();
 }

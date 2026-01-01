@@ -335,7 +335,7 @@ export default class ResistServer implements Party.Server {
                     handleLeaveRoom(this.getJoinContext(), sender);
                     break;
                 case 'REMOVE_PLAYER':
-                    if (this.gameState) handleRemovePlayer(this.getJoinContext(), sender);
+                    if (this.gameState) handleRemovePlayer(this.getJoinContext(), sender, data.playerId);
                     break;
                 case 'START_GAME':
                     if (this.gameState) handleStartGame(this.getGameContext(), sender);
