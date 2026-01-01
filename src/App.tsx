@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Phase, Player, Role, GameState } from './types';
-import { usePartySocket, clearSession, checkServerHealth } from './hooks/usePartySocket';
+import { usePartySocket, clearSession, checkServerHealth, getStoredPlayerId } from './hooks/usePartySocket';
 import HomeView from './views/HomeView';
 import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
@@ -260,8 +260,11 @@ export default function App() {
     }
   }, [gameState]);
 
-  // Encontra o jogador atual
-  const myPlayer = gameState?.players.find(p => p.name === playerName);
+  // Encontra o jogador atual - usa playerId armazenado (mais robusto que comparar por nome)
+  const storedPlayerId = roomCode ? getStoredPlayerId(roomCode) : undefined;
+  const myPlayer = gameState?.players.find(p =>
+    storedPlayerId ? p.id === storedPlayerId : p.name === playerName
+  );
   const isHost = myPlayer?.isHost || false;
 
   // Handler para iniciar o jogo

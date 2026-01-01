@@ -41,6 +41,7 @@ const SESSION_STORAGE_PREFIX = 'resist_session_';
 
 interface StoredSession {
     sessionId: string;
+    playerId: string;
     roomCode: string;
     playerName: string;
 }
@@ -69,14 +70,29 @@ function getStoredSessionId(roomCode: string, playerName: string): string | unde
 }
 
 // Salva sessão no localStorage
-function saveSessionId(roomCode: string, playerName: string, sessionId: string) {
+function saveSession(roomCode: string, playerName: string, sessionId: string, playerId: string) {
     try {
         const key = getSessionKey(roomCode);
-        const session: StoredSession = { sessionId, roomCode, playerName };
+        const session: StoredSession = { sessionId, playerId, roomCode, playerName };
         localStorage.setItem(key, JSON.stringify(session));
     } catch (e) {
         console.warn('[Session] Erro ao salvar sessão:', e);
     }
+}
+
+// Obtém playerId armazenado
+export function getStoredPlayerId(roomCode: string): string | undefined {
+    try {
+        const key = getSessionKey(roomCode);
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            const session: StoredSession = JSON.parse(stored);
+            return session.playerId;
+        }
+    } catch (e) {
+        console.warn('[Session] Erro ao ler playerId:', e);
+    }
+    return undefined;
 }
 
 // Limpa sessão do localStorage (exportada para uso externo)
@@ -264,12 +280,13 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                         case 'SESSION_ESTABLISHED':
                             // Recebe crachá oficial do servidor e salva
                             try {
-                                saveSessionId(
+                                saveSession(
                                     lastRoomCodeRef.current,
                                     lastPlayerNameRef.current,
-                                    (data as any).sessionId
+                                    (data as any).sessionId,
+                                    (data as any).playerId
                                 );
-                                console.log('[Session] Sessão segura estabelecida');
+                                console.log('[Session] Sessão segura estabelecida, playerId:', (data as any).playerId);
                             } catch (e) {
                                 console.error('[Session] Erro ao salvar sessão segura:', e);
                             }
