@@ -33,7 +33,12 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
             <input
               type="text"
               value={playerName}
-              onChange={e => onNameChange(e.target.value)}
+              onChange={e => {
+                // Apenas letras e números, máximo 10 caracteres
+                const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+                onNameChange(sanitized);
+              }}
+              maxLength={10}
               className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-resistance transition-all font-mono text-xl"
               placeholder={t('setup.name.placeholder')}
             />

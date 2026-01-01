@@ -99,6 +99,10 @@ export default class ResistServer implements Party.Server {
     // Máximo de tentativas de espera
     static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
+    // Rate limiting: máximo de mensagens por minuto por conexão
+    static readonly MAX_MESSAGES_PER_MINUTE = 30;
+    private rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
+
     constructor(public room: Party.Room) { }
 
     // Agenda fechamento da sala após GAME_OVER
@@ -323,10 +327,22 @@ export default class ResistServer implements Party.Server {
         }
     }
 
-    // Broadcast do estado para todos
+    // Retorna estado sanitizado (sem sessionIds) para enviar aos clientes
+    private getSanitizedState(): GameState {
+        if (!this.gameState) throw new Error('No game state');
+        return {
+            ...this.gameState,
+            players: this.gameState.players.map(p => ({
+                ...p,
+                sessionId: undefined
+            }))
+        };
+    }
+
+    // Broadcast do estado para todos (remove sessionIds por segurança)
     private broadcastState() {
         if (!this.gameState) return;
-        const message: ServerMessage = { type: 'STATE', state: this.gameState };
+        const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
         this.room.broadcast(JSON.stringify(message));
     }
 
@@ -355,6 +371,14 @@ export default class ResistServer implements Party.Server {
 
     // Processa JOIN
     private handleJoin(conn: Party.Connection, name: string, avatarSeed: number, sessionId?: string, isCreating?: boolean) {
+        // Sanitiza e valida o nome: apenas letras e números, máximo 10 caracteres
+        const sanitizedName = (name || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+        if (sanitizedName.length < 1) {
+            this.sendError(conn, 'Nome inválido: deve conter pelo menos 1 caractere alfanumérico');
+            return;
+        }
+        name = sanitizedName;
+
         // Cancela timeout de limpeza da sala se cliente está reconectando
         if (this.roomCleanupTimeout) {
             clearTimeout(this.roomCleanupTimeout);
@@ -379,7 +403,7 @@ export default class ResistServer implements Party.Server {
         // Verifica se já está conectado com esta conexão
         if (this.connections.has(conn.id)) {
             // Reconexão pela mesma conexão - apenas envia estado atual
-            const message: ServerMessage = { type: 'STATE', state: this.gameState };
+            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
             conn.send(JSON.stringify(message));
             return;
         }
@@ -419,7 +443,7 @@ export default class ResistServer implements Party.Server {
             }
 
             // Envia estado atual
-            const message: ServerMessage = { type: 'STATE', state: this.gameState };
+            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
             conn.send(JSON.stringify(message));
             return;
         }
@@ -482,7 +506,7 @@ export default class ResistServer implements Party.Server {
 
         // GARANTIA: Envia estado explicitamente para o novo jogador
         // Isso resolve casos onde o broadcast pode falhar ou ter race condition
-        const stateMsg: ServerMessage = { type: 'STATE', state: this.gameState };
+        const stateMsg: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
         conn.send(JSON.stringify(stateMsg));
 
         // Notifica entrada
@@ -810,7 +834,7 @@ export default class ResistServer implements Party.Server {
     onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
         // Se existe estado, envia para reconexão
         if (this.gameState) {
-            const message: ServerMessage = { type: 'STATE', state: this.gameState };
+            const message: ServerMessage = { type: 'STATE', state: this.getSanitizedState() };
             conn.send(JSON.stringify(message));
         }
     }
@@ -869,6 +893,7 @@ export default class ResistServer implements Party.Server {
             }
         }
         this.connections.delete(conn.id);
+        this.rateLimits.delete(conn.id);  // Limpa rate limit da conexão
 
         // Quando não há mais conexões ativas, espera 2 minutos antes de limpar
         // Isso permite que todos reconectem se caírem simultaneamente
@@ -902,6 +927,20 @@ export default class ResistServer implements Party.Server {
 
     // Quando recebe mensagem
     onMessage(message: string, sender: Party.Connection) {
+        // Rate limiting: verifica se conexão excedeu limite
+        const now = Date.now();
+        const limit = this.rateLimits.get(sender.id);
+
+        if (limit && now < limit.resetAt) {
+            if (limit.count >= ResistServer.MAX_MESSAGES_PER_MINUTE) {
+                this.sendError(sender, 'Muitas requisições. Aguarde um momento.');
+                return;
+            }
+            limit.count++;
+        } else {
+            this.rateLimits.set(sender.id, { count: 1, resetAt: now + 60000 });
+        }
+
         try {
             const data: ClientMessage = JSON.parse(message);
 
