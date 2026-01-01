@@ -7,6 +7,17 @@
   <title>Skynet Infiltration Protocol</title>
   <meta name="description"
     content="A multiplayer social deduction game based on The Resistance with a Terminator-inspired theme. Hunt the infiltrators, complete missions, and save humanity. Play online with 5-10 players." />
+  <!-- Content Security Policy -->
+  <!-- Note: 'unsafe-inline' and 'unsafe-eval' are needed for Vite dev server -->
+  <!-- In production build, these could be removed for stricter security -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' https://picsum.photos https://fastly.picsum.photos data:;
+    font-src 'self';
+    connect-src 'self' ws://localhost:* wss://*.partykit.dev https://*.partykit.dev;
+  " />
   <!-- Fonts are now self-hosted via @fontsource -->
 </head>
 
