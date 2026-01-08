@@ -25,22 +25,48 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const [lastVoteResult, setLastVoteResult] = useState<{ approvals: number; rejections: number; approved: boolean } | null>(null);
   const lastPhase = useRef(state.phase);
 
+  // Estado para controlar quando revelar os votos (após todos votarem + delay de 1s)
+  const [revealVotes, setRevealVotes] = useState(false);
+  const revealTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Verifica se todos os jogadores ativos votaram
+  const activePlayers = state.players.filter(p => !p.isSpectator);
+  const currentMission = state.missions[state.currentMissionIndex];
+  const totalVotes = Object.keys(currentMission.votes).length;
+  const allVoted = totalVotes === activePlayers.length && activePlayers.length > 0;
+
+  // Efeito para revelar votos após 1 segundo quando todos votarem
+  React.useEffect(() => {
+    if (state.phase === Phase.TEAM_VOTE && allVoted && !revealVotes) {
+      // Todos votaram - inicia delay de 1 segundo para revelar
+      revealTimeoutRef.current = setTimeout(() => {
+        setRevealVotes(true);
+      }, 1000);
+    }
+
+    return () => {
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current);
+      }
+    };
+  }, [state.phase, allVoted, revealVotes]);
+
   // Captura resultado da votação quando a fase muda de TEAM_VOTE para outra
   React.useEffect(() => {
     if (lastPhase.current === Phase.TEAM_VOTE && state.phase !== Phase.TEAM_VOTE) {
-      const currentMission = state.missions[state.currentMissionIndex];
       const votes = Object.values(currentMission.votes) as boolean[];
       const approvals = votes.filter(v => v === true).length;
       const rejections = votes.filter(v => v === false).length;
       const approved = approvals > rejections;
       setLastVoteResult({ approvals, rejections, approved });
     }
-    // Limpa resultado quando começa nova votação
+    // Limpa resultado e reset revealVotes quando começa nova votação
     if (state.phase === Phase.TEAM_VOTE && lastPhase.current !== Phase.TEAM_VOTE) {
       setLastVoteResult(null);
+      setRevealVotes(false);
     }
     lastPhase.current = state.phase;
-  }, [state.phase, state.currentMissionIndex, state.missions]);
+  }, [state.phase, state.currentMissionIndex, currentMission.votes]);
 
   // Estado para posição e tamanho do log arrastável - começa no canto inferior direito
   const [logPosition, setLogPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth - 200 : 16, y: typeof window !== 'undefined' ? window.innerHeight - 180 : 100 });
@@ -221,8 +247,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                         isLeader={originalIndex === state.leaderIndex}
                         isInTeam={state.proposedTeam.includes(p.id)}
                         showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
-                        vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes ? state.missions[state.currentMissionIndex].votes[p.id] : undefined}
-                        hasVoted={state.phase === Phase.TEAM_VOTE && state.anonymousVotes && state.missions[state.currentMissionIndex].votes[p.id] !== undefined}
+                        vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes && revealVotes ? currentMission.votes[p.id] : undefined}
+                        hasVoted={state.phase === Phase.TEAM_VOTE && currentMission.votes[p.id] !== undefined && (!revealVotes || state.anonymousVotes)}
                         isDisconnected={p.disconnected}
                         isMe={p.name === playerName}
                       />
