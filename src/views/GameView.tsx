@@ -228,7 +228,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
             // Filtra espectadores - eles não devem ter cards
             const activePlayers = state.players.filter(p => !p.isSpectator);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
                 {activePlayers.map(function (p) {
                   // Encontra o índice original do jogador para verificar se é líder
                   const originalIndex = state.players.findIndex(player => player.id === p.id);
@@ -432,10 +432,10 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     const hasVoted = currentMission.votes[me.id] !== undefined || pendingVote !== null;
 
     if (hasVoted) {
-      // Conta quantos votaram
+      // Conta quantos votaram (apenas jogadores ativos, não espectadores)
       const totalVotes = Object.keys(currentMission.votes).length;
-      const totalPlayers = state.players.length;
-      const remaining = totalPlayers - totalVotes;
+      const activePlayersCount = state.players.filter(p => !p.isSpectator).length;
+      const remaining = activePlayersCount - totalVotes;
 
       // Mostra tela de aguardando outros jogadores
       return (
@@ -460,7 +460,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     return (
       <div className="space-y-6 animate-in slide-in-from-bottom-4">
         <p className="text-sm font-mono text-slate-300 uppercase tracking-widest bg-white/5 py-2 px-4 rounded border border-white/10">{t('game.validate_team')}</p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex flex-col gap-4 items-center">
           <button
             onClick={function () {
               setPendingVote(true);
@@ -506,7 +506,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
           <p className="text-sm font-black text-resistance uppercase tracking-[0.4em] mb-2 animate-pulse">{t('game.field_operation')}</p>
           <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-resistance/50"></div>
         </div>
-        <div className="flex gap-6 justify-center">
+        <div className="flex flex-col gap-4 items-center">
           <button
             onClick={function () {
               setPendingMissionAction(true);
