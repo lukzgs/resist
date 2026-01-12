@@ -4,11 +4,17 @@ import { generateRoomCode } from './utils/crypto';
 // Limite máximo de salas simultâneas
 const MAX_ROOMS = 50;
 
-// Tempo máximo que uma sala pode ficar no registry sem heartbeat (2 horas)
+// Máximo de salas retornadas na listagem
+const MAX_ROOMS_LIST = 20;
+
+// Tempo máximo que uma sala pode ficar no registry (5 minutos no lobby)
+const LOBBY_MAX_AGE_MS = 5 * 60 * 1000;
+
+// Tempo máximo total de uma sala (2 horas)
 const ROOM_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
-// Intervalo de limpeza de salas órfãs (5 minutos)
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+// Intervalo de limpeza de salas órfãs (1 minuto)
+const CLEANUP_INTERVAL_MS = 1 * 60 * 1000;
 
 interface RoomInfo {
     code: string;
@@ -177,14 +183,14 @@ export default class RegistryServer implements Party.Server {
             });
         }
 
-        // Registra sala
+        // Registra sala - público por padrão
         const body = await req.json().catch(() => ({})) as { isPublic?: boolean };
         const roomInfo: RoomInfo = {
             code,
             createdAt: Date.now(),
             playerCount: 0,
             phase: 'LOBBY',
-            isPublic: body.isPublic ?? false
+            isPublic: body.isPublic ?? true  // Público por padrão
         };
 
         this.state.activeRooms.push(roomInfo);
@@ -264,16 +270,29 @@ export default class RegistryServer implements Party.Server {
     }
 
     /**
-     * Lista salas públicas disponíveis
+     * Lista salas públicas disponíveis (limite 20)
      */
     private handleGetRooms(corsHeaders: Record<string, string>): Response {
+        const now = Date.now();
+
         const publicRooms = this.state.activeRooms
             .filter(r => r.isPublic && r.phase === 'LOBBY' && r.playerCount < 10)
-            .map(r => ({
-                code: r.code,
-                playerCount: r.playerCount,
-                createdAt: r.createdAt
-            }));
+            .slice(0, MAX_ROOMS_LIST)  // Limita a 20
+            .map(r => {
+                const age = now - r.createdAt;
+                const expiresAt = r.createdAt + LOBBY_MAX_AGE_MS;
+                const expiresIn = Math.max(0, expiresAt - now);
+
+                return {
+                    code: r.code,
+                    playerCount: r.playerCount,
+                    createdAt: r.createdAt,
+                    expiresAt,
+                    expiresIn,  // Milissegundos restantes
+                    isClosingSoon: expiresIn <= 60 * 1000  // Menos de 1 minuto
+                };
+            })
+            .sort((a, b) => b.playerCount - a.playerCount);  // Mais jogadores primeiro
 
         return new Response(JSON.stringify({ rooms: publicRooms }), {
             status: 200,

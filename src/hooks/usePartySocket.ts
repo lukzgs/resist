@@ -69,8 +69,18 @@ export async function generateRoomCode(isPublic: boolean = false): Promise<strin
     }
 }
 
+// Tipo para salas públicas retornadas pelo registry
+export interface PublicRoom {
+    code: string;
+    playerCount: number;
+    createdAt: number;
+    expiresAt: number;
+    expiresIn: number;  // Milissegundos restantes
+    isClosingSoon: boolean;  // Menos de 1 minuto
+}
+
 // Lista salas públicas disponíveis
-export async function getPublicRooms(): Promise<Array<{ code: string; playerCount: number; createdAt: number }>> {
+export async function getPublicRooms(): Promise<PublicRoom[]> {
     try {
         const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
         const url = `${protocol}://${PARTYKIT_HOST}/parties/registry/main/rooms`;

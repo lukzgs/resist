@@ -6,6 +6,7 @@ import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
 import GameView from './views/GameView';
 import ReconnectView from './views/ReconnectView';
+import BrowseRoomsView from './views/BrowseRoomsView';
 import LanguageSelector from './components/LanguageSelector';
 
 // Chave para salvar o nome no localStorage (persiste entre sessões)
@@ -98,7 +99,7 @@ export default function App() {
     return 'HOME';
   };
 
-  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT'>(getInitialView());
+  const [view, setView] = useState<'HOME' | 'CREATE' | 'JOIN' | 'LOBBY' | 'GAME' | 'RECONNECT' | 'BROWSE'>(getInitialView());
   // Prioridade: localStorage > storedSession > nome aleatório
   const [playerName, setPlayerName] = useState(
     localStorage.getItem(PLAYER_NAME_KEY) || storedSession?.playerName || 'Agente_' + Math.floor(Math.random() * 999)
@@ -394,6 +395,17 @@ export default function App() {
       )}
 
       {view === 'HOME' && <HomeView onNavigate={setView} />}
+
+      {view === 'BROWSE' && (
+        <BrowseRoomsView
+          onJoinRoom={(code) => {
+            setIsCreating(false);
+            setRoomCode(code);
+            setView('JOIN');  // Vai para SetupView para inserir nome
+          }}
+          onBack={() => setView('HOME')}
+        />
+      )}
 
       {view === 'RECONNECT' && (
         <ReconnectView
