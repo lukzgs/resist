@@ -14,6 +14,8 @@ const translations = {
         'home.create.desc': 'Inicie uma nova partida',
         'home.join': 'ENTRAR NA SALA',
         'home.join.desc': 'Conecte-se com o código',
+        'home.browse': 'PROCURAR SALAS',
+        'home.browse.desc': 'Jogue com desconhecidos',
         'home.status': 'PRONTO PARA CONEXÃO',
 
         // Setup
@@ -101,6 +103,15 @@ const translations = {
         'reconnect.connecting': 'Conectando...',
         'reconnect.failed': 'Conexão Falhou',
 
+        // Browse Rooms
+        'browse.title': 'SALAS PÚBLICAS',
+        'browse.subtitle': 'Encontre uma partida para entrar',
+        'browse.loading': 'Buscando salas...',
+        'browse.empty': 'Nenhuma sala disponível',
+        'browse.empty.hint': 'Crie uma sala ou tente novamente',
+        'browse.updated': 'Atualizado há',
+        'common.back': 'VOLTAR',
+
         // Common
         'common.spectator': 'ESPECTADOR',
         'common.you': 'VOCÊ',
@@ -113,6 +124,8 @@ const translations = {
         'home.create.desc': 'Start a new game',
         'home.join': 'JOIN ROOM',
         'home.join.desc': 'Connect with room code',
+        'home.browse': 'BROWSE ROOMS',
+        'home.browse.desc': 'Play with strangers',
         'home.status': 'READY FOR CONNECTION',
 
         // Setup
@@ -199,6 +212,15 @@ const translations = {
         'reconnect.back': 'Back to Menu',
         'reconnect.connecting': 'Connecting...',
         'reconnect.failed': 'Connection Failed',
+
+        // Browse Rooms
+        'browse.title': 'PUBLIC ROOMS',
+        'browse.subtitle': 'Find a match to join',
+        'browse.loading': 'Searching rooms...',
+        'browse.empty': 'No rooms available',
+        'browse.empty.hint': 'Create a room or try again',
+        'browse.updated': 'Updated',
+        'common.back': 'BACK',
 
         // Common
         'common.spectator': 'SPECTATOR',
