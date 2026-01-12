@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Phase, Player, Role, GameState } from './types';
-import { usePartySocket, clearSession, checkServerHealth, getStoredPlayerId } from './hooks/usePartySocket';
+import { usePartySocket, clearSession, checkServerHealth, getStoredPlayerId, generateRoomCode } from './hooks/usePartySocket';
 import HomeView from './views/HomeView';
 import SetupView from './views/SetupView';
 import LobbyView from './views/LobbyView';
@@ -202,15 +202,22 @@ export default function App() {
     },
   });
 
-  // Gera código de sala (para criar)
-  const generateCode = () => Math.random().toString(36).substring(2, 6).toUpperCase();
-
   // Handler para criar sala
-  const handleCreate = useCallback(() => {
-    const code = generateCode();
-    setIsCreating(true);  // Marcando como criação
-    setRoomCode(code);
+  const handleCreate = useCallback(async () => {
     showNotification('Criando sala...', 'info');
+
+    // Tenta gerar código no servidor (mais seguro)
+    const serverCode = await generateRoomCode();
+
+    if (serverCode) {
+      setIsCreating(true);
+      setRoomCode(serverCode);
+    } else {
+      // Fallback: gera código localmente se servidor falhar
+      const localCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      setIsCreating(true);
+      setRoomCode(localCode);
+    }
     // O connect será chamado pelo useEffect quando roomCode mudar
   }, [showNotification]);
 

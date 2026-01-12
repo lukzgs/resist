@@ -9,6 +9,7 @@ import {
 
 // Importações dos módulos refatorados
 import { createInitialState, getSanitizedState, addLog, getPlayerByConnection } from './game/state';
+import { generateRoomCode } from './utils/crypto';
 import {
     handleJoin,
     handleLeaveRoom,
@@ -374,6 +375,19 @@ export default class ResistServer implements Party.Server {
     }
 
     async onRequest(req: Party.Request): Promise<Response> {
+        const url = new URL(req.url);
+        const corsHeaders = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        };
+
+        // Preflight CORS
+        if (req.method === 'OPTIONS') {
+            return new Response(null, { status: 204, headers: corsHeaders });
+        }
+
+        // GET /party/health - Health check
         if (req.method === 'GET') {
             return new Response(JSON.stringify({
                 status: 'ok',
@@ -383,11 +397,26 @@ export default class ResistServer implements Party.Server {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    ...corsHeaders
                 }
             });
         }
 
-        return new Response('Method not allowed', { status: 405 });
+        // POST /party/generate-code - Gera código de sala seguro
+        if (req.method === 'POST' && url.pathname.endsWith('/generate-code')) {
+            const code = generateRoomCode();
+            return new Response(JSON.stringify({
+                code,
+                timestamp: Date.now()
+            }), {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...corsHeaders
+                }
+            });
+        }
+
+        return new Response('Method not allowed', { status: 405, headers: corsHeaders });
     }
 }

@@ -36,6 +36,35 @@ export async function checkServerHealth(): Promise<boolean> {
     }
 }
 
+// Gera código de sala chamando o servidor (mais seguro que Math.random)
+export async function generateRoomCode(): Promise<string | null> {
+    try {
+        const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
+        // Usa a sala "main" como ponto de entrada para gerar código
+        const url = `${protocol}://${PARTYKIT_HOST}/parties/main/generate/generate-code`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.code || null;
+        }
+        return null;
+    } catch (e) {
+        console.error('[RoomCode] Erro ao gerar código:', e);
+        return null;
+    }
+}
+
 // Chave do localStorage para sessão - agora única por sala
 const SESSION_STORAGE_PREFIX = 'resist_session_';
 

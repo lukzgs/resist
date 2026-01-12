@@ -55,3 +55,17 @@ export function shuffle<T>(array: T[]): T[] {
     }
     return arr;
 }
+
+/**
+ * Gera código de sala seguro (6 caracteres alfanuméricos)
+ * Usa caracteres que não são facilmente confundidos (sem I/1/O/0)
+ */
+export function generateRoomCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = getSecureRandomBytes(6);
+    let code = '';
+    for (const byte of bytes) {
+        code += chars[byte % chars.length];
+    }
+    return code;
+}
