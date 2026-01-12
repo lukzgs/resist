@@ -122,9 +122,13 @@ export default class ResistServer implements Party.Server {
     }
 
     /**
-     * Limpa o storage
+     * Limpa o storage e remove do registry
      */
     private async clearStorage(): Promise<void> {
+        // Notifica registry antes de limpar
+        if (this.gameState) {
+            await this.notifyRegistry('unregister');
+        }
         await this.room.storage.deleteAll();
         this.gameState = null;
     }
@@ -197,6 +201,25 @@ export default class ResistServer implements Party.Server {
         if (this.gameState) {
             this.gameState.lastActivity = Date.now();
             await this.saveState();
+        }
+    }
+
+    /**
+     * Notifica o registry sobre mudanças na sala
+     */
+    private async notifyRegistry(action: 'unregister' | 'update', data?: { playerCount?: number; phase?: string; isPublic?: boolean }): Promise<void> {
+        if (!this.gameState) return;
+
+        try {
+            const registryUrl = `http://127.0.0.1:1999/parties/registry/main/${action}`;
+            await fetch(registryUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: this.gameState.roomCode, ...data })
+            });
+        } catch (e) {
+            // Falha silenciosa - registry pode não estar disponível
+            console.warn('[Server] Falha ao notificar registry:', e);
         }
     }
 

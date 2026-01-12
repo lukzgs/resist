@@ -206,17 +206,20 @@ export default function App() {
   const handleCreate = useCallback(async () => {
     showNotification('Criando sala...', 'info');
 
-    // Tenta gerar código no servidor (mais seguro)
-    const serverCode = await generateRoomCode();
+    try {
+      // Gera código via registry (controla limite de salas)
+      const serverCode = await generateRoomCode();
 
-    if (serverCode) {
-      setIsCreating(true);
-      setRoomCode(serverCode);
-    } else {
-      // Fallback: gera código localmente se servidor falhar
-      const localCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setIsCreating(true);
-      setRoomCode(localCode);
+      if (serverCode) {
+        setIsCreating(true);
+        setRoomCode(serverCode);
+      } else {
+        showNotification('Não foi possível criar a sala. Tente novamente.', 'error');
+      }
+    } catch (e) {
+      // Erro do registry (limite atingido, etc.)
+      const message = e instanceof Error ? e.message : 'Erro ao criar sala';
+      showNotification(message, 'error');
     }
     // O connect será chamado pelo useEffect quando roomCode mudar
   }, [showNotification]);

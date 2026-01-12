@@ -36,12 +36,11 @@ export async function checkServerHealth(): Promise<boolean> {
     }
 }
 
-// Gera código de sala chamando o servidor (mais seguro que Math.random)
-export async function generateRoomCode(): Promise<string | null> {
+// Gera código de sala chamando o registry (controla limite de salas)
+export async function generateRoomCode(isPublic: boolean = false): Promise<string | null> {
     try {
         const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
-        // Usa a sala "main" como ponto de entrada para gerar código
-        const url = `${protocol}://${PARTYKIT_HOST}/parties/main/generate/generate-code`;
+        const url = `${protocol}://${PARTYKIT_HOST}/parties/registry/main/register`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
@@ -49,7 +48,8 @@ export async function generateRoomCode(): Promise<string | null> {
         const response = await fetch(url, {
             method: 'POST',
             signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isPublic })
         });
 
         clearTimeout(timeoutId);
@@ -57,11 +57,42 @@ export async function generateRoomCode(): Promise<string | null> {
         if (response.ok) {
             const data = await response.json();
             return data.code || null;
+        } else if (response.status === 429) {
+            // Limite de salas atingido
+            const data = await response.json();
+            throw new Error(data.error || 'Limite de salas atingido');
         }
         return null;
     } catch (e) {
         console.error('[RoomCode] Erro ao gerar código:', e);
-        return null;
+        throw e;  // Re-throw para que o caller possa tratar
+    }
+}
+
+// Lista salas públicas disponíveis
+export async function getPublicRooms(): Promise<Array<{ code: string; playerCount: number; createdAt: number }>> {
+    try {
+        const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
+        const url = `${protocol}://${PARTYKIT_HOST}/parties/registry/main/rooms`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.rooms || [];
+        }
+        return [];
+    } catch (e) {
+        console.error('[Registry] Erro ao listar salas:', e);
+        return [];
     }
 }
 

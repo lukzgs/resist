@@ -1,5 +1,8 @@
 {
     "name": "resist-server",
     "main": "src/server.ts",
-    "compatibilityDate": "2024-01-01"
+    "compatibilityDate": "2024-01-01",
+    "parties": {
+        "registry": "src/registry.ts"
+    }
 }
