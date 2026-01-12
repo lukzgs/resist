@@ -6,6 +6,7 @@ import { GameState, Phase, Player } from '../types';
  * Cria estado inicial do jogo
  */
 export function createInitialState(roomCode: string): GameState {
+    const now = Date.now();
     return {
         phase: Phase.LOBBY,
         players: [],
@@ -19,6 +20,8 @@ export function createInitialState(roomCode: string): GameState {
         winner: null,
         anonymousVotes: true,
         showRejectionCount: true,
+        createdAt: now,
+        lastActivity: now,
     };
 }
 

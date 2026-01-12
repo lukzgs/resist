@@ -59,7 +59,7 @@ export default class ResistServer implements Party.Server {
     // Timer para limpeza da sala quando vazia
     roomCleanupTimeout: NodeJS.Timeout | null = null;
 
-    // Constantes de tempo
+    // Constantes de tempo - Sessão
     static readonly EMPTY_ROOM_CLEANUP_MS = 120000;  // 2 minutos
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;  // 5 minutos
     static readonly ROOM_EXPIRY_MS = 180000;  // 3 minutos
@@ -67,11 +67,138 @@ export default class ResistServer implements Party.Server {
     static readonly DISCONNECT_VOTE_MS = 15000;  // 15 segundos
     static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
+    // Constantes de tempo - Persistência/TTL
+    static readonly TTL_LOBBY_EMPTY_MS = 5 * 60 * 1000;       // 5 min - lobby sem jogadores
+    static readonly TTL_ALL_DISCONNECTED_MS = 10 * 60 * 1000; // 10 min - todos desconectados
+    static readonly TTL_INACTIVE_MS = 30 * 60 * 1000;         // 30 min - sem ações com jogadores ativos
+    static readonly TTL_MAX_DURATION_MS = 2 * 60 * 60 * 1000; // 2 horas - máximo de duração da sala
+
     // Rate limiting
     static readonly MAX_MESSAGES_PER_MINUTE = 30;
     private rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
 
     constructor(public room: Party.Room) { }
+
+    // ============================================================
+    // PERSISTÊNCIA DE ESTADO
+    // ============================================================
+
+    /**
+     * Chamado quando a sala inicia ou "acorda" da hibernação
+     */
+    async onStart(): Promise<void> {
+        const saved = await this.room.storage.get<GameState>("gameState");
+        if (saved) {
+            // Verifica se o estado expirou
+            const now = Date.now();
+            const age = now - saved.createdAt;
+            const inactive = now - saved.lastActivity;
+
+            // Verifica TTL máximo (2 horas)
+            if (age > ResistServer.TTL_MAX_DURATION_MS) {
+                await this.clearStorage();
+                return;
+            }
+
+            // Verifica inatividade (30 min sem ações)
+            if (inactive > ResistServer.TTL_INACTIVE_MS) {
+                await this.clearStorage();
+                return;
+            }
+
+            this.gameState = saved;
+            // Agenda próxima verificação
+            await this.scheduleExpiration();
+        }
+    }
+
+    /**
+     * Salva estado no storage persistente
+     */
+    private async saveState(): Promise<void> {
+        if (this.gameState) {
+            await this.room.storage.put("gameState", this.gameState);
+        }
+    }
+
+    /**
+     * Limpa o storage
+     */
+    private async clearStorage(): Promise<void> {
+        await this.room.storage.deleteAll();
+        this.gameState = null;
+    }
+
+    /**
+     * Agenda alarm para verificar expiração
+     */
+    private async scheduleExpiration(): Promise<void> {
+        if (!this.gameState) return;
+
+        const now = Date.now();
+        const connCount = [...this.room.getConnections()].length;
+        const playerCount = this.gameState.players.length;
+
+        let ttl: number;
+
+        if (playerCount === 0 || (this.gameState.phase === Phase.LOBBY && connCount === 0)) {
+            // Lobby vazio: 5 min
+            ttl = ResistServer.TTL_LOBBY_EMPTY_MS;
+        } else if (connCount === 0) {
+            // Todos desconectados durante jogo: 10 min
+            ttl = ResistServer.TTL_ALL_DISCONNECTED_MS;
+        } else {
+            // Jogo ativo com jogadores: verifica inatividade (30 min)
+            ttl = ResistServer.TTL_INACTIVE_MS;
+        }
+
+        await this.room.storage.setAlarm(now + ttl);
+    }
+
+    /**
+     * Chamado quando o alarm dispara
+     */
+    async onAlarm(): Promise<void> {
+        const now = Date.now();
+        const connCount = [...this.room.getConnections()].length;
+
+        // Se alguém conectado, re-agenda
+        if (connCount > 0 && this.gameState) {
+            const inactive = now - this.gameState.lastActivity;
+
+            // Verifica inatividade
+            if (inactive > ResistServer.TTL_INACTIVE_MS) {
+                // Notifica e fecha
+                this.room.broadcast(JSON.stringify({ type: 'ROOM_CLOSED' } as ServerMessage));
+                await this.clearStorage();
+                return;
+            }
+
+            // Verifica TTL máximo
+            const age = now - this.gameState.createdAt;
+            if (age > ResistServer.TTL_MAX_DURATION_MS) {
+                this.room.broadcast(JSON.stringify({ type: 'ROOM_CLOSED' } as ServerMessage));
+                await this.clearStorage();
+                return;
+            }
+
+            // Re-agenda
+            await this.scheduleExpiration();
+        } else {
+            // Ninguém conectado, limpa
+            await this.clearStorage();
+        }
+    }
+
+    /**
+     * Atualiza timestamp de última atividade e salva estado
+     */
+    private async updateActivity(): Promise<void> {
+        if (this.gameState) {
+            this.gameState.lastActivity = Date.now();
+            await this.saveState();
+        }
+    }
 
     // ============================================================
     // GERENCIAMENTO DE TIMERS
@@ -342,16 +469,28 @@ export default class ResistServer implements Party.Server {
                     if (this.gameState) handleStartGame(this.getGameContext(), sender);
                     break;
                 case 'SELECT_PLAYER':
-                    if (this.gameState) handleSelectPlayer(this.getGameContext(), sender, data.playerId);
+                    if (this.gameState) {
+                        handleSelectPlayer(this.getGameContext(), sender, data.playerId);
+                        this.updateActivity();  // Ação que avança o jogo
+                    }
                     break;
                 case 'SUBMIT_TEAM':
-                    if (this.gameState) handleSubmitTeam(this.getGameContext(), sender);
+                    if (this.gameState) {
+                        handleSubmitTeam(this.getGameContext(), sender);
+                        this.updateActivity();  // Ação que avança o jogo
+                    }
                     break;
                 case 'VOTE':
-                    if (this.gameState) handleVote(this.getGameContext(), sender, data.approve);
+                    if (this.gameState) {
+                        handleVote(this.getGameContext(), sender, data.approve);
+                        this.updateActivity();  // Ação que avança o jogo
+                    }
                     break;
                 case 'MISSION_ACTION':
-                    if (this.gameState) handleMissionAction(this.getGameContext(), sender, data.success);
+                    if (this.gameState) {
+                        handleMissionAction(this.getGameContext(), sender, data.success);
+                        this.updateActivity();  // Ação que avança o jogo
+                    }
                     break;
                 case 'SET_ANONYMOUS_VOTES':
                     if (this.gameState) handleSetAnonymousVotes(this.getGameContext(), sender, data.enabled);

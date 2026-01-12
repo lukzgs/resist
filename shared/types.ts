@@ -62,6 +62,8 @@ export interface GameState {
     roomExpiresAt?: number;   // Timestamp de quando a sala fecha (após GAME_OVER)
     disconnectInfo?: DisconnectInfo;  // Info de desconexão durante jogo
     disconnectVotes?: Record<string, boolean>;  // playerId -> true=encerrar
+    createdAt: number;        // Timestamp de criação da sala
+    lastActivity: number;     // Timestamp da última ação do jogo (voto, missão, etc.)
 }
 
 // Mensagens do cliente para o servidor
