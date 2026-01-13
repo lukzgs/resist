@@ -54,6 +54,8 @@ const translations = {
         'lobby.offline': 'OFFLINE',
         'lobby.public_room': 'SALA PÚBLICA',
         'lobby.public_room.desc': 'Visível na busca de salas',
+        'lobby.private_room': 'SALA PRIVADA',
+        'lobby.private_room.desc': 'Oculta da busca de salas',
 
         // Game
         'game.mission': 'Missão',
@@ -169,6 +171,8 @@ const translations = {
         'lobby.offline': 'OFFLINE',
         'lobby.public_room': 'PUBLIC ROOM',
         'lobby.public_room.desc': 'Visible in room search',
+        'lobby.private_room': 'PRIVATE ROOM',
+        'lobby.private_room.desc': 'Hidden from room search',
 
         // Game
         'game.mission': 'Mission',

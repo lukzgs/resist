@@ -110,14 +110,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
 
                                 <label className="flex items-center justify-between cursor-pointer group">
                                     <div>
-                                        <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('lobby.public_room') || 'SALA PÚBLICA'}</span>
-                                        <p className="text-xs text-slate-500 mt-1">{t('lobby.public_room.desc') || 'Visível na busca de salas'}</p>
+                                        <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('lobby.private_room') || 'SALA PRIVADA'}</span>
+                                        <p className="text-xs text-slate-500 mt-1">{t('lobby.private_room.desc') || 'Oculta da busca de salas'}</p>
                                     </div>
                                     <div
-                                        onClick={() => onTogglePublic(!state.isPublic)}
-                                        className={`relative w-12 h-6 rounded-full transition-colors ${state.isPublic ? 'bg-green-500' : 'bg-slate-700'}`}
+                                        onClick={() => onTogglePublic(state.isPublic)}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${!state.isPublic ? 'bg-red-500' : 'bg-slate-700'}`}
                                     >
-                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${state.isPublic ? 'left-7' : 'left-1'}`}></div>
+                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!state.isPublic ? 'left-7' : 'left-1'}`}></div>
                                     </div>
                                 </label>
                             </div>
