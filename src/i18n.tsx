@@ -117,6 +117,8 @@ const translations = {
         'browse.empty': 'Nenhuma sala disponível',
         'browse.empty.hint': 'Crie uma sala ou tente novamente',
         'browse.updated': 'Atualizado há',
+        'browse.players': 'jogadores',
+        'browse.join': 'ENTRAR',
         'common.back': 'VOLTAR',
 
         // Common
@@ -234,6 +236,8 @@ const translations = {
         'browse.empty': 'No rooms available',
         'browse.empty.hint': 'Create a room or try again',
         'browse.updated': 'Updated',
+        'browse.players': 'players',
+        'browse.join': 'JOIN',
         'common.back': 'BACK',
 
         // Common

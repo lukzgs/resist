@@ -339,10 +339,11 @@ export default class ResistServer implements Party.Server {
         const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState) };
         this.room.broadcast(JSON.stringify(message));
 
-        // Notifica registry sobre mudanças (playerCount, phase)
+        // Notifica registry sobre mudanças (playerCount, phase, isPublic)
         this.notifyRegistry('update', {
             playerCount: this.gameState.players.length,
-            phase: this.gameState.phase
+            phase: this.gameState.phase,
+            isPublic: this.gameState.isPublic
         });
     };
 
