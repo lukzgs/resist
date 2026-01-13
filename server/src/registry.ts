@@ -79,7 +79,18 @@ export default class RegistryServer implements Party.Server {
 
         this.state.activeRooms = this.state.activeRooms.filter(room => {
             const age = now - room.createdAt;
-            return age < ROOM_MAX_AGE_MS;
+
+            // Salas em LOBBY expiram em 5 minutos
+            if (room.phase === 'LOBBY' && age >= LOBBY_MAX_AGE_MS) {
+                return false;
+            }
+
+            // Todas as salas expiram em 2 horas
+            if (age >= ROOM_MAX_AGE_MS) {
+                return false;
+            }
+
+            return true;
         });
 
         if (before !== this.state.activeRooms.length) {
@@ -278,10 +289,20 @@ export default class RegistryServer implements Party.Server {
         const now = Date.now();
 
         const publicRooms = this.state.activeRooms
-            .filter(r => r.isPublic && r.phase === 'LOBBY' && r.playerCount < 10)
+            .filter(r => {
+                // Apenas salas públicas, em LOBBY, não cheias
+                if (!r.isPublic || r.phase !== 'LOBBY' || r.playerCount >= 10) {
+                    return false;
+                }
+                // Não retornar salas expiradas (mais de 5 minutos)
+                const age = now - r.createdAt;
+                if (age >= LOBBY_MAX_AGE_MS) {
+                    return false;
+                }
+                return true;
+            })
             .slice(0, MAX_ROOMS_LIST)  // Limita a 20
             .map(r => {
-                const age = now - r.createdAt;
                 const expiresAt = r.createdAt + LOBBY_MAX_AGE_MS;
                 const expiresIn = Math.max(0, expiresAt - now);
 
