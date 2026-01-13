@@ -43,13 +43,13 @@ export default function HomeView({ onNavigate }: Props) {
             onClick={() => onNavigate('BROWSE')}
             className="btn-animate group relative p-8 bg-black/40 border-2 border-white/10 rounded-3xl hover:border-white/40 transition-all text-left overflow-hidden"
           >
-            <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-30 transition-opacity z-0">
-              <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="absolute -top-2 -right-2 opacity-10 group-hover:opacity-30 transition-opacity">
+              <svg className="w-24 h-24 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <div className="relative z-10 text-5xl font-display font-black text-white mb-2 uppercase tracking-tighter">{t('home.browse') || 'PROCURAR SALAS'}</div>
-            <p className="relative z-10 text-base text-slate-300 uppercase tracking-widest font-bold font-mono">{t('home.browse.desc') || 'Jogue com desconhecidos'}</p>
+            <div className="text-5xl font-display font-black text-white mb-2 uppercase tracking-tighter">{t('home.browse') || 'PROCURAR SALAS'}</div>
+            <p className="text-base text-slate-300 uppercase tracking-widest font-bold font-mono">{t('home.browse.desc') || 'Jogue com desconhecidos'}</p>
           </button>
         </div>
 
