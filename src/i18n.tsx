@@ -25,6 +25,9 @@ const translations = {
         'setup.name.placeholder': 'Ex: João',
         'setup.code': 'Código da Sala',
         'setup.code.via_link': '(via link)',
+        'setup.room_name': 'Nome da Sala',
+        'setup.room_name.placeholder': 'Ex: Partida do João',
+        'setup.room_name.hint': 'Deixe vazio para gerar automaticamente',
         'setup.create.button': 'Criar',
         'setup.join.button': 'Conectar',
         'setup.back': 'Voltar',
@@ -49,6 +52,8 @@ const translations = {
         'lobby.host': 'HOST',
         'lobby.online': 'ONLINE',
         'lobby.offline': 'OFFLINE',
+        'lobby.public_room': 'SALA PÚBLICA',
+        'lobby.public_room.desc': 'Visível na busca de salas',
 
         // Game
         'game.mission': 'Missão',
@@ -135,6 +140,9 @@ const translations = {
         'setup.name.placeholder': 'Ex: John',
         'setup.code': 'Room Code',
         'setup.code.via_link': '(via link)',
+        'setup.room_name': 'Room Name',
+        'setup.room_name.placeholder': "Ex: John's Game",
+        'setup.room_name.hint': 'Leave empty to generate automatically',
         'setup.create.button': 'Create',
         'setup.join.button': 'Connect',
         'setup.back': 'Back',
@@ -159,6 +167,8 @@ const translations = {
         'lobby.host': 'HOST',
         'lobby.online': 'ONLINE',
         'lobby.offline': 'OFFLINE',
+        'lobby.public_room': 'PUBLIC ROOM',
+        'lobby.public_room.desc': 'Visible in room search',
 
         // Game
         'game.mission': 'Mission',

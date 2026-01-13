@@ -37,7 +37,7 @@ export async function checkServerHealth(): Promise<boolean> {
 }
 
 // Gera código de sala chamando o registry (controla limite de salas)
-export async function generateRoomCode(isPublic: boolean = true): Promise<string | null> {
+export async function generateRoomCode(roomName: string = '', isPublic: boolean = true): Promise<string | null> {
     try {
         const protocol = PARTYKIT_HOST.includes('localhost') ? 'http' : 'https';
         const url = `${protocol}://${PARTYKIT_HOST}/parties/registry/main/register`;
@@ -49,7 +49,7 @@ export async function generateRoomCode(isPublic: boolean = true): Promise<string
             method: 'POST',
             signal: controller.signal,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isPublic })
+            body: JSON.stringify({ name: roomName, isPublic })
         });
 
         clearTimeout(timeoutId);
@@ -72,6 +72,7 @@ export async function generateRoomCode(isPublic: boolean = true): Promise<string
 // Tipo para salas públicas retornadas pelo registry
 export interface PublicRoom {
     code: string;
+    name: string;  // Nome personalizado da sala
     playerCount: number;
     createdAt: number;
     expiresAt: number;

@@ -5,12 +5,13 @@ import { GameState, Phase, Player } from '../types';
 /**
  * Cria estado inicial do jogo
  */
-export function createInitialState(roomCode: string, isPublic: boolean = true): GameState {
+export function createInitialState(roomCode: string, roomName: string = '', isPublic: boolean = true): GameState {
     const now = Date.now();
     return {
         phase: Phase.LOBBY,
         players: [],
         roomCode,
+        roomName: roomName || `Sala ${roomCode}`,  // Default: "Sala XXXX"
         leaderIndex: 0,
         currentMissionIndex: 0,
         missions: [],

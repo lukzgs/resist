@@ -50,6 +50,7 @@ export interface GameState {
     phase: Phase;
     players: Player[];
     roomCode: string;
+    roomName: string;         // Nome personalizado da sala
     leaderIndex: number;
     currentMissionIndex: number;
     missions: Mission[];

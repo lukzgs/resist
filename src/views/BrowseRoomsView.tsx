@@ -83,46 +83,54 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
                                     key={room.code}
                                     onClick={() => onJoinRoom(room.code)}
                                     className={`
-                    group relative w-full p-4 bg-black/40 border-2 rounded-xl
-                    transition-all text-left
-                    ${room.isClosingSoon
+                                        group relative w-full p-5 bg-black/40 border-2 rounded-xl
+                                        transition-all text-left
+                                        ${room.isClosingSoon
                                             ? 'border-spies/50 hover:border-spies'
                                             : 'border-white/10 hover:border-resistance/50'
                                         }
-                    hover:bg-black/60
-                  `}
+                                        hover:bg-black/60
+                                    `}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        {/* Info da Sala */}
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-2xl font-mono font-bold text-white tracking-widest">
+                                    {/* Nome e Código */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div>
+                                            <h3 className="text-xl font-display font-bold text-white uppercase tracking-tight">
+                                                {room.name}
+                                            </h3>
+                                            <p className="text-xs font-mono text-slate-500 tracking-widest mt-1">
                                                 {room.code}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm font-mono text-slate-400">
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                                </svg>
-                                                <span>{room.playerCount}/10</span>
-                                            </div>
+                                            </p>
                                         </div>
 
                                         {/* Tempo Restante */}
                                         <div className={`
-                      text-sm font-mono uppercase tracking-wider
-                      ${room.isClosingSoon ? 'text-spies animate-pulse' : 'text-slate-500'}
-                    `}>
+                                            text-sm font-mono uppercase tracking-wider
+                                            ${room.isClosingSoon ? 'text-spies animate-pulse' : 'text-slate-500'}
+                                        `}>
                                             {room.isClosingSoon && (
-                                                <span className="mr-2">⚠</span>
+                                                <span className="mr-1">⚠</span>
                                             )}
                                             {formatTimeRemaining(room.expiresIn)}
                                         </div>
                                     </div>
 
-                                    {/* Indicador de hover */}
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg className="w-6 h-6 text-resistance" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                    {/* Info da Sala */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-sm font-mono text-slate-400">
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                            </svg>
+                                            <span>{room.playerCount}/10 {t('browse.players') || 'jogadores'}</span>
+                                        </div>
+
+                                        {/* Indicador de hover */}
+                                        <div className="flex items-center gap-2 text-sm font-mono text-resistance opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="uppercase">{t('browse.join') || 'ENTRAR'}</span>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
                                     </div>
                                 </button>
                             ))}

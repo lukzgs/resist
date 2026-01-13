@@ -6,7 +6,7 @@ interface Props {
   mode: 'CREATE' | 'JOIN';
   playerName: string;
   onNameChange: (n: string) => void;
-  onInit: () => void;
+  onInit: (roomName: string) => void;
   onJoin: (code: string) => void;
   onBack: () => void;
   prefillCode?: string | null;
@@ -15,6 +15,7 @@ interface Props {
 export default function SetupView({ mode, playerName, onNameChange, onInit, onJoin, onBack, prefillCode }: Props) {
   const { t } = useTranslation();
   const [code, setCode] = React.useState(prefillCode || '');
+  const [roomName, setRoomName] = React.useState('');
   const isJoin = mode === 'JOIN';
   const hasPrefilledCode = !!prefillCode;
 
@@ -27,7 +28,8 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
           {isJoin ? t('setup.join.title') : t('setup.create.title')}
         </h2>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {/* Nome do jogador */}
           <div className="space-y-2">
             <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">{t('setup.name')}</label>
             <input
@@ -44,6 +46,31 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
             />
           </div>
 
+          {/* Nome da sala (apenas ao criar) */}
+          {!isJoin && (
+            <div className="space-y-2">
+              <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">
+                {t('setup.room_name') || 'Nome da Sala'}
+              </label>
+              <input
+                type="text"
+                value={roomName}
+                onChange={e => {
+                  // Permitir espaços e caracteres, máximo 30 caracteres
+                  const sanitized = e.target.value.slice(0, 30);
+                  setRoomName(sanitized);
+                }}
+                maxLength={30}
+                className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-resistance transition-all font-mono text-xl"
+                placeholder={t('setup.room_name.placeholder') || 'Ex: Partida do João'}
+              />
+              <p className="text-xs text-slate-500 ml-4">
+                {t('setup.room_name.hint') || 'Deixe vazio para gerar automaticamente'}
+              </p>
+            </div>
+          )}
+
+          {/* Código da sala (apenas ao entrar) */}
           {isJoin && (
             <div className="space-y-2">
               <label className="text-sm font-mono text-slate-300 uppercase tracking-widest ml-4">
@@ -51,19 +78,19 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
               </label>
               <input
                 type="text"
-                maxLength={4}
+                maxLength={6}
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
                 readOnly={hasPrefilledCode}
-                className={`w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none text-center text-5xl font-display tracking-[0.5em] transition-all ${hasPrefilledCode ? 'bg-resistance/10 border-resistance/30' : 'focus:border-resistance'}`}
-                placeholder="0000"
+                className={`w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none text-center text-4xl font-display tracking-[0.3em] transition-all ${hasPrefilledCode ? 'bg-resistance/10 border-resistance/30' : 'focus:border-resistance'}`}
+                placeholder="XXXXXX"
               />
             </div>
           )}
 
           <div className="pt-4 space-y-4">
             <button
-              onClick={() => isJoin ? onJoin(code) : onInit()}
+              onClick={() => isJoin ? onJoin(code) : onInit(roomName)}
               className="btn-animate w-full bg-resistance text-black py-5 rounded-2xl font-display font-black text-2xl shadow-glow-blue uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
             >
               {isJoin ? t('setup.join.button') : t('setup.create.button')}

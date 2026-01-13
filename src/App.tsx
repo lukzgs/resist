@@ -205,12 +205,12 @@ export default function App() {
   });
 
   // Handler para criar sala
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (roomName: string = '') => {
     showNotification('Criando sala...', 'info');
 
     try {
       // Gera código via registry (controla limite de salas)
-      const serverCode = await generateRoomCode();
+      const serverCode = await generateRoomCode(roomName);
 
       if (serverCode) {
         setIsCreating(true);

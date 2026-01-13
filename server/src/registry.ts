@@ -18,6 +18,7 @@ const CLEANUP_INTERVAL_MS = 1 * 60 * 1000;
 
 interface RoomInfo {
     code: string;
+    name: string;  // Nome personalizado da sala
     createdAt: number;
     playerCount: number;
     phase: string;  // LOBBY, TEAM_SELECTION, etc.
@@ -184,9 +185,10 @@ export default class RegistryServer implements Party.Server {
         }
 
         // Registra sala - público por padrão
-        const body = await req.json().catch(() => ({})) as { isPublic?: boolean };
+        const body = await req.json().catch(() => ({})) as { isPublic?: boolean; name?: string };
         const roomInfo: RoomInfo = {
             code,
+            name: body.name || `Sala ${code}`,  // Default: "Sala XXXX"
             createdAt: Date.now(),
             playerCount: 0,
             phase: 'LOBBY',
@@ -285,6 +287,7 @@ export default class RegistryServer implements Party.Server {
 
                 return {
                     code: r.code,
+                    name: r.name,
                     playerCount: r.playerCount,
                     createdAt: r.createdAt,
                     expiresAt,
