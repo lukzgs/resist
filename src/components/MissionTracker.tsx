@@ -39,7 +39,6 @@ const MissionTracker: React.FC<Props> = ({ missions, currentMissionIndex, showRe
             ringColor = 'border-yellow-500 bg-yellow-500/10 animate-pulse';
             textColor = 'text-yellow-400';
             shadow = 'shadow-glow-gold';
-            scale = 'scale-110';
           }
 
           return (
