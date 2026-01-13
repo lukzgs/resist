@@ -12,10 +12,11 @@ interface Props {
     onStart: () => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onToggleShowRejectionCount: (enabled: boolean) => void;
+    onTogglePublic: (enabled: boolean) => void;
     onBack: () => void;
 }
 
-export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onBack }: Props) {
+export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onTogglePublic, onBack }: Props) {
     const { t } = useTranslation();
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
@@ -102,6 +103,21 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                         className={`relative w-12 h-6 rounded-full transition-colors ${state.showRejectionCount ? 'bg-resistance' : 'bg-slate-700'}`}
                                     >
                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${state.showRejectionCount ? 'left-7' : 'left-1'}`}></div>
+                                    </div>
+                                </label>
+
+                                <div className="border-t border-white/10 my-4"></div>
+
+                                <label className="flex items-center justify-between cursor-pointer group">
+                                    <div>
+                                        <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('lobby.public_room') || 'SALA PÚBLICA'}</span>
+                                        <p className="text-xs text-slate-500 mt-1">{t('lobby.public_room.desc') || 'Visível na busca de salas'}</p>
+                                    </div>
+                                    <div
+                                        onClick={() => onTogglePublic(!state.isPublic)}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${state.isPublic ? 'bg-green-500' : 'bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${state.isPublic ? 'left-7' : 'left-1'}`}></div>
                                     </div>
                                 </label>
                             </div>

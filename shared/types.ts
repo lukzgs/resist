@@ -64,6 +64,7 @@ export interface GameState {
     disconnectVotes?: Record<string, boolean>;  // playerId -> true=encerrar
     createdAt: number;        // Timestamp de criação da sala
     lastActivity: number;     // Timestamp da última ação do jogo (voto, missão, etc.)
+    isPublic: boolean;        // Se true, sala aparece na lista pública
 }
 
 // Mensagens do cliente para o servidor
@@ -78,6 +79,7 @@ export type ClientMessage =
     | { type: 'MISSION_ACTION'; success: boolean }
     | { type: 'SET_ANONYMOUS_VOTES'; enabled: boolean }
     | { type: 'SET_SHOW_REJECTION_COUNT'; enabled: boolean }
+    | { type: 'SET_PUBLIC'; enabled: boolean }
     | { type: 'RESTART_GAME' }
     | { type: 'DISCONNECT_VOTE'; endGame: boolean };
 

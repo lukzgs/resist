@@ -132,6 +132,7 @@ export default function App() {
     missionAction,
     setAnonymousVotes,
     setShowRejectionCount,
+    setPublic,
     restartGame,
     disconnectVote,
   } = usePartySocket({
@@ -439,6 +440,7 @@ export default function App() {
           onStart={handleStart}
           onToggleAnonymousVotes={setAnonymousVotes}
           onToggleShowRejectionCount={setShowRejectionCount}
+          onTogglePublic={setPublic}
           onBack={handleBack}
         />
       )}

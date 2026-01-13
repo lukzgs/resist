@@ -530,6 +530,16 @@ export default class ResistServer implements Party.Server {
                 case 'RESTART_GAME':
                     if (this.gameState) handleRestartGame(this.getGameContext(), sender, this.cancelRoomClosure);
                     break;
+                case 'SET_PUBLIC':
+                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
+                        // Apenas host pode alterar
+                        const player = getPlayerByConnection(this.gameState, this.connections, sender.id);
+                        if (player?.isHost) {
+                            this.gameState.isPublic = data.enabled;
+                            this.broadcastState();
+                        }
+                    }
+                    break;
                 case 'DISCONNECT_VOTE':
                     if (this.gameState) handleDisconnectVote(this.getDisconnectContext(), sender, data.endGame);
                     break;

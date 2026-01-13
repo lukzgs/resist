@@ -5,7 +5,7 @@ import { GameState, Phase, Player } from '../types';
 /**
  * Cria estado inicial do jogo
  */
-export function createInitialState(roomCode: string): GameState {
+export function createInitialState(roomCode: string, isPublic: boolean = true): GameState {
     const now = Date.now();
     return {
         phase: Phase.LOBBY,
@@ -22,6 +22,7 @@ export function createInitialState(roomCode: string): GameState {
         showRejectionCount: true,
         createdAt: now,
         lastActivity: now,
+        isPublic,
     };
 }
 
