@@ -228,7 +228,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
             // Filtra espectadores - eles não devem ter cards
             const activePlayers = state.players.filter(p => !p.isSpectator);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl mx-auto px-4">
                 {activePlayers.map(function (p) {
                   // Encontra o índice original do jogador para verificar se é líder
                   const originalIndex = state.players.findIndex(player => player.id === p.id);
@@ -240,7 +240,11 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                           sendAction('SELECT_PLAYER', { id: p.id });
                         }
                       }}
-                      className={`transition-all duration-300 ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}`}
+                      className={`
+                        w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] md:w-[calc(25%-18px)] lg:w-[180px]
+                        transition-all duration-300 
+                        ${isLeader && state.phase === Phase.TEAM_SELECTION ? 'cursor-crosshair' : ''}
+                      `}
                     >
                       <PlayerCard
                         player={p}
