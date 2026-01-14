@@ -12,9 +12,9 @@ const VoteTracker: React.FC<Props> = ({ failedVotes }) => {
           Failed Votes
         </div>
         <div className="flex gap-1.5">
-          {[1, 2, 3].map((num) => {
+          {[1, 2, 3, 4, 5].map((num) => {
             const isActive = failedVotes >= num;
-            const isDanger = num === 3;
+            const isDanger = num === 5;
             return (
               <div
                 key={num}
@@ -29,7 +29,7 @@ const VoteTracker: React.FC<Props> = ({ failedVotes }) => {
           })}
         </div>
         <div className="text-sm font-mono text-spy font-bold opacity-50 ml-2">
-          {failedVotes}/3
+          {failedVotes}/5
         </div>
       </div>
     </div>

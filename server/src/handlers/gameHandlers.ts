@@ -182,10 +182,10 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 ctx.gameState.failedVoteCount++;
                 addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
 
-                if (ctx.gameState.failedVoteCount >= 3) {
+                if (ctx.gameState.failedVoteCount >= 5) {
                     ctx.gameState.phase = Phase.GAME_OVER;
                     ctx.gameState.winner = Role.TERMINATOR;
-                    addLog(ctx.gameState, `> TERMINATORS VENCEM - 3 REJEIÇÕES`);
+                    addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEIÇÕES`);
                     ctx.scheduleRoomClosure();
                 } else {
                     ctx.gameState.phase = Phase.TEAM_SELECTION;
