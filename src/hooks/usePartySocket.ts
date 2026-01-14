@@ -10,6 +10,7 @@ const PARTYKIT_HOST = (import.meta as any).env?.VITE_PARTYKIT_HOST || 'localhost
 const RECONNECT_DELAY_MS = 1000; // Delay inicial entre tentativas
 const MAX_RECONNECT_DELAY_MS = 30000; // Delay máximo (30s)
 const MAX_RECONNECT_ATTEMPTS = 10; // Tentativas máximas antes de desistir
+const CONNECTION_TIMEOUT_MS = 15000; // Timeout de conexão (15s)
 
 // Health check timeout (2 segundos)
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
@@ -248,6 +249,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
 
     const socketRef = useRef<PartySocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const shouldReconnectRef = useRef(true);
     const lastRoomCodeRef = useRef(roomCode);
     const lastPlayerNameRef = useRef(playerName);
@@ -267,6 +269,14 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
             reconnectTimeoutRef.current = null;
+        }
+    }, []);
+
+    // Limpa timeout de conexão
+    const clearConnectionTimeout = useCallback(() => {
+        if (connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current);
+            connectionTimeoutRef.current = null;
         }
     }, []);
 
@@ -304,7 +314,21 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 room: currentRoomCode,
             });
 
+            // Timeout de conexão: se não conectar em 15s, falha
+            connectionTimeoutRef.current = setTimeout(() => {
+                console.log('[WS] Timeout de conexão atingido');
+                if (socketRef.current && !isConnected) {
+                    socketRef.current.close();
+                    socketRef.current = null;
+                    setIsConnecting(false);
+                    setIsReconnecting(false);
+                    onError('Tempo limite de conexão excedido. Verifique sua internet.');
+                    onConnectionChange?.('disconnected');
+                }
+            }, CONNECTION_TIMEOUT_MS);
+
             socket.addEventListener('open', () => {
+                clearConnectionTimeout(); // Limpa timeout pois conectou
                 setIsConnected(true);
                 setIsConnecting(false);
                 setIsReconnecting(false);
