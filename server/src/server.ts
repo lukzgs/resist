@@ -211,15 +211,30 @@ export default class ResistServer implements Party.Server {
         if (!this.gameState) return;
 
         try {
-            const registryUrl = `http://127.0.0.1:1999/parties/registry/main/${action}`;
-            await fetch(registryUrl, {
+            // Em produção, usamos o stub para comunicação interna
+            // @ts-ignore - Property 'parties' does exist on Room
+            const registry = this.room.context.parties.get("registry", "main");
+
+            await registry.fetch(`/${action}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code: this.gameState.roomCode, ...data })
             });
         } catch (e) {
-            // Falha silenciosa - registry pode não estar disponível
-            console.warn('[Server] Falha ao notificar registry:', e);
+            // Se falhar o stub, tenta via URL pública (fallback para dev local se necessário)
+            try {
+                const host = (this.room.env.PARTYKIT_HOST as string) || '127.0.0.1:1999';
+                const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+                const registryUrl = `${protocol}://${host}/parties/registry/main/${action}`;
+
+                await fetch(registryUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: this.gameState.roomCode, ...data })
+                });
+            } catch (e2) {
+                console.warn('[Server] Falha ao notificar registry (stub e fallback):', e2);
+            }
         }
     }
 

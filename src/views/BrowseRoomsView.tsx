@@ -77,59 +77,66 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid gap-3">
+                        <div className="grid gap-4">
                             {rooms.map((room) => (
                                 <button
                                     key={room.code}
                                     onClick={() => onJoinRoom(room.code)}
                                     className={`
-                                        group relative w-full p-5 bg-black/40 border-2 rounded-xl
-                                        transition-all text-left
+                                        group relative w-full p-6 bg-black/40 border border-white/10 rounded-xl
+                                        transition-all duration-300 text-left overflow-hidden
                                         ${room.isClosingSoon
-                                            ? 'border-spies/50 hover:border-spies'
-                                            : 'border-white/10 hover:border-resistance/50'
+                                            ? 'hover:border-spies/50 hover:bg-spies/5 hover:shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                                            : 'hover:border-resistance/50 hover:bg-resistance/5 hover:shadow-[0_0_20px_rgba(34,211,238,0.1)]'
                                         }
-                                        hover:bg-black/60
                                     `}
                                 >
-                                    {/* Nome e Código */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="text-xl font-display font-bold text-white uppercase tracking-tight">
+                                    {/* Background Gradient on Hover */}
+                                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-r ${room.isClosingSoon ? 'from-spies/10' : 'from-resistance/10'} to-transparent`} />
+
+                                    <div className="relative flex items-center justify-between z-10">
+                                        {/* Info Esquerda */}
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            {/* Room Name */}
+                                            <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight truncate group-hover:first-letter:text-resistance transition-colors">
                                                 {room.name}
                                             </h3>
-                                            <p className="text-xs font-mono text-slate-500 tracking-widest mt-1">
-                                                {room.code}
-                                            </p>
+
+                                            {/* Player Count Bar */}
+                                            <div className="mt-3 flex items-center gap-3">
+                                                <div className="flex-1 max-w-[120px] h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-500 ${room.isClosingSoon ? 'bg-spies' : 'bg-resistance'}`}
+                                                        style={{ width: `${(room.playerCount / 10) * 100}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs font-mono text-slate-400 font-bold">
+                                                    {room.playerCount}/10
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        {/* Tempo Restante */}
-                                        <div className={`
-                                            text-sm font-mono uppercase tracking-wider
-                                            ${room.isClosingSoon ? 'text-spies animate-pulse' : 'text-slate-500'}
-                                        `}>
-                                            {room.isClosingSoon && (
-                                                <span className="mr-1">⚠</span>
-                                            )}
-                                            {formatTimeRemaining(room.expiresIn)}
-                                        </div>
-                                    </div>
+                                        {/* Info Direita */}
+                                        <div className="flex flex-col items-end gap-2">
+                                            {/* Join Badge */}
+                                            <div className={`
+                                                px-4 py-1.5 rounded text-sm font-display font-bold uppercase tracking-widest transition-all duration-300
+                                                ${room.isClosingSoon
+                                                    ? 'bg-spies/10 text-spies border border-spies/20 group-hover:bg-spies group-hover:text-black'
+                                                    : 'bg-resistance/10 text-resistance border border-resistance/20 group-hover:bg-resistance group-hover:text-black'
+                                                }
+                                            `}>
+                                                {t('browse.join') || 'ENTRAR'}
+                                            </div>
 
-                                    {/* Info da Sala */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-sm font-mono text-slate-400">
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                            </svg>
-                                            <span>{room.playerCount}/10 {t('browse.players') || 'jogadores'}</span>
-                                        </div>
-
-                                        {/* Indicador de hover */}
-                                        <div className="flex items-center gap-2 text-sm font-mono text-resistance opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="uppercase">{t('browse.join') || 'ENTRAR'}</span>
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
+                                            {/* Timer */}
+                                            <div className={`
+                                                flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider
+                                                ${room.isClosingSoon ? 'text-spies animate-pulse' : 'text-slate-500'}
+                                            `}>
+                                                {room.isClosingSoon && <span>⚠</span>}
+                                                {formatTimeRemaining(room.expiresIn)}
+                                            </div>
                                         </div>
                                     </div>
                                 </button>
