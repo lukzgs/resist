@@ -190,8 +190,8 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 } else {
                     ctx.gameState.phase = Phase.TEAM_SELECTION;
                     const activePlayerIds = activePlayers.map(p => p.id);
-                    const currentLeaderId = ctx.gameState.players[ctx.gameState.leaderIndex].id;
-                    const currentLeaderActiveIndex = activePlayerIds.indexOf(currentLeaderId);
+                    const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                    const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
                     const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
                     const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
                     ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === nextLeaderId);
@@ -263,7 +263,16 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
             setTimeout(() => {
                 ctx.gameState.currentMissionIndex++;
                 ctx.gameState.phase = Phase.TEAM_SELECTION;
-                ctx.gameState.leaderIndex = (ctx.gameState.leaderIndex + 1) % ctx.gameState.players.length;
+
+                // Calcula próximo líder apenas entre jogadores ativos
+                const activePlayers = getActivePlayers(ctx.gameState);
+                const activePlayerIds = activePlayers.map(p => p.id);
+                const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
+                const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
+                const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
+                ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === nextLeaderId);
+
                 ctx.gameState.proposedTeam = [];
                 ctx.broadcastState();
             }, 500);
