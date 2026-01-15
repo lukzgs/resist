@@ -36,6 +36,13 @@ import {
     cancelGame,
     DisconnectHandlerContext,
 } from './handlers/disconnectHandlers';
+import {
+    handleSetTimerConfig,
+    startTimer,
+    cancelTimer,
+    cleanupTimers,
+    TimerHandlerContext,
+} from './handlers/timerHandlers';
 
 export default class ResistServer implements Party.Server {
     // Estado do jogo
@@ -384,6 +391,21 @@ export default class ResistServer implements Party.Server {
 
     private getGameContext(): GameHandlerContext {
         if (!this.gameState) throw new Error('No game state');
+        const timerCtx = this.getTimerContext();
+        return {
+            room: this.room,
+            gameState: this.gameState,
+            connections: this.connections,
+            sendError: this.sendError,
+            broadcastState: this.broadcastState,
+            scheduleRoomClosure: this.scheduleRoomClosure,
+            startTimer: (timerType) => startTimer(timerCtx, timerType),
+            cancelTimer: () => cancelTimer(timerCtx),
+        };
+    }
+
+    private getTimerContext(): TimerHandlerContext {
+        if (!this.gameState) throw new Error('No game state');
         return {
             room: this.room,
             gameState: this.gameState,
@@ -511,7 +533,19 @@ export default class ResistServer implements Party.Server {
                     if (this.gameState) handleRemovePlayer(this.getJoinContext(), sender, data.playerId);
                     break;
                 case 'START_GAME':
-                    if (this.gameState) handleStartGame(this.getGameContext(), sender);
+                    if (this.gameState) {
+                        // Aplicar configuração de timer antes de iniciar (com validação)
+                        if (data.timerConfig) {
+                            const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+                            this.gameState.timerConfig = {
+                                enabled: data.timerConfig.enabled,
+                                teamSelectionSeconds: clamp(data.timerConfig.teamSelectionSeconds || 60, 30, 120),
+                                teamVoteSeconds: clamp(data.timerConfig.teamVoteSeconds || 45, 30, 120),
+                                missionVoteSeconds: clamp(data.timerConfig.missionVoteSeconds || 30, 5, 120),
+                            };
+                        }
+                        handleStartGame(this.getGameContext(), sender);
+                    }
                     break;
                 case 'SELECT_PLAYER':
                     if (this.gameState) {

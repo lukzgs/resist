@@ -24,6 +24,12 @@ export function createInitialState(roomCode: string, roomName: string = '', isPu
         createdAt: now,
         lastActivity: now,
         isPublic,
+        timerConfig: {
+            enabled: false,
+            teamSelectionSeconds: 60,
+            teamVoteSeconds: 45,
+            missionVoteSeconds: 30,
+        },
     };
 }
 

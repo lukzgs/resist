@@ -46,6 +46,17 @@ export interface DisconnectInfo {
     expiresAt: number;            // Quando timer expira
 }
 
+// Configuração de timers do jogo
+export interface TimerConfig {
+    enabled: boolean;
+    teamSelectionSeconds: number;   // 30-120
+    teamVoteSeconds: number;        // 30-120
+    missionVoteSeconds: number;     // 30-120
+}
+
+// Tipo de timer ativo
+export type TimerType = 'team_selection' | 'team_vote' | 'mission_vote';
+
 export interface GameState {
     phase: Phase;
     players: Player[];
@@ -66,6 +77,9 @@ export interface GameState {
     createdAt: number;        // Timestamp de criação da sala
     lastActivity: number;     // Timestamp da última ação do jogo (voto, missão, etc.)
     isPublic: boolean;        // Se true, sala aparece na lista pública
+    timerConfig: TimerConfig; // Configuração de timers
+    currentTimerEndsAt?: number;    // Timestamp de quando o timer atual expira
+    currentTimerType?: TimerType;   // Tipo do timer ativo
 }
 
 // Mensagens do cliente para o servidor
@@ -73,7 +87,7 @@ export type ClientMessage =
     | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean }
     | { type: 'LEAVE_ROOM' }
     | { type: 'REMOVE_PLAYER'; playerId: string }
-    | { type: 'START_GAME' }
+    | { type: 'START_GAME'; timerConfig?: TimerConfig }
     | { type: 'SELECT_PLAYER'; playerId: string }
     | { type: 'SUBMIT_TEAM' }
     | { type: 'VOTE'; approve: boolean }
