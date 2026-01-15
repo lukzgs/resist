@@ -34,6 +34,7 @@ Classe principal do servidor estendendo `Party.Server` do PartyKit.
 | `gameState` | `GameState \| null` | Estado atual do jogo |
 | `connections` | `Map<string, string>` | connectionId → playerId |
 | `disconnectedPlayers` | `Map<string, Timeout>` | playerId → timer reconexão |
+| `gracePeriodTimers` | `Map<string, Timeout>` | playerId → timer grace period (25s antes de pausar) |
 | `gameOverTimeout` | `Timeout \| null` | Timer expiração da sala |
 
 ### Métodos de Ciclo de Vida
@@ -52,8 +53,9 @@ Chamado quando cliente conecta.
 #### onClose(conn)
 Chamado quando cliente desconecta.
 - Marca jogador como desconectado
-- Inicia timeout de reconexão
-- Pode pausar jogo se em fase ativa
+- Inicia **grace period** (25s) antes de pausar o jogo
+- Se jogador reconectar no grace period, jogo continua sem interrupção
+- Apenas após grace period, entra na fase `PAUSED_DISCONNECT`
 
 #### onMessage(message, sender)
 Roteia mensagens para handlers apropriados.

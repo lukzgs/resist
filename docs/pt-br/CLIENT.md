@@ -207,6 +207,7 @@ const {
 - Persistência de sessão
 - Rastreamento de status de conexão
 - Fila de mensagens durante reconexão
+- **Otimização mobile**: Força reconexão em iOS/Android ao voltar à aba (previne sockets "mortos")
 
 ---
 

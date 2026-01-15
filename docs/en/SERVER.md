@@ -34,6 +34,7 @@ Main server class extending PartyKit's `Party.Server`.
 | `gameState` | `GameState \| null` | Current game state |
 | `connections` | `Map<string, string>` | connectionId → playerId |
 | `disconnectedPlayers` | `Map<string, Timeout>` | playerId → reconnect timer |
+| `gracePeriodTimers` | `Map<string, Timeout>` | playerId → grace period timer (25s before pausing) |
 | `gameOverTimeout` | `Timeout \| null` | Room expiry timer |
 
 ### Lifecycle Methods
@@ -52,8 +53,9 @@ Called when client connects.
 #### onClose(conn)
 Called when client disconnects.
 - Marks player as disconnected
-- Starts reconnect timeout
-- May pause game if in active phase
+- Starts **grace period** (25s) before pausing game
+- If player reconnects within grace period, game continues uninterrupted
+- Only after grace period, triggers `PAUSED_DISCONNECT` phase
 
 #### onMessage(message, sender)
 Routes messages to appropriate handlers.
@@ -202,10 +204,9 @@ Called when player connection closes.
 // Actions:
 1. Mark player as disconnected
 2. If game active and non-spectator:
-   - Pause game
-   - Store pausedPhase
-   - Store timer state (if active)
-   - Start reconnect timeout
+   - Start grace period (25s)
+   - If player reconnects within grace period → game continues
+   - If grace period expires → pause game, store pausedPhase, start reconnect timeout
 ```
 
 #### handlePlayerReconnect(ctx, playerId)

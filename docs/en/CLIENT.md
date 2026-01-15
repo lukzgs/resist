@@ -207,6 +207,7 @@ const {
 - Session persistence
 - Connection status tracking
 - Message queue during reconnect
+- **Mobile optimization**: Forces reconnection on iOS/Android when returning to tab (prevents "dead" sockets)
 
 ---
 
