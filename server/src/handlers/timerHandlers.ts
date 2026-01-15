@@ -69,6 +69,61 @@ export function cancelTimer(ctx: TimerHandlerContext): void {
 }
 
 /**
+ * Pausa o timer atual e retorna tempo restante
+ * Usado quando o jogo pausa por desconexão
+ */
+export function pauseTimer(ctx: TimerHandlerContext): { remainingMs: number; timerType: TimerType } | null {
+    const { currentTimerEndsAt, currentTimerType } = ctx.gameState;
+
+    if (!currentTimerEndsAt || !currentTimerType) {
+        return null;
+    }
+
+    const remainingMs = Math.max(0, currentTimerEndsAt - Date.now());
+
+    // Cancela o timeout do servidor
+    const existingTimeout = activeTimers.get(ctx.gameState.roomCode);
+    if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        activeTimers.delete(ctx.gameState.roomCode);
+    }
+
+    // Limpa estado do timer (cliente para de mostrar)
+    ctx.gameState.currentTimerEndsAt = undefined;
+    ctx.gameState.currentTimerType = undefined;
+
+    return { remainingMs, timerType: currentTimerType };
+}
+
+/**
+ * Retoma timer com tempo restante
+ * Usado quando o jogo retoma após reconexão
+ */
+export function resumeTimer(ctx: TimerHandlerContext, remainingMs: number, timerType: TimerType): void {
+    if (!ctx.gameState.timerConfig.enabled || remainingMs <= 0) {
+        return;
+    }
+
+    // Cancela qualquer timer existente (por segurança)
+    const existingTimeout = activeTimers.get(ctx.gameState.roomCode);
+    if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        activeTimers.delete(ctx.gameState.roomCode);
+    }
+
+    // Define novo timestamp de expiração
+    ctx.gameState.currentTimerEndsAt = Date.now() + remainingMs;
+    ctx.gameState.currentTimerType = timerType;
+
+    // Agenda timeout no servidor
+    const timeout = setTimeout(() => {
+        handleTimerExpired(ctx, timerType);
+    }, remainingMs);
+
+    activeTimers.set(ctx.gameState.roomCode, timeout);
+}
+
+/**
  * Processa expiração do timer
  */
 export function handleTimerExpired(ctx: TimerHandlerContext, timerType: TimerType): void {

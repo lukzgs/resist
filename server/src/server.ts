@@ -40,6 +40,8 @@ import {
     handleSetTimerConfig,
     startTimer,
     cancelTimer,
+    pauseTimer,
+    resumeTimer,
     cleanupTimers,
     TimerHandlerContext,
 } from './handlers/timerHandlers';
@@ -305,8 +307,18 @@ export default class ResistServer implements Party.Server {
     private startDisconnectWait = (player: { id: string; name: string }, attempt: number = 1): void => {
         if (!this.gameState) return;
 
+        // Pausa o timer do jogo antes de começar a espera
+        const timerCtx = this.getTimerContext();
+        const pausedTimerInfo = pauseTimer(timerCtx);
+
         const ctx = this.getDisconnectContext();
         _startDisconnectWait(ctx, player, attempt, ResistServer.DISCONNECT_WAIT_MS);
+
+        // Salva informações do timer pausado
+        if (pausedTimerInfo && this.gameState.disconnectInfo) {
+            this.gameState.disconnectInfo.pausedTimerRemainingMs = pausedTimerInfo.remainingMs;
+            this.gameState.disconnectInfo.pausedTimerType = pausedTimerInfo.timerType;
+        }
 
         // Timer para iniciar votação
         this.disconnectWaitTimer = setTimeout(() => {
@@ -316,8 +328,20 @@ export default class ResistServer implements Party.Server {
 
     private cancelDisconnectWait = (): void => {
         if (!this.gameState || !this.gameState.disconnectInfo) return;
+
+        // Guarda informações do timer pausado antes de limpar disconnectInfo
+        const pausedRemainingMs = this.gameState.disconnectInfo.pausedTimerRemainingMs;
+        const pausedTimerType = this.gameState.disconnectInfo.pausedTimerType;
+
         const ctx = this.getDisconnectContext();
         _cancelDisconnectWait(ctx);
+
+        // Retoma o timer se havia um pausado
+        if (pausedRemainingMs && pausedTimerType && this.gameState.timerConfig.enabled) {
+            const timerCtx = this.getTimerContext();
+            resumeTimer(timerCtx, pausedRemainingMs, pausedTimerType);
+            this.broadcastState();
+        }
     };
 
     private startDisconnectVote = (): void => {

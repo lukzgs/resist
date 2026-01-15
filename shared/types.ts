@@ -44,6 +44,9 @@ export interface DisconnectInfo {
     waitingAttempt: number;       // 1, 2 ou 3
     pausedAt: number;             // Timestamp de quando pausou
     expiresAt: number;            // Quando timer expira
+    // Timer pausado (se havia um ativo)
+    pausedTimerRemainingMs?: number;
+    pausedTimerType?: TimerType;
 }
 
 // Configuração de timers do jogo
