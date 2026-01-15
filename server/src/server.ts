@@ -68,12 +68,16 @@ export default class ResistServer implements Party.Server {
     // Timer para limpeza da sala quando vazia
     roomCleanupTimeout: NodeJS.Timeout | null = null;
 
+    // Timers de grace period para reconexão rápida (antes de pausar o jogo)
+    gracePeriodTimers: Map<string, NodeJS.Timeout> = new Map();
+
     // Constantes de tempo - Sessão
     static readonly EMPTY_ROOM_CLEANUP_MS = 120000;  // 2 minutos
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;  // 5 minutos
     static readonly ROOM_EXPIRY_MS = 180000;  // 3 minutos
     static readonly DISCONNECT_WAIT_MS = 120000;  // 2 minutos
     static readonly DISCONNECT_VOTE_MS = 15000;  // 15 segundos
+    static readonly DISCONNECT_GRACE_PERIOD_MS = 25000;  // 25 segundos - tempo antes de pausar o jogo
     static readonly MAX_DISCONNECT_ATTEMPTS = 3;
 
     // Constantes de tempo - Persistência/TTL
@@ -407,6 +411,14 @@ export default class ResistServer implements Party.Server {
             sendError: this.sendError,
             broadcastState: this.broadcastState,
             cancelDisconnectWait: this.cancelDisconnectWait,
+            cancelGracePeriod: (playerId: string) => {
+                const timer = this.gracePeriodTimers.get(playerId);
+                if (timer) {
+                    clearTimeout(timer);
+                    this.gracePeriodTimers.delete(playerId);
+                    console.log(`[Server] Grace period cancelado para jogador ${playerId} (reconectou a tempo)`);
+                }
+            },
             createInitialState: createInitialState,
             cancelRoomCleanup: this.cancelRoomCleanup,
             setGameState: (state: GameState) => { this.gameState = state; },
@@ -500,7 +512,30 @@ export default class ResistServer implements Party.Server {
                 } else if (player.isSpectator) {
                     this.broadcastState();
                 } else {
-                    this.startDisconnectWait({ id: player.id, name: player.name });
+                    // Grace period: espera 25s antes de pausar o jogo
+                    // Se jogador reconectar nesse tempo, jogo continua normalmente
+                    console.log(`[Server] ${player.name} desconectou - grace period de ${ResistServer.DISCONNECT_GRACE_PERIOD_MS / 1000}s iniciado`);
+
+                    const gracePeriodTimeout = setTimeout(() => {
+                        // Verifica se jogador ainda está desconectado após grace period
+                        if (!this.gameState) return;
+                        const stillDisconnected = this.gameState.players.find(
+                            p => p.id === playerId && p.disconnected
+                        );
+
+                        if (stillDisconnected && !stillDisconnected.isSpectator) {
+                            // Jogador não reconectou no tempo - agora sim pausa o jogo
+                            console.log(`[Server] ${stillDisconnected.name} não reconectou - pausando jogo`);
+                            this.startDisconnectWait({ id: stillDisconnected.id, name: stillDisconnected.name });
+                        }
+
+                        this.gracePeriodTimers.delete(playerId);
+                    }, ResistServer.DISCONNECT_GRACE_PERIOD_MS);
+
+                    this.gracePeriodTimers.set(playerId, gracePeriodTimeout);
+
+                    // Broadcast para mostrar jogador como desconectado (mas sem pausar ainda)
+                    this.broadcastState();
                 }
             }
         }

@@ -13,6 +13,7 @@ export interface HandlerContext {
     sendError: (conn: Party.Connection, message: string) => void;
     broadcastState: () => void;
     cancelDisconnectWait: () => void;
+    cancelGracePeriod: (playerId: string) => void;  // Cancela grace period se jogador reconectar
     createInitialState: (roomCode: string) => GameState;
     cancelRoomCleanup: () => void;
     setGameState: (state: GameState) => void;  // Para criar novo estado
@@ -144,6 +145,9 @@ function handleReconnect(
         clearTimeout(timeout);
         ctx.disconnectedPlayers.delete(existingPlayer.id);
     }
+
+    // Cancela grace period se estava aguardando
+    ctx.cancelGracePeriod(existingPlayer.id);
 
     // Registra nova conexão
     ctx.connections.set(conn.id, existingPlayer.id);

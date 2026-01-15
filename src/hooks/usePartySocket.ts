@@ -533,6 +533,55 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'DISCONNECT_VOTE', endGame });
     }, [send]);
 
+    // Handler para visibilitychange (Safari/iOS suspende WebSocket em background)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Página ficou visível novamente
+                console.log('[WS] Página visível - verificando conexão...');
+
+                const socket = socketRef.current;
+
+                // Se não há socket ou está fechado/fechando, tenta reconectar
+                if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+                    if (shouldReconnectRef.current && lastRoomCodeRef.current) {
+                        console.log('[WS] Socket morto após voltar à aba - reconectando...');
+                        setIsReconnecting(true);
+                        onConnectionChange?.('reconnecting');
+                        connect();
+                    }
+                } else if (socket.readyState === WebSocket.OPEN) {
+                    // iOS Safari: Socket pode parecer aberto mas estar "morto"
+                    // Força reconexão imediata em dispositivos móveis para garantir conexão viva
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+                    if (isMobile && shouldReconnectRef.current && lastRoomCodeRef.current) {
+                        console.log('[WS] Mobile detectado - forçando reconexão para garantir conexão viva');
+                        // Fecha socket atual e reconecta
+                        socketRef.current = null;
+                        socket.close();
+                        setIsReconnecting(true);
+                        onConnectionChange?.('reconnecting');
+                        // Pequeno delay para garantir que o close foi processado
+                        setTimeout(() => {
+                            if (shouldReconnectRef.current) {
+                                connect();
+                            }
+                        }, 100);
+                    } else {
+                        console.log('[WS] Socket aparenta estar conectado');
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [connect, onConnectionChange]);
+
     // Cleanup ao desmontar
     useEffect(() => {
         return () => {
