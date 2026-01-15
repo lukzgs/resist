@@ -1,0 +1,318 @@
+# Server Reference
+
+Detailed documentation for the PartyKit backend server.
+
+## File Structure
+
+```
+server/src/
+├── server.ts           # Main ResistServer class
+├── types.ts            # Re-exports shared types
+├── registry.ts         # Public rooms registry
+├── handlers/
+│   ├── index.ts        # Handler exports
+│   ├── joinHandler.ts  # JOIN, LEAVE, REMOVE
+│   ├── gameHandlers.ts # Core game actions
+│   ├── disconnectHandlers.ts  # Pause/reconnect
+│   └── timerHandlers.ts       # Timer management
+├── game/
+│   └── state.ts        # State utilities
+└── utils/
+    └── crypto.ts       # UUID, shuffle
+```
+
+---
+
+## ResistServer Class
+
+Main server class extending PartyKit's `Party.Server`.
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `gameState` | `GameState \| null` | Current game state |
+| `connections` | `Map<string, string>` | connectionId → playerId |
+| `disconnectedPlayers` | `Map<string, Timeout>` | playerId → reconnect timer |
+| `gameOverTimeout` | `Timeout \| null` | Room expiry timer |
+
+### Lifecycle Methods
+
+#### onStart()
+Called when room starts or wakes from hibernation.
+- Loads state from PartyKit storage
+- Restores connections map
+- Schedules expiration check
+
+#### onConnect(conn, ctx)
+Called when client connects.
+- Stores connection
+- Later mapped to player via JOIN
+
+#### onClose(conn)
+Called when client disconnects.
+- Marks player as disconnected
+- Starts reconnect timeout
+- May pause game if in active phase
+
+#### onMessage(message, sender)
+Routes messages to appropriate handlers.
+- Parses JSON message
+- Validates message type
+- Calls handler function
+
+#### onAlarm()
+Called by PartyKit alarm system.
+- Checks room expiration
+- Handles timer expiry
+- Processes disconnect timeouts
+
+---
+
+## Handler Functions
+
+### joinHandler.ts
+
+#### handleJoin(ctx, conn, data)
+Process JOIN message.
+
+```typescript
+// Flow:
+1. Validate name (1-20 chars, sanitized)
+2. Check if reconnecting (sessionId match)
+3. If reconnecting:
+   - Restore player connection
+   - Resume game if was paused
+4. If new:
+   - Create player object
+   - Assign as host if first
+   - Check spectator status (game in progress)
+5. Generate/return sessionId
+6. Broadcast state
+```
+
+#### handleLeaveRoom(ctx, conn)
+Process voluntary leave.
+
+#### handleRemovePlayer(ctx, conn, playerId)
+Host kicks player (lobby only).
+
+---
+
+### gameHandlers.ts
+
+#### handleStartGame(ctx, conn)
+Start the game.
+
+```typescript
+// Requirements:
+- Phase must be LOBBY
+- Sender must be host
+- 5-10 connected players
+
+// Actions:
+1. Get rules for player count
+2. Shuffle and assign roles
+3. Create mission objects
+4. Set initial leader (random)
+5. Transition to TEAM_SELECTION
+6. Start timer (if enabled)
+```
+
+#### handleSelectPlayer(ctx, conn, playerId)
+Toggle player in proposed team.
+
+```typescript
+// Requirements:
+- Phase must be TEAM_SELECTION
+- Sender must be current leader
+
+// Actions:
+1. If player in team → remove
+2. If not in team AND team not full → add
+```
+
+#### handleSubmitTeam(ctx, conn)
+Confirm team selection.
+
+```typescript
+// Requirements:
+- Phase must be TEAM_SELECTION
+- Sender must be current leader
+- Team size must match mission requirement
+
+// Actions:
+1. Clear previous votes
+2. Transition to TEAM_VOTE
+3. Start vote timer (if enabled)
+```
+
+#### handleVote(ctx, conn, approve)
+Vote on team.
+
+```typescript
+// Requirements:
+- Phase must be TEAM_VOTE
+- Sender must be non-spectator
+- Sender hasn't voted yet
+
+// Actions:
+1. Record vote
+2. If all voted:
+   - Count approvals
+   - approved = approvals > playerCount/2
+   - If approved → MISSION_EXECUTION
+   - If rejected:
+     - Increment failedVoteCount
+     - If 5 rejections → GAME_OVER (Terminators win)
+     - Else → TEAM_SELECTION, next leader
+```
+
+#### handleMissionAction(ctx, conn, success)
+Execute mission action.
+
+```typescript
+// Requirements:
+- Phase must be MISSION_EXECUTION
+- Sender must be team member
+- Sender hasn't acted yet
+
+// Special rules:
+- Humans → always success (forced)
+- Terminators → can choose
+
+// Actions:
+1. Record outcome
+2. If all acted:
+   - Count fails
+   - fail = fails >= (requiresTwoFails ? 2 : 1)
+   - Update mission status
+   - Check win conditions
+   - If no winner → next mission, next leader
+```
+
+---
+
+### disconnectHandlers.ts
+
+#### handlePlayerDisconnect(ctx, playerId)
+Called when player connection closes.
+
+```typescript
+// Actions:
+1. Mark player as disconnected
+2. If game active and non-spectator:
+   - Pause game
+   - Store pausedPhase
+   - Store timer state (if active)
+   - Start reconnect timeout
+```
+
+#### handlePlayerReconnect(ctx, playerId)
+Called when player rejoins.
+
+```typescript
+// Actions:
+1. Clear reconnect timeout
+2. Restore player state
+3. If game was paused for this player:
+   - Resume to pausedPhase
+   - Resume timer (if was running)
+```
+
+#### handleDisconnectVote(ctx, conn, endGame)
+Vote to end or wait.
+
+```typescript
+// Requirements:
+- Phase must be DISCONNECT_VOTE
+- Sender must be non-spectator
+
+// Actions:
+1. Record vote
+2. If all voted:
+   - Calculate result
+   - If majority END → GAME_OVER
+   - If majority WAIT → Wait longer, or resume if reconnected
+```
+
+---
+
+### timerHandlers.ts
+
+#### startTimer(ctx, timerType)
+Start countdown timer.
+
+```typescript
+// Sets:
+- gameState.currentTimerEndsAt = now + duration
+- gameState.currentTimerType = timerType
+- Schedules alarm
+```
+
+#### cancelTimer(ctx)
+Cancel active timer.
+
+#### pauseTimer(ctx)
+Pause timer (store remaining time).
+
+#### resumeTimer(ctx)
+Resume paused timer.
+
+#### handleTimerExpiry(ctx, timerType)
+Called when timer expires.
+
+```typescript
+// Per timer type:
+- team_selection: Auto-select random team, submit
+- team_vote: Non-voters auto-reject
+- mission_vote: Non-actors auto-succeed
+```
+
+---
+
+## State Utilities (game/state.ts)
+
+| Function | Description |
+|----------|-------------|
+| `addLog(state, msg)` | Add log entry (max 100) |
+| `getPlayerByConnection(state, conns, connId)` | Find player by connection |
+| `getActivePlayers(state)` | Non-spectator, non-disconnected |
+| `getSanitizedState(state, playerId)` | Prepare state for client |
+
+---
+
+## Registry (registry.ts)
+
+Separate PartyKit room managing public room list.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/parties/registry/main` | GET | List public rooms |
+| `/parties/registry/main` | POST | Update room info |
+
+---
+
+## Security
+
+### Rate Limiting
+Applied in `onMessage`:
+- Max 30 messages per minute per connection
+- Excess messages silently dropped
+
+### Input Validation
+All message payloads validated:
+- Name: 1-20 chars, HTML entities stripped
+- IDs: Must exist in state
+- Booleans: Coerced from truthy/falsy
+
+### Session Security
+- Session IDs: UUID v4, server-generated
+- Stored per-player, validated on reconnect
+- No client-generated sessions accepted
+
+---
+
+See also:
+- [MESSAGES.md](./MESSAGES.md) - Protocol details
+- [STATE_MACHINE.md](./STATE_MACHINE.md) - Phase logic
