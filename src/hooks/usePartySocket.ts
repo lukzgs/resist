@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import PartySocket from 'partysocket';
-import { GameState } from '../types';
+import { GameState, TimerConfig } from '../types';
 
 // URL do servidor PartyKit (desenvolvimento ou produção)
 // @ts-ignore - Vite injects this
@@ -214,7 +214,7 @@ interface UsePartySocketReturn {
     // Ações do jogo
     leaveRoom: () => void;
     removePlayer: (playerId: string) => void;
-    startGame: () => void;
+    startGame: (timerConfig?: TimerConfig) => void;
     selectPlayer: (playerId: string) => void;
     submitTeam: () => void;
     vote: (approve: boolean) => void;
@@ -493,8 +493,8 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         send({ type: 'REMOVE_PLAYER', playerId });
     }, [send]);
 
-    const startGame = useCallback(() => {
-        send({ type: 'START_GAME' });
+    const startGame = useCallback((timerConfig?: TimerConfig) => {
+        send({ type: 'START_GAME', timerConfig });
     }, [send]);
 
     const selectPlayer = useCallback((playerId: string) => {
