@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5';
-import { GameState } from '../types';
+import { GameState, TimerConfig } from '../types';
 import { GAME_RULES } from '../constants';
 import { useTranslation } from '../i18n';
 
@@ -9,7 +9,7 @@ interface Props {
     isHost: boolean;
     myPlayerId?: string;
     onRemove: (playerId: string) => void;
-    onStart: () => void;
+    onStart: (timerConfig: TimerConfig) => void;
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onToggleShowRejectionCount: (enabled: boolean) => void;
     onTogglePublic: (enabled: boolean) => void;
@@ -21,6 +21,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
     const pCount = state.players.length;
     const canStart = pCount >= 5 && pCount <= 10;
     const [linkCopied, setLinkCopied] = useState(false);
+
+    // Estado LOCAL para configuração de timers - não envia ao servidor até iniciar
+    const [timerConfig, setTimerConfig] = useState<TimerConfig>({
+        enabled: false,
+        teamSelectionSeconds: 60,
+        teamVoteSeconds: 45,
+        missionVoteSeconds: 30,
+    });
 
     const copyLink = async () => {
         const baseUrl = window.location.origin;
@@ -84,7 +92,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
 
                         {isHost && (
                             <div className="bg-black/40 p-6 rounded-3xl border border-white/10 backdrop-blur-md">
-                                <h3 className="text-sm font-mono text-slate-300 uppercase tracking-widest mb-4">{t('lobby.settings')}</h3>
+                                <span className="text-sm font-mono text-resistance tracking-widest block mb-4 uppercase font-bold border-b border-resistance/20 pb-2">{t('lobby.settings')}</span>
 
                                 <label className="flex items-center justify-between cursor-pointer group mb-4">
                                     <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('lobby.show_votes')}</span>
@@ -120,6 +128,199 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!state.isPublic ? 'left-7' : 'left-1'}`}></div>
                                     </div>
                                 </label>
+
+                                <div className="border-t border-white/10 my-4"></div>
+
+                                {/* Timer Settings - Premium Design */}
+                                <div className="space-y-4">
+                                    <label className="flex items-center justify-between cursor-pointer group">
+                                        <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('timer.enable')}</span>
+                                        <div
+                                            onClick={() => setTimerConfig({ ...timerConfig, enabled: !timerConfig.enabled })}
+                                            className={`relative w-12 h-6 rounded-full transition-all ${timerConfig.enabled ? 'bg-resistance shadow-[0_0_15px_rgba(14,165,233,0.5)]' : 'bg-slate-700'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${timerConfig.enabled ? 'left-7' : 'left-1'}`}></div>
+                                        </div>
+                                    </label>
+
+                                    {timerConfig.enabled && (
+                                        <div className="animate-in slide-in-from-top-2 duration-300 space-y-4 mt-4">
+                                            {/* Team Selection Timer */}
+                                            <div className="group p-4 bg-black/60 rounded-2xl border border-white/5 hover:border-resistance/20 transition-all relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-resistance/30 to-transparent"></div>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-resistance/50"></div>
+                                                        <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">{t('timer.team_selection')}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.max(30, timerConfig.teamSelectionSeconds - 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-resistance/20 text-resistance/60 hover:text-resistance transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">−</span>
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="30"
+                                                            max="120"
+                                                            value={timerConfig.teamSelectionSeconds}
+                                                            onChange={(e) => {
+                                                                const val = Math.max(30, Math.min(120, Number(e.target.value) || 30));
+                                                                setTimerConfig({ ...timerConfig, teamSelectionSeconds: val });
+                                                            }}
+                                                            className="w-12 bg-black/60 text-lg font-display font-black text-resistance text-center py-1 rounded-lg border border-resistance/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
+                                                        />
+                                                        <span className="text-xs font-mono text-resistance/60">s</span>
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.min(120, timerConfig.teamSelectionSeconds + 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-resistance/20 text-resistance/60 hover:text-resistance transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">+</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="30"
+                                                    max="120"
+                                                    step="5"
+                                                    value={timerConfig.teamSelectionSeconds}
+                                                    onChange={(e) => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Number(e.target.value) })}
+                                                    className="w-full h-2 bg-slate-800 rounded-full appearance-none cursor-pointer
+                                                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+                                                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-resistance 
+                                                        [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(14,165,233,0.6)] [&::-webkit-slider-thumb]:cursor-pointer
+                                                        [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full 
+                                                        [&::-moz-range-thumb]:bg-resistance [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                                                    style={{
+                                                        background: `linear-gradient(to right, rgb(14,165,233) 0%, rgb(14,165,233) ${((timerConfig.teamSelectionSeconds - 30) / 90) * 100}%, rgb(30,41,59) ${((timerConfig.teamSelectionSeconds - 30) / 90) * 100}%, rgb(30,41,59) 100%)`
+                                                    }}
+                                                />
+                                                <div className="flex justify-between mt-2 text-[10px] font-mono text-slate-500">
+                                                    <span>30s</span>
+                                                    <span>120s</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Team Vote Timer */}
+                                            <div className="group p-4 bg-black/60 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent"></div>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                                                        <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">{t('timer.team_vote')}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.max(30, timerConfig.teamVoteSeconds - 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-yellow-500/20 text-yellow-500/60 hover:text-yellow-400 transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">−</span>
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="30"
+                                                            max="120"
+                                                            value={timerConfig.teamVoteSeconds}
+                                                            onChange={(e) => {
+                                                                const val = Math.max(30, Math.min(120, Number(e.target.value) || 30));
+                                                                setTimerConfig({ ...timerConfig, teamVoteSeconds: val });
+                                                            }}
+                                                            className="w-12 bg-black/60 text-lg font-display font-black text-yellow-400 text-center py-1 rounded-lg border border-yellow-500/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
+                                                        />
+                                                        <span className="text-xs font-mono text-yellow-500/60">s</span>
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.min(120, timerConfig.teamVoteSeconds + 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-yellow-500/20 text-yellow-500/60 hover:text-yellow-400 transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">+</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="30"
+                                                    max="120"
+                                                    step="5"
+                                                    value={timerConfig.teamVoteSeconds}
+                                                    onChange={(e) => setTimerConfig({ ...timerConfig, teamVoteSeconds: Number(e.target.value) })}
+                                                    className="w-full h-2 bg-slate-800 rounded-full appearance-none cursor-pointer
+                                                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+                                                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-yellow-400 
+                                                        [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(250,204,21,0.6)] [&::-webkit-slider-thumb]:cursor-pointer
+                                                        [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full 
+                                                        [&::-moz-range-thumb]:bg-yellow-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                                                    style={{
+                                                        background: `linear-gradient(to right, rgb(250,204,21) 0%, rgb(250,204,21) ${((timerConfig.teamVoteSeconds - 30) / 90) * 100}%, rgb(30,41,59) ${((timerConfig.teamVoteSeconds - 30) / 90) * 100}%, rgb(30,41,59) 100%)`
+                                                    }}
+                                                />
+                                                <div className="flex justify-between mt-2 text-[10px] font-mono text-slate-500">
+                                                    <span>30s</span>
+                                                    <span>120s</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Mission Vote Timer */}
+                                            <div className="group p-4 bg-black/60 rounded-2xl border border-white/5 hover:border-spy/20 transition-all relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-spy/30 to-transparent"></div>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-spy/50"></div>
+                                                        <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">{t('timer.mission_vote')}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.max(5, timerConfig.missionVoteSeconds - 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-spy/20 text-spy/60 hover:text-spy transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">−</span>
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="5"
+                                                            max="120"
+                                                            value={timerConfig.missionVoteSeconds}
+                                                            onChange={(e) => {
+                                                                const val = Math.max(5, Math.min(120, Number(e.target.value) || 5));
+                                                                setTimerConfig({ ...timerConfig, missionVoteSeconds: val });
+                                                            }}
+                                                            className="w-12 bg-black/60 text-lg font-display font-black text-spy text-center py-1 rounded-lg border border-spy/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
+                                                        />
+                                                        <span className="text-xs font-mono text-spy/60">s</span>
+                                                        <button
+                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.min(120, timerConfig.missionVoteSeconds + 5) })}
+                                                            className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-spy/20 text-spy/60 hover:text-spy transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold">+</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="120"
+                                                    step="5"
+                                                    value={timerConfig.missionVoteSeconds}
+                                                    onChange={(e) => setTimerConfig({ ...timerConfig, missionVoteSeconds: Number(e.target.value) })}
+                                                    className="w-full h-2 bg-slate-800 rounded-full appearance-none cursor-pointer
+                                                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+                                                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-spy 
+                                                        [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(239,68,68,0.6)] [&::-webkit-slider-thumb]:cursor-pointer
+                                                        [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full 
+                                                        [&::-moz-range-thumb]:bg-spy [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                                                    style={{
+                                                        background: `linear-gradient(to right, rgb(239,68,68) 0%, rgb(239,68,68) ${((timerConfig.missionVoteSeconds - 5) / 115) * 100}%, rgb(30,41,59) ${((timerConfig.missionVoteSeconds - 5) / 115) * 100}%, rgb(30,41,59) 100%)`
+                                                    }}
+                                                />
+                                                <div className="flex justify-between mt-2 text-[10px] font-mono text-slate-500">
+                                                    <span>5s</span>
+                                                    <span>120s</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -164,7 +365,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
 
                         {isHost && (
                             <button
-                                onClick={onStart}
+                                onClick={() => onStart(timerConfig)}
                                 disabled={!canStart}
                                 className={`btn-animate w-full py-6 rounded-2xl font-display font-black text-3xl uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${canStart
                                     ? 'bg-spy text-white shadow-glow-red hover:scale-[1.01]'
