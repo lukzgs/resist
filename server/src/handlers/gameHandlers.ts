@@ -1,7 +1,7 @@
 // Handlers para ações do jogo
 
 import type * as Party from "partykit/server";
-import { GameState, Phase, Role, Player, ServerMessage, GAME_RULES } from '../types';
+import { GameState, Phase, Role, Player, ServerMessage, GAME_RULES, TimerType } from '../types';
 import { shuffle } from '../utils/crypto';
 import { addLog, getSanitizedState, getPlayerByConnection, getActivePlayers } from '../game/state';
 
@@ -12,6 +12,8 @@ export interface GameHandlerContext {
     sendError: (conn: Party.Connection, message: string) => void;
     broadcastState: () => void;
     scheduleRoomClosure: () => void;
+    startTimer?: (timerType: TimerType) => void;
+    cancelTimer?: () => void;
 }
 
 /**
@@ -87,6 +89,12 @@ export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection)
 
     addLog(ctx.gameState, `> UNIDADE FORMADA: ${pCount} AGENTES`);
     addLog(ctx.gameState, `> ESCANEANDO ASSINATURAS...`);
+
+    // Inicia timer de seleção de time se habilitado
+    if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
+        ctx.startTimer('team_selection');
+    }
+
     ctx.broadcastState();
 }
 
@@ -146,6 +154,13 @@ export function handleSubmitTeam(ctx: GameHandlerContext, conn: Party.Connection
     ctx.gameState.missions[ctx.gameState.currentMissionIndex].votes = {};
     ctx.gameState.phase = Phase.TEAM_VOTE;
     addLog(ctx.gameState, `> ESQUADRÃO PROPOSTO PELO COMANDANTE`);
+
+    // Cancela timer de seleção e inicia timer de votação se habilitado
+    if (ctx.gameState.timerConfig.enabled) {
+        if (ctx.cancelTimer) ctx.cancelTimer();
+        if (ctx.startTimer) ctx.startTimer('team_vote');
+    }
+
     ctx.broadcastState();
 }
 
@@ -171,6 +186,11 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
         const approvals = votes.filter(v => v).length;
         const approved = approvals > activePlayers.length / 2;
 
+        // Cancela timer de votação
+        if (ctx.gameState.timerConfig.enabled && ctx.cancelTimer) {
+            ctx.cancelTimer();
+        }
+
         ctx.broadcastState();
 
         setTimeout(() => {
@@ -178,6 +198,11 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 ctx.gameState.phase = Phase.MISSION_EXECUTION;
                 ctx.gameState.failedVoteCount = 0;
                 addLog(ctx.gameState, `> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
+
+                // Inicia timer de missão se habilitado
+                if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
+                    ctx.startTimer('mission_vote');
+                }
             } else {
                 ctx.gameState.failedVoteCount++;
                 addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
@@ -197,6 +222,11 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                     ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === nextLeaderId);
                     ctx.gameState.proposedTeam = [];
                     ctx.gameState.missions[missionIndex].votes = {};
+
+                    // Inicia timer de seleção para próximo líder se habilitado
+                    if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
+                        ctx.startTimer('team_selection');
+                    }
                 }
             }
 
@@ -241,6 +271,11 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
         const fails = outcomes.filter(o => !o).length;
         const isFailed = mission.requiresTwoFails ? fails >= 2 : fails >= 1;
 
+        // Cancela timer de missão
+        if (ctx.gameState.timerConfig.enabled && ctx.cancelTimer) {
+            ctx.cancelTimer();
+        }
+
         ctx.gameState.missions[missionIndex].status = isFailed ? 'FAIL' : 'SUCCESS';
         addLog(ctx.gameState, `> MISSÃO ${missionIndex + 1}: ${isFailed ? 'FALHOU' : 'SUCESSO'} (${fails} sabotagem${fails !== 1 ? 's' : ''})`);
 
@@ -274,6 +309,12 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
                 ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === nextLeaderId);
 
                 ctx.gameState.proposedTeam = [];
+
+                // Inicia timer de seleção para próxima missão se habilitado
+                if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
+                    ctx.startTimer('team_selection');
+                }
+
                 ctx.broadcastState();
             }, 500);
 
