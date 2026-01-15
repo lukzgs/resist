@@ -124,6 +124,14 @@ const translations = {
         // Common
         'common.spectator': 'ESPECTADOR',
         'common.you': 'VOCÊ',
+
+        // Timers
+        'timer.settings': 'Configurações de Tempo',
+        'timer.enable': 'Habilitar Timers',
+        'timer.team_selection': 'Seleção do Time',
+        'timer.team_vote': 'Votação do Time',
+        'timer.mission_vote': 'Votação da Missão',
+        'timer.seconds': 'segundos',
     },
     en: {
         // Home
@@ -243,6 +251,14 @@ const translations = {
         // Common
         'common.spectator': 'SPECTATOR',
         'common.you': 'YOU',
+
+        // Timers
+        'timer.settings': 'Timer Settings',
+        'timer.enable': 'Enable Timers',
+        'timer.team_selection': 'Team Selection',
+        'timer.team_vote': 'Team Vote',
+        'timer.mission_vote': 'Mission Vote',
+        'timer.seconds': 'seconds',
     },
 } as const;
 
