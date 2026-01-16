@@ -28,7 +28,8 @@ src/
 │   ├── DisconnectWaitScreen.tsx
 │   └── DisconnectVoteScreen.tsx
 └── hooks/
-    └── usePartySocket.ts
+    ├── usePartySocket.ts  # Conexão WebSocket
+    └── useTimerSound.ts   # Feedback de áudio do timer
 ```
 
 ---
@@ -154,10 +155,12 @@ Exibição de contagem de votos falhados:
 
 ### TimerCircle
 Timer de contagem regressiva com:
-- Progresso circular
-- Segundos restantes
-- Rótulo da fase
-- Animação
+- Indicador de progresso circular
+- Exibição de segundos restantes
+- Rótulo da fase (Seleção de Time, Votação do Time, Votação da Missão)
+- Transições de cor (ciano → amarelo → vermelho)
+- Integrado à área de ação (não flutuante)
+- Alertas sonoros via useTimerSound
 
 ### LanguageSelector
 Alternar entre PT-BR e EN:
@@ -207,7 +210,18 @@ const {
 - Persistência de sessão
 - Rastreamento de status de conexão
 - Fila de mensagens durante reconexão
-- **Otimização mobile**: Força reconexão em iOS/Android ao voltar à aba (previne sockets "mortos")
+- **Otimização mobile**: Força reconexão em iOS/Safari ao voltar à aba via handler `visibilitychange`
+
+### useTimerSound
+
+Hook Web Audio API para efeitos sonoros do timer.
+
+**Sons**:
+| Evento | Descrição |
+|--------|-----------|
+| Warning (15s) | Tom suave "ding" |
+| Critical (5s) | Dois toques rápidos de notificação |
+| Expired | Tom descendente suave |
 
 ---
 

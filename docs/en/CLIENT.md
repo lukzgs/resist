@@ -28,7 +28,8 @@ src/
 │   ├── DisconnectWaitScreen.tsx
 │   └── DisconnectVoteScreen.tsx
 └── hooks/
-    └── usePartySocket.ts
+    ├── usePartySocket.ts  # WebSocket connection
+    └── useTimerSound.ts   # Timer audio feedback
 ```
 
 ---
@@ -154,10 +155,12 @@ Failed vote count display:
 
 ### TimerCircle
 Countdown timer with:
-- Circular progress
-- Remaining seconds
-- Phase label
-- Animation
+- Circular progress indicator
+- Remaining seconds display
+- Phase label (Team Selection, Team Vote, Mission Vote)
+- Color transitions (cyan → yellow → red)
+- Integrated into action area (not floating)
+- Sound alerts via useTimerSound
 
 ### LanguageSelector
 Toggle between PT-BR and EN:
@@ -207,7 +210,18 @@ const {
 - Session persistence
 - Connection status tracking
 - Message queue during reconnect
-- **Mobile optimization**: Forces reconnection on iOS/Android when returning to tab (prevents "dead" sockets)
+- **Mobile optimization**: Forces reconnection on iOS/Safari when returning to tab via `visibilitychange` handler
+
+### useTimerSound
+
+Web Audio API hook for timer sound effects.
+
+**Sounds**:
+| Event | Description |
+|-------|-------------|
+| Warning (15s) | Single soft "ding" tone |
+| Critical (5s) | Two quick notification tones |
+| Expired | Descending soft tone |
 
 ---
 
