@@ -187,19 +187,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
       )}
 
       <div className="flex flex-col h-screen relative bg-dark">
-        {/* Timer flutuante na lateral direita */}
-        {state.timerConfig.enabled && state.currentTimerEndsAt && (
-          <div className="fixed right-4 top-24 z-50">
-            <TimerCircle
-              endsAt={state.currentTimerEndsAt}
-              label={state.currentTimerType === 'team_selection'
-                ? t('timer.team_selection')
-                : state.currentTimerType === 'team_vote'
-                  ? t('timer.team_vote')
-                  : t('timer.mission_vote')}
-            />
-          </div>
-        )}
+
         <header className="px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-xl flex justify-between items-center shrink-0 z-50">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -286,6 +274,20 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                 {state.phase.replace(/_/g, ' ')}
               </h3>
             </div>
+
+            {/* Timer integrado - aparece acima dos controles quando ativo */}
+            {state.timerConfig.enabled && state.currentTimerEndsAt && (
+              <div className="mb-6">
+                <TimerCircle
+                  endsAt={state.currentTimerEndsAt}
+                  label={state.currentTimerType === 'team_selection'
+                    ? t('timer.team_selection')
+                    : state.currentTimerType === 'team_vote'
+                      ? t('timer.team_vote')
+                      : t('timer.mission_vote')}
+                />
+              </div>
+            )}
 
             <div className="min-h-[120px] flex flex-col justify-center items-center phase-content">
               <PhaseControls state={state} me={me} sendAction={sendAction} isHost={isHost} />
