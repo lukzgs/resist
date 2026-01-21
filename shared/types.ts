@@ -125,5 +125,5 @@ export const GAME_RULES: Record<number, GameRules> = {
     7: { spyCount: 3, missionSizes: [2, 3, 3, 4, 4], twoFailsRequiredRound4: true },
     8: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },
     9: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },
-    10: { spyCount: 4, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },
+    10: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], twoFailsRequiredRound4: true },
 };
