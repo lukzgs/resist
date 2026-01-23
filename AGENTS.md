@@ -24,3 +24,11 @@ When the user requests commits:
 
 - Code and documentation: English preferred for AI efficiency
 - Communication with user: Portuguese (PT-BR)
+
+## Available MCP Tools
+
+| MCP Server | When to Use |
+|------------|-------------|
+| **Context7** | Researching documentation for libraries (React, Vite, PartyKit, Zod, etc.) |
+| **Playwright** | Browser automation, screenshots, and frontend visual testing |
+| **Shadcn** | Adding or exploring UI components from the Shadcn registry |
