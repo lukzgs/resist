@@ -270,7 +270,10 @@ export default class RegistryServer implements Party.Server {
         }
 
         // Atualiza campos
-        if (body.playerCount !== undefined) room.playerCount = body.playerCount;
+        if (body.playerCount !== undefined) {
+            room.playerCount = body.playerCount;
+            console.log(`[Registry] Sala ${body.code} atualizada: ${body.playerCount} jogadores`);
+        }
         if (body.phase !== undefined) room.phase = body.phase;
         if (body.isPublic !== undefined) room.isPublic = body.isPublic;
 

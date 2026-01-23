@@ -390,8 +390,10 @@ export default class ResistServer implements Party.Server {
         this.room.broadcast(JSON.stringify(message));
 
         // Notifica registry sobre mudanças (playerCount, phase, isPublic)
+        const playerCount = this.gameState.players.length;
+        console.log(`[Server] Notificando registry: ${playerCount} jogadores, fase ${this.gameState.phase}`);
         this.notifyRegistry('update', {
-            playerCount: this.gameState.players.length,
+            playerCount,
             phase: this.gameState.phase,
             isPublic: this.gameState.isPublic
         });
