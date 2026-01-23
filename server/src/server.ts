@@ -598,7 +598,7 @@ export default class ResistServer implements Party.Server {
                             const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
                             this.gameState.timerConfig = {
                                 enabled: data.timerConfig.enabled,
-                                teamSelectionSeconds: clamp(data.timerConfig.teamSelectionSeconds || 60, 30, 120),
+                                teamSelectionSeconds: clamp(data.timerConfig.teamSelectionSeconds || 120, 30, 120),
                                 teamVoteSeconds: clamp(data.timerConfig.teamVoteSeconds || 45, 30, 120),
                                 missionVoteSeconds: clamp(data.timerConfig.missionVoteSeconds || 30, 5, 120),
                             };

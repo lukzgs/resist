@@ -26,7 +26,7 @@ export function createInitialState(roomCode: string, roomName: string = '', isPu
         isPublic,
         timerConfig: {
             enabled: false,
-            teamSelectionSeconds: 60,
+            teamSelectionSeconds: 120,
             teamVoteSeconds: 45,
             missionVoteSeconds: 30,
         },
