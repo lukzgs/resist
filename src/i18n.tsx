@@ -99,6 +99,7 @@ const translations = {
         'game.win_human_desc': 'O Dia do Julgamento foi evitado. A linha temporal foi preservada.',
         'game.win_skynet_desc': 'A Resistência foi destruída. As máquinas controlam o futuro.',
         'game.error_player': 'Erro: jogador não encontrado. Recarregue a página.',
+        'game.spectating': 'Observando partida...',
 
         // Reconnect
         'reconnect.title': 'Sessão Detectada',
@@ -226,6 +227,7 @@ const translations = {
         'game.win_human_desc': 'Judgment Day was averted. The timeline was preserved.',
         'game.win_skynet_desc': 'The Resistance was destroyed. The machines control the future.',
         'game.error_player': 'Error: player not found. Reload the page.',
+        'game.spectating': 'Spectating match...',
 
         // Reconnect
         'reconnect.title': 'Session Detected',

@@ -415,7 +415,23 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
     );
   }
 
-  // Após o guard, me é garantidamente Player
+  // Espectadores não podem interagir - apenas observam
+  if (me.isSpectator) {
+    return (
+      <div className="flex flex-col items-center gap-4 opacity-60">
+        <div className="flex gap-1">
+          <div className="w-2 h-2 bg-slate-700 rounded-full" />
+          <div className="w-2 h-2 bg-slate-700 rounded-full" />
+          <div className="w-2 h-2 bg-slate-700 rounded-full" />
+        </div>
+        <p className="text-slate-300 font-mono text-sm uppercase tracking-widest italic">
+          {t('game.spectating')}
+        </p>
+      </div>
+    );
+  }
+
+  // Após o guard, me é garantidamente Player ativo
   const isLeader = state.players[state.leaderIndex].id === me.id;
 
   if (state.phase === Phase.TEAM_SELECTION) {

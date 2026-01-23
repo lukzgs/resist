@@ -46,7 +46,7 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
 
     if (!info) return null;
 
-    const activePlayers = state.players.filter(p => !p.disconnected);
+    const activePlayers = state.players.filter(p => !p.disconnected && !p.isSpectator);
     const voteCount = Object.keys(votes).length;
     const endGameVotes = Object.values(votes).filter(v => v === true).length;
     const waitVotes = voteCount - endGameVotes;
@@ -90,7 +90,7 @@ export function DisconnectVoteScreen({ state, me, sendAction }: DisconnectVoteSc
                 </div>
 
                 {/* Botões de voto */}
-                {!hasVoted && me && !me.disconnected ? (
+                {!hasVoted && me && !me.disconnected && !me.isSpectator ? (
                     <div className="space-y-3">
                         <p className="text-slate-300 text-sm mb-4">
                             O que deseja fazer?
