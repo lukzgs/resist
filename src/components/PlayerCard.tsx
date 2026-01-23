@@ -13,6 +13,7 @@ interface PlayerCardProps {
   hasVoted?: boolean;  // Para modo anônimo - indica que votou sem revelar o voto
   isDisconnected?: boolean;
   isMe?: boolean;
+  terminatorIndex?: number; // Índice único entre terminators para imagem
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({
@@ -24,7 +25,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   vote = undefined,
   hasVoted = false,
   isDisconnected = false,
-  isMe = false
+  isMe = false,
+  terminatorIndex = 0
 }) => {
 
   // Base styles for glassmorphism
@@ -64,8 +66,18 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   const roleColor = player.role === Role.TERMINATOR ? 'text-spy' : 'text-resistance';
 
+  // Background para Terminator quando identidade revelada
+  const showTerminatorBg = showIdentity && isTerminator;
+
   return (
     <div className={`${baseClasses} ${borderClass} ${shadowClass} group ${isDisconnected ? 'opacity-50' : ''}`}>
+      {/* Background image para Terminator - usa terminatorIndex para imagem única */}
+      {showTerminatorBg && (
+        <div
+          className="absolute inset-0 rounded-xl bg-cover bg-center bg-no-repeat pointer-events-none"
+          style={{ backgroundImage: `url(/src/assets/avatars/terminators/terminator${(terminatorIndex % 4) + 1}.avif)` }}
+        />
+      )}
       {/* Leader Badge */}
       {isLeader && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 text-black text-xs font-display font-bold px-4 py-1 rounded-full z-20 shadow-lg tracking-wider animate-pulse border border-yellow-300/50">
@@ -81,22 +93,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
       )}
 
       <div className="relative mb-3">
-        {/* Avatar Container */}
-        <div className={`rounded-full p-1 ${isInTeam ? 'bg-yellow-500/20' : 'bg-transparent'}`}>
+        {/* Avatar Container - invisível quando terminator com background, mas mantém espaço */}
+        <div className={`rounded-full p-1 ${isInTeam ? 'bg-yellow-500/20' : 'bg-transparent'} ${showTerminatorBg ? 'opacity-0' : ''}`}>
           <img
             src={AVATAR_URL(player.avatarSeed)}
             alt={player.name}
             className={`rounded-full object-cover bg-slate-800 border-2 ${isInTeam ? 'border-yellow-400' : isDisconnected ? 'border-red-500/50 grayscale' : 'border-slate-700'} ${compact ? 'w-10 h-10' : 'w-14 h-14 md:w-16 md:h-16'} transition-transform duration-300 group-hover:scale-105`}
           />
-        </div>
-
-        {/* Online/Offline Status Indicator - sempre visível */}
-        <div
-          className={`absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-slate-900 flex items-center justify-center z-10 ${isDisconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'
-            }`}
-          title={isDisconnected ? 'Offline' : 'Online'}
-        >
-          {isDisconnected && <span className="text-[8px] font-bold text-white">✕</span>}
         </div>
 
         {/* Vote Badge - mostra voto explícito (modo não-anônimo) */}
@@ -119,13 +122,20 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         )}
       </div>
 
-      <div className="text-center w-full">
-        <div className="font-display font-bold text-slate-200 text-base md:text-lg truncate tracking-wide">{player.name}</div>
+      <div className="text-center w-full relative z-10">
+        <div className="relative inline-flex items-center justify-center">
+          {/* Online/Offline Status Indicator - posição absoluta à esquerda do nome */}
+          <div
+            className={`absolute -left-4 w-3 h-3 rounded-full border border-slate-900 ${isDisconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}
+            title={isDisconnected ? 'Offline' : 'Online'}
+          />
+          <div className={`font-display font-bold text-base md:text-lg truncate tracking-wide ${showTerminatorBg ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]' : 'text-slate-200'}`}>{player.name}</div>
+        </div>
 
         {/* Identity Reveal / Role Tag */}
         <div className="h-4 flex items-center justify-center mt-1">
           {showIdentity ? (
-            <div className={`text-xs uppercase font-bold tracking-widest px-2 rounded-sm bg-black/40 ${roleColor}`}>
+            <div className={`text-xs uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm bg-black/70 ${roleColor}`}>
               {player.role === Role.TERMINATOR ? 'TERM' : 'HUMAN'}
             </div>
           ) : (

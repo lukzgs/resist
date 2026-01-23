@@ -229,6 +229,10 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
           {state.phase !== Phase.GAME_OVER && (() => {
             // Filtra espectadores - eles não devem ter cards
             const activePlayers = state.players.filter(p => !p.isSpectator);
+            // Cria mapa de índices únicos para terminators
+            const terminators = activePlayers.filter(p => p.role === Role.TERMINATOR);
+            const terminatorIndexMap = new Map(terminators.map((t, idx) => [t.id, idx]));
+
             return (
               <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl mx-auto px-4">
                 {activePlayers.map(function (p) {
@@ -257,6 +261,7 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                         hasVoted={state.phase === Phase.TEAM_VOTE && currentMission.votes[p.id] !== undefined && (!revealVotes || state.anonymousVotes)}
                         isDisconnected={p.disconnected}
                         isMe={p.name === playerName}
+                        terminatorIndex={terminatorIndexMap.get(p.id) ?? 0}
                       />
                     </div>
                   );
@@ -641,13 +646,12 @@ function GameOverScreen({ state, isHost, sendAction }: GameOverScreenProps) {
                 }`}
               style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
             >
-              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 mb-2 ${player.role === Role.TERMINATOR ? 'border-spy' : 'border-resistance'
+              {/* TODO: Substituir por imagem customizada de src/assets/avatars */}
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800 border-2 mb-2 ${player.role === Role.TERMINATOR ? 'border-spy' : 'border-resistance'
                 }`}>
-                <img
-                  src={`https://picsum.photos/seed/${player.avatarSeed}/80`}
-                  className="w-full h-full object-cover"
-                  alt={player.name}
-                />
+                <span className="text-slate-400 font-bold text-xl">
+                  {player.name.charAt(0).toUpperCase()}
+                </span>
               </div>
               <p className="text-white font-bold text-sm truncate max-w-full">{player.name}</p>
               <span className={`text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded mt-1 ${player.role === Role.TERMINATOR
