@@ -22,13 +22,13 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
     const canStart = pCount >= 5 && pCount <= 10;
     const [linkCopied, setLinkCopied] = useState(false);
 
-    // Estado LOCAL para configuração de timers - não envia ao servidor até iniciar
-    const [timerConfig, setTimerConfig] = useState<TimerConfig>({
-        enabled: false,
-        teamSelectionSeconds: 120,
-        teamVoteSeconds: 45,
-        missionVoteSeconds: 30,
-    });
+    // Estado LOCAL para configuração de timers - inicializa com valores do servidor (persistidos entre partidas)
+    const [timerConfig, setTimerConfig] = useState<TimerConfig>(() => ({
+        enabled: state.timerConfig?.enabled ?? false,
+        teamSelectionSeconds: state.timerConfig?.teamSelectionSeconds ?? 120,
+        teamVoteSeconds: state.timerConfig?.teamVoteSeconds ?? 45,
+        missionVoteSeconds: state.timerConfig?.missionVoteSeconds ?? 30,
+    }));
 
     const copyLink = async () => {
         const baseUrl = window.location.origin;
