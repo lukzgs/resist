@@ -142,6 +142,12 @@ export default function App() {
     isCreating,
     onStateUpdate: (state) => {
       setGameState(state);
+
+      // Limpa sessão quando jogo termina (evita tela de reconnect)
+      if (state.phase === Phase.GAME_OVER) {
+        clearAppSession();
+      }
+
       // Limpa notificações de "conectando"
       if (view !== 'GAME' && view !== 'LOBBY' && view !== 'RECONNECT') {
         setNotification(null);
