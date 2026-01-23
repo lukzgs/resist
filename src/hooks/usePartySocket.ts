@@ -12,6 +12,10 @@ const MAX_RECONNECT_DELAY_MS = 30000; // Delay máximo (30s)
 const MAX_RECONNECT_ATTEMPTS = 10; // Tentativas máximas antes de desistir
 const CONNECTION_TIMEOUT_MS = 15000; // Timeout de conexão (15s)
 
+// Reconexão silenciosa para mobile
+const SILENT_RECONNECT_ATTEMPTS = 3; // Tentativas invisíveis antes de mostrar UI
+const SILENT_RECONNECT_DELAY_MS = 2000; // Delay entre tentativas silenciosas (2s)
+
 // Health check timeout (2 segundos)
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
 
@@ -421,13 +425,21 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 // Tenta reconectar se não foi desconexão intencional
                 if (shouldReconnectRef.current && reconnectAttempt < MAX_RECONNECT_ATTEMPTS) {
                     const nextAttempt = reconnectAttempt + 1;
-                    const delay = getReconnectDelay(nextAttempt);
 
-                    console.log(`[WS] Tentando reconectar em ${delay}ms (tentativa ${nextAttempt}/${MAX_RECONNECT_ATTEMPTS})`);
+                    // Reconexão silenciosa: primeiras N tentativas são invisíveis
+                    const isSilentReconnect = nextAttempt <= SILENT_RECONNECT_ATTEMPTS;
+                    const delay = isSilentReconnect ? SILENT_RECONNECT_DELAY_MS : getReconnectDelay(nextAttempt - SILENT_RECONNECT_ATTEMPTS);
 
-                    setIsReconnecting(true);
+                    if (isSilentReconnect) {
+                        console.log(`[WS] Reconexão silenciosa ${nextAttempt}/${SILENT_RECONNECT_ATTEMPTS} em ${delay}ms`);
+                    } else {
+                        console.log(`[WS] Reconexão visível (tentativa ${nextAttempt - SILENT_RECONNECT_ATTEMPTS}/${MAX_RECONNECT_ATTEMPTS - SILENT_RECONNECT_ATTEMPTS}) em ${delay}ms`);
+                        // Só mostra UI de reconexão após tentativas silenciosas
+                        setIsReconnecting(true);
+                        onConnectionChange?.('reconnecting');
+                    }
+
                     setReconnectAttempt(nextAttempt);
-                    onConnectionChange?.('reconnecting');
 
                     reconnectTimeoutRef.current = setTimeout(() => {
                         if (shouldReconnectRef.current) {
