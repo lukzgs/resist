@@ -280,11 +280,6 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
               <div className="mb-6">
                 <TimerCircle
                   endsAt={state.currentTimerEndsAt}
-                  label={state.currentTimerType === 'team_selection'
-                    ? t('timer.team_selection')
-                    : state.currentTimerType === 'team_vote'
-                      ? t('timer.team_vote')
-                      : t('timer.mission_vote')}
                 />
               </div>
             )}
