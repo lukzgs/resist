@@ -502,7 +502,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
               setPendingVote(true);
               sendAction('VOTE', { playerId: me.id, approve: true });
             }}
-            className="bg-resistance text-black px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
+            className="w-full bg-resistance text-black px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-blue transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
             {t('game.approve')}
             <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
@@ -512,7 +512,7 @@ function PhaseControls({ state, me, sendAction, isHost }: PhaseControlsProps) {
               setPendingVote(false);
               sendAction('VOTE', { playerId: me.id, approve: false });
             }}
-            className="bg-spy text-white px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-red transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
+            className="w-full bg-spy text-white px-12 py-3 rounded-xl font-display font-black uppercase tracking-widest hover:brightness-125 hover:shadow-glow-red transition-all hover:scale-105 active:scale-95 relative overflow-hidden group"
           >
             {t('game.reject')}
             <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-full transition-all duration-1000"></div>
