@@ -24,7 +24,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
 
     // Estado LOCAL para configuração de timers - inicializa com valores do servidor (persistidos entre partidas)
     const [timerConfig, setTimerConfig] = useState<TimerConfig>(() => ({
-        enabled: state.timerConfig?.enabled ?? false,
+        enabled: state.timerConfig?.enabled ?? true,
         teamSelectionSeconds: state.timerConfig?.teamSelectionSeconds ?? 120,
         teamVoteSeconds: state.timerConfig?.teamVoteSeconds ?? 45,
         missionVoteSeconds: state.timerConfig?.missionVoteSeconds ?? 30,
