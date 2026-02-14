@@ -113,6 +113,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
   const [reconnectError, setReconnectError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);  // true se criando sala, false se entrando
+  const [roomNameForCreate, setRoomNameForCreate] = useState('');  // Nome da sala ao criar
 
   const showNotification = useCallback((message: string, type: 'error' | 'info' | 'success' = 'info') => {
     setNotification({ message, type });
@@ -140,6 +141,7 @@ export default function App() {
     playerName,
     avatarSeed,
     isCreating,
+    roomName: roomNameForCreate,
     onStateUpdate: (state) => {
       setGameState(state);
 
@@ -220,6 +222,7 @@ export default function App() {
 
       if (serverCode) {
         setIsCreating(true);
+        setRoomNameForCreate(roomName);
         setRoomCode(serverCode);
       } else {
         showNotification('Não foi possível criar a sala. Tente novamente.', 'error');

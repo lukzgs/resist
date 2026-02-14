@@ -28,7 +28,8 @@ export function handleJoin(
     name: string,
     avatarSeed: number,
     sessionId?: string,
-    isCreating?: boolean
+    isCreating?: boolean,
+    roomName?: string
 ): void {
     // Sanitiza e valida o nome
     const sanitizedName = sanitizeName(name);
@@ -52,6 +53,9 @@ export function handleJoin(
     // Inicializa estado se necessário
     if (!ctx.gameState) {
         const newState = ctx.createInitialState(ctx.room.id);
+        if (roomName) {
+            newState.roomName = roomName;
+        }
         ctx.setGameState(newState);
         ctx.gameState = newState;
     }

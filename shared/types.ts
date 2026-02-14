@@ -87,7 +87,7 @@ export interface GameState {
 
 // Mensagens do cliente para o servidor
 export type ClientMessage =
-    | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean }
+    | { type: 'JOIN'; name: string; avatarSeed: number; sessionId?: string; isCreating?: boolean; roomName?: string }
     | { type: 'LEAVE_ROOM' }
     | { type: 'REMOVE_PLAYER'; playerId: string }
     | { type: 'START_GAME'; timerConfig?: TimerConfig }

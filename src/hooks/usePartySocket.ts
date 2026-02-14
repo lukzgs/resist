@@ -197,6 +197,7 @@ interface UsePartySocketOptions {
     playerName: string;
     avatarSeed: number;
     isCreating?: boolean;  // true se está criando sala, false se entrando em existente
+    roomName?: string;  // Nome da sala ao criar
     onStateUpdate: (state: GameState) => void;
     onError: (message: string) => void;
     onPlayerJoined?: (name: string) => void;
@@ -349,6 +350,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                     avatarSeed: currentAvatarSeed,
                     sessionId,
                     isCreating: isCreatingRef.current,
+                    roomName: options.roomName,
                 }));
             });
 

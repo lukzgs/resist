@@ -584,7 +584,7 @@ export default class ResistServer implements Party.Server {
 
             switch (data.type) {
                 case 'JOIN': {
-                    handleJoin(this.getJoinContext(), sender, data.name, data.avatarSeed, data.sessionId, data.isCreating);
+                    handleJoin(this.getJoinContext(), sender, data.name, data.avatarSeed, data.sessionId, data.isCreating, data.roomName);
                     break;
                 }
                 case 'LEAVE_ROOM':
