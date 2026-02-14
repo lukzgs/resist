@@ -64,7 +64,7 @@ export default function SetupView({ mode, playerName, onNameChange, onInit, onJo
                 className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-resistance transition-all font-mono text-xl"
                 placeholder={t('setup.room_name.placeholder') || 'Ex: Partida do João'}
               />
-              <p className="text-xs text-slate-500 ml-4">
+              <p className="text-xs text-slate-500 ml-4 font-mono uppercase tracking-widest">
                 {t('setup.room_name.hint') || 'Deixe vazio para gerar automaticamente'}
               </p>
             </div>

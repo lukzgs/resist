@@ -124,7 +124,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                 <label className="flex items-center justify-between cursor-pointer group">
                                     <div>
                                         <span className="text-sm font-mono text-slate-300 uppercase tracking-widest">{t('lobby.private_room') || 'SALA PRIVADA'}</span>
-                                        <p className="text-xs text-slate-500 mt-1">{t('lobby.private_room.desc') || 'Oculta da busca de salas'}</p>
+                                        <p className="text-xs text-slate-500 mt-1 font-mono uppercase tracking-widest">{t('lobby.private_room.desc') || 'Oculta da busca de salas'}</p>
                                     </div>
                                     <div
                                         onClick={() => onTogglePublic(!state.isPublic)}
