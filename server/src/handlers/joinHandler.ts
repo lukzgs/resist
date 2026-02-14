@@ -252,8 +252,9 @@ export function handleRemovePlayer(ctx: HandlerContext, conn: Party.Connection, 
                     } catch (e) {
                         // Ignora erro de envio
                     }
-                    // Fecha a conexão imediatamente
-                    c.close();
+                    // Fecha a conexão com código custom 4001 (kicked)
+                    // Delay para garantir que a mensagem ERROR chegue antes do close
+                    setTimeout(() => c.close(4001, 'kicked'), 100);
                     break;
                 }
             }

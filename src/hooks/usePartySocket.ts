@@ -422,6 +422,19 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 setIsConnected(false);
                 socketRef.current = null;
 
+                // Código 4001 = kicked pelo host - impedir reconexão imediatamente
+                if (event.code === 4001) {
+                    shouldReconnectRef.current = false;
+                    clearReconnectTimeout();
+                    clearSession(lastRoomCodeRef.current);
+                    setIsConnecting(false);
+                    setIsReconnecting(false);
+                    setReconnectAttempt(0);
+                    onConnectionChange?.('disconnected');
+                    onKicked?.();
+                    return;
+                }
+
                 // Tenta reconectar se não foi desconexão intencional
                 if (shouldReconnectRef.current && reconnectAttempt < MAX_RECONNECT_ATTEMPTS) {
                     const nextAttempt = reconnectAttempt + 1;
