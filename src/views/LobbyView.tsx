@@ -50,6 +50,11 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                     <div className="lg:col-span-4 flex flex-col gap-6">
                         <div className="bg-black/60 p-8 rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden flex-1 card-animate">
                             <div className="absolute top-0 right-0 p-4 font-mono text-xs text-resistance/20">SKYNET_INT_04</div>
+                            {state.roomName && (
+                                <div className="mb-4 pb-3 border-b border-white/5">
+                                    <div className="text-xl font-display font-bold text-white tracking-wide truncate drop-shadow-glow-blue">{state.roomName}</div>
+                                </div>
+                            )}
                             <span className="text-sm font-mono text-resistance tracking-widest block mb-4 uppercase font-bold border-b border-resistance/20 pb-2">{t('lobby.code')}</span>
                             <div className="text-6xl font-display font-black text-white tracking-widest mb-2 drop-shadow-glow-blue">{state.roomCode.replace(/0/g, 'Ø')}</div>
                             <button
