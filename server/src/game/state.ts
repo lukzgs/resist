@@ -17,7 +17,7 @@ export function createInitialState(roomCode: string, roomName: string = '', isPu
         missions: [],
         failedVoteCount: 0,
         proposedTeam: [],
-        logs: [`> PROTOCOLO: ${roomCode}`],
+        logs: [],
         winner: null,
         anonymousVotes: true,
         showRejectionCount: true,
@@ -50,6 +50,8 @@ export function getSanitizedState(state: GameState): GameState {
  * Adiciona log ao estado (mantém últimos 20)
  */
 export function addLog(state: GameState, message: string): void {
+    // Logs desabilitados - para reativar, remova o return abaixo
+    return;
     state.logs = [...state.logs.slice(-20), message];
 }
 
