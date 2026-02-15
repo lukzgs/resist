@@ -4,6 +4,7 @@ import type * as Party from "partykit/server";
 import { GameState, Phase, Role, Player, ServerMessage } from '../types';
 import { generateId, generateUUID } from '../utils/crypto';
 import { addLog, getSanitizedState, sanitizeName, getPlayerByConnection } from '../game/state';
+import { log } from '../utils/logger';
 
 export interface HandlerContext {
     room: Party.Room;
@@ -58,6 +59,7 @@ export function handleJoin(
         }
         ctx.setGameState(newState);
         ctx.gameState = newState;
+        log.player(ctx.room.id, `Sala criada${roomName ? ` "${roomName}"` : ''}`);
     }
 
     // Verifica se já está conectado com esta conexão
@@ -114,13 +116,20 @@ export function handleJoin(
             playerId: newPlayer.id
         } as ServerMessage));
     } catch (e) {
-        console.error(`[${ctx.room.id}] Erro ao enviar SESSION_ESTABLISHED:`, e instanceof Error ? e.message : e);
+        log.error(ctx.gameState.roomCode, 'Erro ao enviar SESSION_ESTABLISHED', e);
     }
 
     // Registra e adiciona jogador
     ctx.connections.set(conn.id, newPlayer.id);
     ctx.gameState.players.push(newPlayer);
     addLog(ctx.gameState, `> ${name} conectou`);
+
+    const playerCount = ctx.gameState.players.filter(p => !p.isSpectator).length;
+    if (newPlayer.isSpectator) {
+        log.player(ctx.gameState.roomCode, `"${name}" entrou como espectador`);
+    } else {
+        log.player(ctx.gameState.roomCode, `"${name}" entrou na sala (${playerCount}/10)`);
+    }
 
     ctx.broadcastState();
 
@@ -159,6 +168,7 @@ function handleReconnect(
     // Atualiza nome apenas no lobby
     if (existingPlayer.name !== name && ctx.gameState.phase === Phase.LOBBY) {
         addLog(ctx.gameState, `> ${existingPlayer.name} agora é ${name}`);
+        log.player(ctx.gameState.roomCode, `"${existingPlayer.name}" mudou nome para "${name}"`);
         existingPlayer.name = name;
     }
 
@@ -167,8 +177,10 @@ function handleReconnect(
     // Se era o jogador que causou pausa, cancela espera
     if (ctx.gameState.disconnectInfo?.disconnectedPlayerId === existingPlayer.id) {
         ctx.cancelDisconnectWait();
+        log.player(ctx.gameState.roomCode, `"${existingPlayer.name}" reconectou - jogo retomado`);
     } else {
         addLog(ctx.gameState, `> ${existingPlayer.name} reconectou`);
+        log.player(ctx.gameState.roomCode, `"${existingPlayer.name}" reconectou`);
         ctx.broadcastState();
     }
 
@@ -206,9 +218,12 @@ export function handleLeaveRoom(ctx: HandlerContext, conn: Party.Connection): vo
     if (player.isHost && ctx.gameState.players.length > 0) {
         ctx.gameState.players[0].isHost = true;
         addLog(ctx.gameState, `> ${ctx.gameState.players[0].name} agora é o host`);
+        log.player(ctx.gameState.roomCode, `"${ctx.gameState.players[0].name}" assumiu como host`);
     }
 
     addLog(ctx.gameState, `> ${player.name} saiu da sala`);
+    const remainingCount = ctx.gameState.players.filter(p => !p.isSpectator).length;
+    log.player(ctx.gameState.roomCode, `"${player.name}" saiu da sala (${remainingCount}/10)`);
     ctx.broadcastState();
     conn.close();
 }
@@ -267,5 +282,6 @@ export function handleRemovePlayer(ctx: HandlerContext, conn: Party.Connection, 
     }
 
     addLog(ctx.gameState, `> ${removed.name} removido pelo host`);
+    log.player(ctx.gameState.roomCode, `"${removed.name}" removido pelo host`);
     ctx.broadcastState();
 }

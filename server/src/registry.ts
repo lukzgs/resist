@@ -1,5 +1,6 @@
 import type * as Party from "partykit/server";
 import { generateRoomCode } from './utils/crypto';
+import { log } from './utils/logger';
 
 // Limite máximo de salas simultâneas
 const MAX_ROOMS = 50;
@@ -94,7 +95,7 @@ export default class RegistryServer implements Party.Server {
         });
 
         if (before !== this.state.activeRooms.length) {
-            console.log(`[Registry] Cleanup: removidas ${before - this.state.activeRooms.length} salas órfãs`);
+            log.registry(`Cleanup: removidas ${before - this.state.activeRooms.length} salas orfas`);
             await this.saveState();
         }
 
@@ -156,7 +157,7 @@ export default class RegistryServer implements Party.Server {
 
             return new Response('Not found', { status: 404, headers: corsHeaders });
         } catch (e) {
-            console.error('[Registry] Erro:', e);
+            log.error('', 'Registry: erro ao processar request', e);
             return new Response(JSON.stringify({ error: 'Erro interno' }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json', ...corsHeaders }
@@ -209,7 +210,7 @@ export default class RegistryServer implements Party.Server {
         this.state.activeRooms.push(roomInfo);
         await this.saveState();
 
-        console.log(`[Registry] Sala ${code} registrada (${this.state.activeRooms.length}/${MAX_ROOMS})`);
+        log.registry(`Sala ${code} registrada (${this.state.activeRooms.length}/${MAX_ROOMS})`);
 
         return new Response(JSON.stringify({
             code,
@@ -239,7 +240,7 @@ export default class RegistryServer implements Party.Server {
 
         if (before !== this.state.activeRooms.length) {
             await this.saveState();
-            console.log(`[Registry] Sala ${body.code} removida (${this.state.activeRooms.length}/${MAX_ROOMS})`);
+            log.registry(`Sala ${body.code} removida (${this.state.activeRooms.length}/${MAX_ROOMS})`);
         }
 
         return new Response(JSON.stringify({ success: true }), {
@@ -272,7 +273,7 @@ export default class RegistryServer implements Party.Server {
         // Atualiza campos
         if (body.playerCount !== undefined) {
             room.playerCount = body.playerCount;
-            console.log(`[Registry] Sala ${body.code} atualizada: ${body.playerCount} jogadores`);
+            log.registry(`Sala ${body.code} atualizada: ${body.playerCount} jogadores`);
         }
         if (body.phase !== undefined) room.phase = body.phase;
         if (body.isPublic !== undefined) room.isPublic = body.isPublic;

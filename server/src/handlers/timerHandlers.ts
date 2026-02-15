@@ -3,6 +3,7 @@
 import type * as Party from "partykit/server";
 import { GameState, Phase, TimerType, TimerConfig } from '../types';
 import { addLog, getActivePlayers, getPlayerByConnection } from '../game/state';
+import { log } from '../utils/logger';
 
 export interface TimerHandlerContext {
     room: Party.Room;
@@ -170,7 +171,8 @@ function handleTeamSelectionExpired(ctx: TimerHandlerContext): void {
     ctx.gameState.failedVoteCount++;
 
     const newLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
-    addLog(ctx.gameState, `> TEMPO ESGOTADO! Liderança passou para ${newLeader.name}`);
+    addLog(ctx.gameState, `> TEMPO ESGOTADO! Lideranca passou para ${newLeader.name}`);
+    log.timer(ctx.gameState.roomCode, `Timer expirou (selecao) - lideranca passou para "${newLeader.name}"`);
 
     // Verifica se 5 rejeições
     if (ctx.gameState.failedVoteCount >= 5) {
@@ -206,7 +208,8 @@ function handleTeamVoteExpired(ctx: TimerHandlerContext): void {
     }
 
     if (autoVotedCount > 0) {
-        addLog(ctx.gameState, `> TEMPO ESGOTADO! ${autoVotedCount} voto(s) automático(s): Aprovar`);
+        addLog(ctx.gameState, `> TEMPO ESGOTADO! ${autoVotedCount} voto(s) automatico(s): Aprovar`);
+        log.timer(ctx.gameState.roomCode, `Timer expirou (votacao) - ${autoVotedCount} voto(s) automatico(s) aplicados`);
     }
 
     // Processa resultado da votação
@@ -272,7 +275,8 @@ function handleMissionVoteExpired(ctx: TimerHandlerContext): void {
     }
 
     if (autoVotedCount > 0) {
-        addLog(ctx.gameState, `> TEMPO ESGOTADO! ${autoVotedCount} voto(s) automático(s): Sucesso`);
+        addLog(ctx.gameState, `> TEMPO ESGOTADO! ${autoVotedCount} voto(s) automatico(s): Sucesso`);
+        log.timer(ctx.gameState.roomCode, `Timer expirou (missao) - ${autoVotedCount} acao(oes) automatica(s) aplicada(s)`);
     }
 
     // Processa resultado da missão
@@ -346,8 +350,10 @@ export function handleSetTimerConfig(
 
     if (config.enabled) {
         addLog(ctx.gameState, `> Timers habilitados`);
+        log.timer(ctx.gameState.roomCode, 'Timers habilitados');
     } else {
         addLog(ctx.gameState, `> Timers desabilitados`);
+        log.timer(ctx.gameState.roomCode, 'Timers desabilitados');
     }
 
     ctx.broadcastState();

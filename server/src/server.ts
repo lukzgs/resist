@@ -9,6 +9,7 @@ import {
 
 // Importações dos módulos refatorados
 import { createInitialState, getSanitizedState, addLog, getPlayerByConnection } from './game/state';
+import { log } from './utils/logger';
 import { generateRoomCode } from './utils/crypto';
 import {
     handleJoin,
@@ -246,7 +247,7 @@ export default class ResistServer implements Party.Server {
                     body: JSON.stringify({ code: this.gameState.roomCode, ...data })
                 });
             } catch (e2) {
-                console.warn('[Server] Falha ao notificar registry (stub e fallback):', e2);
+                log.warn(this.gameState?.roomCode || '', 'Falha ao notificar registry (stub e fallback)');
             }
         }
     }
@@ -391,7 +392,7 @@ export default class ResistServer implements Party.Server {
 
         // Notifica registry sobre mudanças (playerCount, phase, isPublic)
         const playerCount = this.gameState.players.length;
-        console.log(`[Server] Notificando registry: ${playerCount} jogadores, fase ${this.gameState.phase}`);
+        log.system(this.gameState.roomCode, `Broadcast state - ${playerCount} jogadores, fase ${this.gameState.phase}`);
         this.notifyRegistry('update', {
             playerCount,
             phase: this.gameState.phase,
@@ -418,7 +419,7 @@ export default class ResistServer implements Party.Server {
                 if (timer) {
                     clearTimeout(timer);
                     this.gracePeriodTimers.delete(playerId);
-                    console.log(`[Server] Grace period cancelado para jogador ${playerId} (reconectou a tempo)`);
+                    log.player(this.gameState!.roomCode, `"${playerId}" reconectou durante grace period`);
                 }
             },
             createInitialState: createInitialState,
@@ -516,7 +517,7 @@ export default class ResistServer implements Party.Server {
                 } else {
                     // Grace period: espera 25s antes de pausar o jogo
                     // Se jogador reconectar nesse tempo, jogo continua normalmente
-                    console.log(`[Server] ${player.name} desconectou - grace period de ${ResistServer.DISCONNECT_GRACE_PERIOD_MS / 1000}s iniciado`);
+                    log.disconnect(this.gameState!.roomCode, `"${player.name}" desconectou - grace period ${ResistServer.DISCONNECT_GRACE_PERIOD_MS / 1000}s`);
 
                     const gracePeriodTimeout = setTimeout(() => {
                         // Verifica se jogador ainda está desconectado após grace period
@@ -527,7 +528,7 @@ export default class ResistServer implements Party.Server {
 
                         if (stillDisconnected && !stillDisconnected.isSpectator) {
                             // Jogador não reconectou no tempo - agora sim pausa o jogo
-                            console.log(`[Server] ${stillDisconnected.name} não reconectou - pausando jogo`);
+                            log.disconnect(this.gameState!.roomCode, `"${stillDisconnected.name}" nao reconectou - jogo pausado`);
                             this.startDisconnectWait({ id: stillDisconnected.id, name: stillDisconnected.name });
                         }
 
@@ -658,7 +659,7 @@ export default class ResistServer implements Party.Server {
         } catch (e) {
             const errorType = e instanceof SyntaxError ? 'JSON inválido' :
                 e instanceof TypeError ? 'Tipo inválido' : 'Erro desconhecido';
-            console.error(`[${this.room.id}] Erro ao processar mensagem (${errorType}):`, e instanceof Error ? e.message : e);
+            log.error(this.gameState?.roomCode || this.room.id, `Erro ao processar mensagem (${errorType})`, e);
             this.sendError(sender, `Erro ao processar mensagem: ${errorType}`);
         }
     }

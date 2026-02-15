@@ -4,6 +4,7 @@ import type * as Party from "partykit/server";
 import { GameState, Phase, Role, Player, ServerMessage, GAME_RULES, TimerType } from '../types';
 import { shuffle } from '../utils/crypto';
 import { addLog, getSanitizedState, getPlayerByConnection, getActivePlayers } from '../game/state';
+import { log } from '../utils/logger';
 
 export interface GameHandlerContext {
     room: Party.Room;
@@ -90,7 +91,10 @@ export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection)
     addLog(ctx.gameState, `> UNIDADE FORMADA: ${pCount} AGENTES`);
     addLog(ctx.gameState, `> ESCANEANDO ASSINATURAS...`);
 
-    // Inicia timer de seleção de time se habilitado
+    const terminatorCount = ctx.gameState.players.filter(p => p.role === Role.TERMINATOR).length;
+    log.game(ctx.gameState.roomCode, `Jogo iniciado - ${pCount} jogadores, ${terminatorCount} terminators`);
+
+    // Inicia timer de selecao de time se habilitado
     if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
         ctx.startTimer('team_selection');
     }
@@ -153,7 +157,13 @@ export function handleSubmitTeam(ctx: GameHandlerContext, conn: Party.Connection
 
     ctx.gameState.missions[ctx.gameState.currentMissionIndex].votes = {};
     ctx.gameState.phase = Phase.TEAM_VOTE;
-    addLog(ctx.gameState, `> ESQUADRÃO PROPOSTO PELO COMANDANTE`);
+    addLog(ctx.gameState, `> ESQUADRAO PROPOSTO PELO COMANDANTE`);
+
+    const teamNames = ctx.gameState.proposedTeam.map(id => {
+        const p = ctx.gameState.players.find(pl => pl.id === id);
+        return p ? `"${p.name}"` : id;
+    }).join(', ');
+    log.game(ctx.gameState.roomCode, `Missao ${ctx.gameState.currentMissionIndex + 1} - equipe submetida: ${teamNames}`);
 
     // Cancela timer de seleção e inicia timer de votação se habilitado
     if (ctx.gameState.timerConfig.enabled) {
@@ -198,6 +208,7 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 ctx.gameState.phase = Phase.MISSION_EXECUTION;
                 ctx.gameState.failedVoteCount = 0;
                 addLog(ctx.gameState, `> EQUIPE APROVADA (${approvals}/${activePlayers.length})`);
+                log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - equipe aprovada (${approvals}/${activePlayers.length})`);
 
                 // Inicia timer de missão se habilitado
                 if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
@@ -206,11 +217,13 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
             } else {
                 ctx.gameState.failedVoteCount++;
                 addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
+                log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - equipe rejeitada (${approvals}/${activePlayers.length}) - rejeicao ${ctx.gameState.failedVoteCount}/5`);
 
                 if (ctx.gameState.failedVoteCount >= 5) {
                     ctx.gameState.phase = Phase.GAME_OVER;
                     ctx.gameState.winner = Role.TERMINATOR;
-                    addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+                    addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEICOES`);
+                    log.game(ctx.gameState.roomCode, 'Terminators vencem - 5 rejeicoes consecutivas');
                     ctx.scheduleRoomClosure();
                 } else {
                     ctx.gameState.phase = Phase.TEAM_SELECTION;
@@ -277,7 +290,8 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
         }
 
         ctx.gameState.missions[missionIndex].status = isFailed ? 'FAIL' : 'SUCCESS';
-        addLog(ctx.gameState, `> MISSÃO ${missionIndex + 1}: ${isFailed ? 'FALHOU' : 'SUCESSO'} (${fails} sabotagem${fails !== 1 ? 's' : ''})`);
+        addLog(ctx.gameState, `> MISSAO ${missionIndex + 1}: ${isFailed ? 'FALHOU' : 'SUCESSO'} (${fails} sabotagem${fails !== 1 ? 's' : ''})`);
+        log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - ${isFailed ? 'FALHOU' : 'SUCESSO'} (${fails} sabotagem${fails !== 1 ? 's' : ''})`);
 
         const successes = ctx.gameState.missions.filter(m => m.status === 'SUCCESS').length;
         const failures = ctx.gameState.missions.filter(m => m.status === 'FAIL').length;
@@ -285,12 +299,14 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
         if (successes >= 3) {
             ctx.gameState.winner = Role.HUMAN;
             ctx.gameState.phase = Phase.GAME_OVER;
-            addLog(ctx.gameState, `> RESISTÊNCIA VENCE!`);
+            addLog(ctx.gameState, `> RESISTENCIA VENCE!`);
+            log.game(ctx.gameState.roomCode, 'FIM - Resistencia vence!');
             ctx.scheduleRoomClosure();
         } else if (failures >= 3) {
             ctx.gameState.winner = Role.TERMINATOR;
             ctx.gameState.phase = Phase.GAME_OVER;
             addLog(ctx.gameState, `> SKYNET PREVALECE!`);
+            log.game(ctx.gameState.roomCode, 'FIM - Skynet prevalece!');
             ctx.scheduleRoomClosure();
         } else {
             ctx.broadcastState();
@@ -335,7 +351,8 @@ export function handleSetAnonymousVotes(ctx: GameHandlerContext, conn: Party.Con
     if (!player?.isHost) return;
 
     ctx.gameState.anonymousVotes = enabled;
-    addLog(ctx.gameState, `> Votos ${enabled ? 'anônimos' : 'públicos'}`);
+    addLog(ctx.gameState, `> Votos ${enabled ? 'anonimos' : 'publicos'}`);
+    log.system(ctx.gameState.roomCode, `Votos anonimos: ${enabled ? 'ativado' : 'desativado'}`);
     ctx.broadcastState();
 }
 
@@ -349,7 +366,8 @@ export function handleSetShowRejectionCount(ctx: GameHandlerContext, conn: Party
     if (!player?.isHost) return;
 
     ctx.gameState.showRejectionCount = enabled;
-    addLog(ctx.gameState, `> Contagem de rejeições ${enabled ? 'ativada' : 'desativada'}`);
+    addLog(ctx.gameState, `> Contagem de rejeicoes ${enabled ? 'ativada' : 'desativada'}`);
+    log.system(ctx.gameState.roomCode, `Contagem de rejeicoes: ${enabled ? 'ativada' : 'desativada'}`);
     ctx.broadcastState();
 }
 
@@ -387,5 +405,6 @@ export function handleRestartGame(
     }));
 
     addLog(ctx.gameState, `> NOVA PARTIDA INICIADA`);
+    log.game(ctx.gameState.roomCode, 'Nova partida iniciada');
     ctx.broadcastState();
 }

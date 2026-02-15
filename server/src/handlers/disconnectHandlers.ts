@@ -3,6 +3,7 @@
 import type * as Party from "partykit/server";
 import { GameState, Phase, Role, ServerMessage } from '../types';
 import { addLog, getPlayerByConnection, getActivePlayers } from '../game/state';
+import { log } from '../utils/logger';
 
 export interface DisconnectHandlerContext {
     room: Party.Room;
@@ -75,6 +76,7 @@ export function startDisconnectWait(
     ctx.gameState.disconnectVotes = {};
 
     addLog(ctx.gameState, `> ${player.name} desconectou - aguardando ${DISCONNECT_WAIT_MS / 1000}s...`);
+    log.disconnect(ctx.gameState.roomCode, `"${player.name}" desconectou - aguardando ${DISCONNECT_WAIT_MS / 1000}s (tentativa ${attempt})`);
     ctx.broadcastState();
 }
 
@@ -92,6 +94,7 @@ export function cancelDisconnectWait(ctx: DisconnectHandlerContext): void {
     ctx.gameState.disconnectVotes = undefined;
 
     addLog(ctx.gameState, `> Jogador reconectou - retomando jogo`);
+    log.disconnect(ctx.gameState.roomCode, `"${info.disconnectedPlayerName}" reconectou - jogo retomado`);
     ctx.broadcastState();
 }
 
@@ -110,7 +113,8 @@ export function startDisconnectVote(
     ctx.gameState.disconnectInfo.expiresAt = expiresAt;
     ctx.gameState.disconnectVotes = {};
 
-    addLog(ctx.gameState, `> Votação: encerrar partida ou aguardar ${ctx.gameState.disconnectInfo.disconnectedPlayerName}?`);
+    addLog(ctx.gameState, `> Votacao: encerrar partida ou aguardar ${ctx.gameState.disconnectInfo.disconnectedPlayerName}?`);
+    log.disconnect(ctx.gameState.roomCode, `Votacao de desconexao iniciada para "${ctx.gameState.disconnectInfo.disconnectedPlayerName}"`);
     ctx.broadcastState();
 }
 
@@ -138,6 +142,7 @@ export function resolveDisconnectVote(
         return 'MAX_ATTEMPTS';
     } else {
         addLog(ctx.gameState, `> Jogadores votaram para aguardar - tentativa ${info.waitingAttempt + 1}/${MAX_DISCONNECT_ATTEMPTS}`);
+        log.disconnect(ctx.gameState.roomCode, `Jogadores votaram aguardar - tentativa ${info.waitingAttempt + 1}/${MAX_DISCONNECT_ATTEMPTS}`);
         return 'CONTINUE';
     }
 }
@@ -154,6 +159,7 @@ export function cancelGame(ctx: DisconnectHandlerContext, reason: string): void 
     ctx.gameState.disconnectVotes = undefined;
 
     addLog(ctx.gameState, `> PARTIDA CANCELADA: ${reason}`);
+    log.disconnect(ctx.gameState.roomCode, `Partida cancelada: ${reason}`);
     ctx.scheduleRoomClosure();
     ctx.broadcastState();
 }
