@@ -81,10 +81,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                         <span className="text-slate-300">{t('lobby.terminators')}:</span>
                                         <span className="text-spy font-bold">{canStart ? GAME_RULES[pCount].spyCount : '?'} {t('lobby.units')}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-300">{t('lobby.bunker')}:</span>
-                                        <span className="text-green-500 font-bold">{t('lobby.stable')}</span>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
