@@ -393,11 +393,18 @@ export default class ResistServer implements Party.Server {
         // Notifica registry sobre mudanças (playerCount, phase, isPublic)
         const playerCount = this.gameState.players.length;
         log.system(this.gameState.roomCode, `Broadcast state - ${playerCount} jogadores, fase ${this.gameState.phase}`);
-        this.notifyRegistry('update', {
-            playerCount,
-            phase: this.gameState.phase,
-            isPublic: this.gameState.isPublic
-        });
+
+        if (playerCount === 0) {
+            // Sala vazia: remove do registry para não aparecer como sala fantasma
+            log.system(this.gameState.roomCode, 'Sala vazia - removendo do registry');
+            this.notifyRegistry('unregister');
+        } else {
+            this.notifyRegistry('update', {
+                playerCount,
+                phase: this.gameState.phase,
+                isPublic: this.gameState.isPublic
+            });
+        }
     };
 
     private sendError = (conn: Party.Connection, message: string): void => {
