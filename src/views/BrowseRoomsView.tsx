@@ -66,9 +66,6 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
                             <p className="text-xl font-mono text-slate-400 uppercase">
                                 {t('browse.empty') || 'Nenhuma sala disponível'}
                             </p>
-                            <p className="mt-2 text-sm text-slate-500">
-                                {t('browse.empty.hint') || 'Crie uma sala ou tente novamente'}
-                            </p>
                         </div>
                     ) : (
                         <div className="grid gap-3">
