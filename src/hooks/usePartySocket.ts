@@ -114,6 +114,7 @@ export async function getPublicRooms(): Promise<PublicRoom[]> {
 
 // Chave do localStorage para sessão - agora única por sala
 const SESSION_STORAGE_PREFIX = 'resist_session_';
+const COOKIE_PREFIX = 'rs_';
 
 interface StoredSession {
     sessionId: string;
@@ -127,25 +128,59 @@ function getSessionKey(roomCode: string): string {
     return `${SESSION_STORAGE_PREFIX}${roomCode}`;
 }
 
-// Recupera sessão do localStorage
-function getStoredSessionId(roomCode: string, playerName: string): string | undefined {
+// --- Cookie helpers (fallback para iOS) ---
+function setSessionCookie(roomCode: string, sessionId: string, playerId: string) {
+    const key = `${COOKIE_PREFIX}${roomCode}`;
+    const value = encodeURIComponent(JSON.stringify({ sessionId, playerId }));
+    const maxAge = 7 * 24 * 60 * 60; // 7 dias
+    document.cookie = `${key}=${value}; max-age=${maxAge}; path=/; SameSite=Strict`;
+}
+
+function getSessionCookie(roomCode: string): { sessionId: string; playerId: string } | null {
+    try {
+        const key = `${COOKIE_PREFIX}${roomCode}=`;
+        const cookie = document.cookie.split('; ').find(c => c.startsWith(key));
+        if (cookie) {
+            return JSON.parse(decodeURIComponent(cookie.substring(key.length)));
+        }
+    } catch (e) {
+        console.warn('[Session] Erro ao ler cookie:', e);
+    }
+    return null;
+}
+
+function clearSessionCookie(roomCode?: string) {
+    if (roomCode) {
+        document.cookie = `${COOKIE_PREFIX}${roomCode}=; max-age=0; path=/; SameSite=Strict`;
+    } else {
+        // Limpa todos os cookies resist
+        document.cookie.split('; ')
+            .filter(c => c.startsWith(COOKIE_PREFIX))
+            .forEach(c => {
+                const name = c.split('=')[0];
+                document.cookie = `${name}=; max-age=0; path=/; SameSite=Strict`;
+            });
+    }
+}
+
+// Recupera sessão do localStorage (com fallback para cookie)
+function getStoredSessionId(roomCode: string): string | undefined {
     try {
         const key = getSessionKey(roomCode);
         const stored = localStorage.getItem(key);
         if (stored) {
             const session: StoredSession = JSON.parse(stored);
-            // Retorna sessionId apenas se é o mesmo jogador
-            if (session.playerName === playerName) {
-                return session.sessionId;
-            }
+            return session.sessionId;
         }
     } catch (e) {
         console.warn('[Session] Erro ao ler sessão:', e);
     }
-    return undefined;
+    // Fallback: tenta cookie (mais resiliente no iOS)
+    const cookie = getSessionCookie(roomCode);
+    return cookie?.sessionId;
 }
 
-// Salva sessão no localStorage
+// Salva sessão no localStorage + cookie backup
 function saveSession(roomCode: string, playerName: string, sessionId: string, playerId: string) {
     try {
         const key = getSessionKey(roomCode);
@@ -154,9 +189,11 @@ function saveSession(roomCode: string, playerName: string, sessionId: string, pl
     } catch (e) {
         console.warn('[Session] Erro ao salvar sessão:', e);
     }
+    // Backup em cookie (sobrevive reciclagem de tab no iOS)
+    setSessionCookie(roomCode, sessionId, playerId);
 }
 
-// Obtém playerId armazenado
+// Obtém playerId armazenado (com fallback para cookie)
 export function getStoredPlayerId(roomCode: string): string | undefined {
     try {
         const key = getSessionKey(roomCode);
@@ -168,10 +205,12 @@ export function getStoredPlayerId(roomCode: string): string | undefined {
     } catch (e) {
         console.warn('[Session] Erro ao ler playerId:', e);
     }
-    return undefined;
+    // Fallback: tenta cookie
+    const cookie = getSessionCookie(roomCode);
+    return cookie?.playerId;
 }
 
-// Limpa sessão do localStorage (exportada para uso externo)
+// Limpa sessão do localStorage + cookie (exportada para uso externo)
 export function clearSession(roomCode?: string) {
     try {
         if (roomCode) {
@@ -190,6 +229,8 @@ export function clearSession(roomCode?: string) {
     } catch (e) {
         console.warn('[Session] Erro ao limpar sessão:', e);
     }
+    // Limpa cookie também
+    clearSessionCookie(roomCode);
 }
 
 interface UsePartySocketOptions {
@@ -341,7 +382,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 onConnectionChange?.('connected');
 
                 // Tenta recuperar sessão existente
-                const sessionId = getStoredSessionId(currentRoomCode, currentPlayerName);
+                const sessionId = getStoredSessionId(currentRoomCode);
 
                 // Envia JOIN (se tiver sessionId, o servidor tenta reconectar; se não, cria nova)
                 socket.send(JSON.stringify({
