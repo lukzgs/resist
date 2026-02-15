@@ -11,36 +11,30 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
     const { t } = useTranslation();
     const [rooms, setRooms] = useState<PublicRoom[]>([]);
     const [loading, setLoading] = useState(true);
-    const [lastUpdate, setLastUpdate] = useState(Date.now());
+    const [refreshing, setRefreshing] = useState(false);
 
-    const fetchRooms = useCallback(async () => {
+    const fetchRooms = useCallback(async (showRefresh = false) => {
+        if (showRefresh) setRefreshing(true);
         try {
             const publicRooms = await getPublicRooms();
             setRooms(publicRooms);
-            setLastUpdate(Date.now());
         } catch (e) {
             console.error('Erro ao buscar salas:', e);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
-    // Busca inicial e refresh a cada 5s
+    // Busca inicial e refresh a cada 10s
     useEffect(() => {
         fetchRooms();
-        const interval = setInterval(fetchRooms, 5000);
+        const interval = setInterval(() => fetchRooms(), 10000);
         return () => clearInterval(interval);
     }, [fetchRooms]);
 
-    // Formata tempo restante
-    const formatTimeRemaining = (ms: number) => {
-        const seconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        if (minutes > 0) {
-            return `${minutes}m ${secs}s`;
-        }
-        return `${secs}s`;
+    const handleRefresh = () => {
+        if (!refreshing) fetchRooms(true);
     };
 
     return (
@@ -77,13 +71,13 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid gap-4">
+                        <div className="grid gap-3">
                             {rooms.map((room) => (
                                 <button
                                     key={room.code}
                                     onClick={() => onJoinRoom(room.code)}
                                     className={`
-                                        group relative w-full p-6 bg-black/40 border border-white/10 rounded-xl
+                                        group relative w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl
                                         transition-all duration-300 text-left overflow-hidden
                                         ${room.isClosingSoon
                                             ? 'hover:border-spies/50 hover:bg-spies/5 hover:shadow-[0_0_20px_rgba(239,68,68,0.1)]'
@@ -94,49 +88,35 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
                                     {/* Background Gradient on Hover */}
                                     <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-r ${room.isClosingSoon ? 'from-spies/10' : 'from-resistance/10'} to-transparent`} />
 
-                                    <div className="relative flex items-center justify-between z-10">
-                                        {/* Info Esquerda */}
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            {/* Room Name */}
-                                            <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight truncate group-hover:first-letter:text-resistance transition-colors">
-                                                {room.name}
-                                            </h3>
+                                    {/* Single row: Name | Bar | JOIN */}
+                                    <div className="relative flex items-center justify-between gap-4 z-10">
+                                        {/* Room Name - left */}
+                                        <h3 className="text-lg font-display font-black text-white uppercase tracking-tight truncate w-1/4 min-w-[80px] shrink-0" title={room.name}>
+                                            {room.name}
+                                        </h3>
 
-                                            {/* Player Count Bar */}
-                                            <div className="mt-3 flex items-center gap-3">
-                                                <div className="flex-1 max-w-[120px] h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full transition-all duration-500 ${room.isClosingSoon ? 'bg-spies' : 'bg-resistance'}`}
-                                                        style={{ width: `${(room.playerCount / 10) * 100}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-xs font-mono text-slate-400 font-bold">
-                                                    {room.playerCount}/10
-                                                </span>
+                                        {/* Player Count Bar - middle */}
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-500 ${room.isClosingSoon ? 'bg-spies' : 'bg-resistance'}`}
+                                                    style={{ width: `${(room.playerCount / 10) * 100}%` }}
+                                                />
                                             </div>
+                                            <span className="text-xs font-mono text-slate-400 font-bold whitespace-nowrap">
+                                                {room.playerCount}/10
+                                            </span>
                                         </div>
 
-                                        {/* Info Direita */}
-                                        <div className="flex flex-col items-end gap-2">
-                                            {/* Join Badge */}
-                                            <div className={`
-                                                px-4 py-1.5 rounded text-sm font-display font-bold uppercase tracking-widest transition-all duration-300
-                                                ${room.isClosingSoon
-                                                    ? 'bg-spies/10 text-spies border border-spies/20 group-hover:bg-spies group-hover:text-black'
-                                                    : 'bg-resistance/10 text-resistance border border-resistance/20 group-hover:bg-resistance group-hover:text-black'
-                                                }
-                                            `}>
-                                                {t('browse.join') || 'ENTRAR'}
-                                            </div>
-
-                                            {/* Timer */}
-                                            <div className={`
-                                                flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider
-                                                ${room.isClosingSoon ? 'text-spies animate-pulse' : 'text-slate-500'}
-                                            `}>
-                                                {room.isClosingSoon && <span>⚠</span>}
-                                                {formatTimeRemaining(room.expiresIn)}
-                                            </div>
+                                        {/* Join Badge - right */}
+                                        <div className={`
+                                            px-4 py-1.5 rounded text-sm font-display font-bold uppercase tracking-widest transition-all duration-300 whitespace-nowrap shrink-0
+                                            ${room.isClosingSoon
+                                                ? 'bg-spies/10 text-spies border border-spies/20 group-hover:bg-spies group-hover:text-black'
+                                                : 'bg-resistance/10 text-resistance border border-resistance/20 group-hover:bg-resistance group-hover:text-black'
+                                            }
+                                        `}>
+                                            {t('browse.join') || 'ENTRAR'}
                                         </div>
                                     </div>
                                 </button>
@@ -147,9 +127,23 @@ export default function BrowseRoomsView({ onJoinRoom, onBack }: Props) {
 
                 {/* Footer */}
                 <div className="flex flex-col items-center gap-4">
-                    <p className="text-xs font-mono text-slate-500 uppercase">
-                        {t('browse.updated') || 'Atualizado há'} {Math.floor((Date.now() - lastUpdate) / 1000)}s
-                    </p>
+                    {/* Refresh Button */}
+                    <button
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-mono text-slate-400 uppercase tracking-widest hover:text-resistance transition-colors disabled:opacity-50"
+                    >
+                        <svg
+                            className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        {refreshing
+                            ? (t('browse.refreshing') || 'Atualizando...')
+                            : (t('browse.refresh') || 'Atualizar salas')
+                        }
+                    </button>
 
                     <button
                         onClick={onBack}
