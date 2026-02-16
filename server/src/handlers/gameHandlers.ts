@@ -217,14 +217,45 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
             } else {
                 ctx.gameState.failedVoteCount++;
                 addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
-                log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - equipe rejeitada (${approvals}/${activePlayers.length}) - rejeicao ${ctx.gameState.failedVoteCount}/5`);
+                log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - equipe rejeitada (${approvals}/${activePlayers.length}) - rejeicao ${ctx.gameState.failedVoteCount}`);
 
-                if (ctx.gameState.failedVoteCount >= 5) {
-                    ctx.gameState.phase = Phase.GAME_OVER;
-                    ctx.gameState.winner = Role.TERMINATOR;
-                    addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEICOES`);
-                    log.game(ctx.gameState.roomCode, 'Terminators vencem - 5 rejeicoes consecutivas');
-                    ctx.scheduleRoomClosure();
+                const rules = GAME_RULES[activePlayers.length];
+                const maxRejections = rules?.maxRejections || 5;
+
+                if (ctx.gameState.failedVoteCount >= maxRejections) {
+                    // LIMITE DE REJEIÇÕES ATINGIDO: Missão falha mas o jogo continua
+                    ctx.gameState.missions[missionIndex].status = 'FAIL';
+                    addLog(ctx.gameState, `> MISSAO ${missionIndex + 1} FALHOU (LIMITE DE REJEICOES)`);
+                    log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} falhou por excesso de rejeicoes (${maxRejections})`);
+
+                    const failures = ctx.gameState.missions.filter(m => m.status === 'FAIL').length;
+
+                    if (failures >= 3) {
+                        ctx.gameState.phase = Phase.GAME_OVER;
+                        ctx.gameState.winner = Role.TERMINATOR;
+                        addLog(ctx.gameState, `> TERMINATORS VENCEM O JOGO!`);
+                        log.game(ctx.gameState.roomCode, 'Terminators vencem o jogo por 3 falhas');
+                        ctx.scheduleRoomClosure();
+                    } else {
+                        // O jogo continua, avança para a próxima missão
+                        ctx.gameState.currentMissionIndex++;
+                        ctx.gameState.phase = Phase.TEAM_SELECTION;
+                        ctx.gameState.failedVoteCount = 0;
+
+                        // Passa a liderança para o próximo jogador ativo
+                        const activePlayerIds = activePlayers.map(p => p.id);
+                        const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                        const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
+                        const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
+                        const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
+                        ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === nextLeaderId);
+
+                        ctx.gameState.proposedTeam = [];
+
+                        if (ctx.gameState.timerConfig.enabled && ctx.startTimer) {
+                            ctx.startTimer('team_selection');
+                        }
+                    }
                 } else {
                     ctx.gameState.phase = Phase.TEAM_SELECTION;
                     const activePlayerIds = activePlayers.map(p => p.id);
