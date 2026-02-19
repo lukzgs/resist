@@ -72,6 +72,11 @@ export default class ResistServer implements Party.Server {
     // Timers de grace period para reconexão rápida (antes de pausar o jogo)
     gracePeriodTimers: Map<string, NodeJS.Timeout> = new Map();
 
+    // Timers de fases do jogo (team selection, voting, mission)
+    // IMPORTANTE: deve ficar aqui na classe (não no módulo timerHandlers) para evitar
+    // vazamento de memória quando múltiplas salas existem no mesmo worker.
+    activeTimers: Map<string, NodeJS.Timeout> = new Map();
+
     // Constantes de tempo - Sessão
     static readonly EMPTY_ROOM_CLEANUP_MS = 120000;  // 2 minutos
     static readonly RECONNECT_GRACE_PERIOD_MS = 300000;  // 5 minutos
@@ -456,6 +461,7 @@ export default class ResistServer implements Party.Server {
             room: this.room,
             gameState: this.gameState,
             connections: this.connections,
+            activeTimers: this.activeTimers,
             sendError: this.sendError,
             broadcastState: this.broadcastState,
             scheduleRoomClosure: this.scheduleRoomClosure,

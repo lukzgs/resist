@@ -1,7 +1,8 @@
 // Handlers para ações do jogo
 
 import type * as Party from "partykit/server";
-import { GameState, Phase, Role, Player, ServerMessage, GAME_RULES, TimerType } from '../types';
+import { GameState, Phase, Role, Player, ServerMessage, TimerType } from '../types';
+import { GAME_RULES_BY_COUNT } from '../../../shared/constants';
 import { shuffle } from '../utils/crypto';
 import { addLog, getSanitizedState, getPlayerByConnection, getActivePlayers } from '../game/state';
 import { log } from '../utils/logger';
@@ -53,7 +54,7 @@ export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection)
         return;
     }
 
-    const rules = GAME_RULES[pCount];
+    const rules = GAME_RULES_BY_COUNT[pCount];
 
     // Distribui papéis
     const roles: Role[] = [];
@@ -219,7 +220,7 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
                 log.game(ctx.gameState.roomCode, `Missao ${missionIndex + 1} - equipe rejeitada (${approvals}/${activePlayers.length}) - rejeicao ${ctx.gameState.failedVoteCount}`);
 
-                const rules = GAME_RULES[activePlayers.length];
+                const rules = GAME_RULES_BY_COUNT[activePlayers.length];
                 const maxRejections = rules?.maxRejections || 5;
 
                 if (ctx.gameState.failedVoteCount >= maxRejections) {

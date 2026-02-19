@@ -30,39 +30,38 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   // Base styles for glassmorphism
   const baseClasses = "relative flex flex-col items-center p-3 rounded-xl transition-all duration-300 backdrop-blur-md border-2";
 
-  // Dynamic styles - prioridade: isMe > isDisconnected > isInTeam > default
-  let borderClass = "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20";
-  let shadowClass = "";
-
-  // Cores baseadas no papel para o próprio jogador
+  // Dynamic styles - função pura: mapeia estado para estilos sem mutação de variáveis (KISS/SRP)
   const isTerminator = player.role === Role.TERMINATOR;
-  const meColor = isTerminator
-    ? { border: "border-red-500/70 bg-red-500/10", shadow: "shadow-[0_0_25px_-5px_rgba(239,68,68,0.5)] ring-1 ring-red-500/30" }
-    : { border: "border-cyan-400/70 bg-cyan-500/10", shadow: "shadow-[0_0_25px_-5px_rgba(34,211,238,0.4)] ring-1 ring-cyan-400/30" };
+  const roleColor = isTerminator ? 'text-spy' : 'text-resistance';
 
-  if (isMe && showIdentity) {
-    borderClass = meColor.border;
-    shadowClass = meColor.shadow;
-  } else if (isMe) {
-    borderClass = "border-cyan-400/70 bg-cyan-500/10";
-    shadowClass = "shadow-[0_0_25px_-5px_rgba(34,211,238,0.4)] ring-1 ring-cyan-400/30";
-  }
-
-  if (isDisconnected) {
-    borderClass = "border-red-500/30 bg-red-900/10";
-    shadowClass = "";
-  } else if (isInTeam) {
-    if (isMe && showIdentity && isTerminator) {
-      borderClass = "border-yellow-400/80 bg-gradient-to-b from-yellow-500/20 to-red-500/10";
-    } else if (isMe) {
-      borderClass = "border-yellow-400/80 bg-gradient-to-b from-yellow-500/20 to-cyan-500/10";
-    } else {
-      borderClass = "border-yellow-500/50 bg-gradient-to-b from-yellow-500/10 to-transparent";
+  function resolveCardStyle(): { border: string; shadow: string } {
+    if (isDisconnected) {
+      return { border: 'border-red-500/30 bg-red-900/10', shadow: '' };
     }
-    shadowClass = "shadow-[0_0_25px_-5px_rgba(234,179,8,0.4)]";
+    if (isInTeam) {
+      const bg = (isMe && showIdentity && isTerminator)
+        ? 'from-yellow-500/20 to-red-500/10'
+        : isMe
+          ? 'from-yellow-500/20 to-cyan-500/10'
+          : 'from-yellow-500/10 to-transparent';
+      return {
+        border: `border-yellow-400/80 bg-gradient-to-b ${bg}`,
+        shadow: 'shadow-[0_0_25px_-5px_rgba(234,179,8,0.4)]',
+      };
+    }
+    if (isMe && showIdentity) {
+      return isTerminator
+        ? { border: 'border-red-500/70 bg-red-500/10', shadow: 'shadow-[0_0_25px_-5px_rgba(239,68,68,0.5)] ring-1 ring-red-500/30' }
+        : { border: 'border-cyan-400/70 bg-cyan-500/10', shadow: 'shadow-[0_0_25px_-5px_rgba(34,211,238,0.4)] ring-1 ring-cyan-400/30' };
+    }
+    if (isMe) {
+      return { border: 'border-cyan-400/70 bg-cyan-500/10', shadow: 'shadow-[0_0_25px_-5px_rgba(34,211,238,0.4)] ring-1 ring-cyan-400/30' };
+    }
+    return { border: 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20', shadow: '' };
   }
 
-  const roleColor = player.role === Role.TERMINATOR ? 'text-spy' : 'text-resistance';
+  const { border: borderClass, shadow: shadowClass } = resolveCardStyle();
+
 
   return (
     <div className={`${baseClasses} ${borderClass} ${shadowClass} group ${isDisconnected ? 'opacity-50' : ''}`}>

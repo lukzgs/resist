@@ -4,18 +4,18 @@ import type * as Party from "partykit/server";
 import { GameState, Phase, TimerType, TimerConfig } from '../types';
 import { addLog, getActivePlayers, getPlayerByConnection } from '../game/state';
 import { log } from '../utils/logger';
+import { GAME_RULES_BY_COUNT, MIN_MISSIONS_TO_WIN } from '../../../shared/constants';
 
 export interface TimerHandlerContext {
     room: Party.Room;
     gameState: GameState;
     connections: Map<string, string>;
+    /** Map de timers ativos. Pertence à instância da sala (ResistServer), não a este módulo. */
+    activeTimers: Map<string, NodeJS.Timeout>;
     sendError: (conn: Party.Connection, message: string) => void;
     broadcastState: () => void;
     scheduleRoomClosure: () => void;
 }
-
-// Armazena os timeouts ativos
-const activeTimers = new Map<string, NodeJS.Timeout>();
 
 /**
  * Inicia um timer para a fase atual
@@ -52,17 +52,17 @@ export function startTimer(ctx: TimerHandlerContext, timerType: TimerType): void
         handleTimerExpired(ctx, timerType);
     }, durationSeconds * 1000);
 
-    activeTimers.set(ctx.gameState.roomCode, timeout);
+    ctx.activeTimers.set(ctx.gameState.roomCode, timeout);
 }
 
 /**
  * Cancela o timer atual
  */
 export function cancelTimer(ctx: TimerHandlerContext): void {
-    const existingTimeout = activeTimers.get(ctx.gameState.roomCode);
+    const existingTimeout = ctx.activeTimers.get(ctx.gameState.roomCode);
     if (existingTimeout) {
         clearTimeout(existingTimeout);
-        activeTimers.delete(ctx.gameState.roomCode);
+        ctx.activeTimers.delete(ctx.gameState.roomCode);
     }
 
     ctx.gameState.currentTimerEndsAt = undefined;
@@ -83,10 +83,10 @@ export function pauseTimer(ctx: TimerHandlerContext): { remainingMs: number; tim
     const remainingMs = Math.max(0, currentTimerEndsAt - Date.now());
 
     // Cancela o timeout do servidor
-    const existingTimeout = activeTimers.get(ctx.gameState.roomCode);
+    const existingTimeout = ctx.activeTimers.get(ctx.gameState.roomCode);
     if (existingTimeout) {
         clearTimeout(existingTimeout);
-        activeTimers.delete(ctx.gameState.roomCode);
+        ctx.activeTimers.delete(ctx.gameState.roomCode);
     }
 
     // Limpa estado do timer (cliente para de mostrar)
@@ -106,10 +106,10 @@ export function resumeTimer(ctx: TimerHandlerContext, remainingMs: number, timer
     }
 
     // Cancela qualquer timer existente (por segurança)
-    const existingTimeout = activeTimers.get(ctx.gameState.roomCode);
+    const existingTimeout = ctx.activeTimers.get(ctx.gameState.roomCode);
     if (existingTimeout) {
         clearTimeout(existingTimeout);
-        activeTimers.delete(ctx.gameState.roomCode);
+        ctx.activeTimers.delete(ctx.gameState.roomCode);
     }
 
     // Define novo timestamp de expiração
@@ -121,7 +121,7 @@ export function resumeTimer(ctx: TimerHandlerContext, remainingMs: number, timer
         handleTimerExpired(ctx, timerType);
     }, remainingMs);
 
-    activeTimers.set(ctx.gameState.roomCode, timeout);
+    ctx.activeTimers.set(ctx.gameState.roomCode, timeout);
 }
 
 /**
@@ -129,7 +129,7 @@ export function resumeTimer(ctx: TimerHandlerContext, remainingMs: number, timer
  */
 export function handleTimerExpired(ctx: TimerHandlerContext, timerType: TimerType): void {
     // Limpa o timer
-    activeTimers.delete(ctx.gameState.roomCode);
+    ctx.activeTimers.delete(ctx.gameState.roomCode);
     ctx.gameState.currentTimerEndsAt = undefined;
     ctx.gameState.currentTimerType = undefined;
 
@@ -174,11 +174,14 @@ function handleTeamSelectionExpired(ctx: TimerHandlerContext): void {
     addLog(ctx.gameState, `> TEMPO ESGOTADO! Lideranca passou para ${newLeader.name}`);
     log.timer(ctx.gameState.roomCode, `Timer expirou (selecao) - lideranca passou para "${newLeader.name}"`);
 
-    // Verifica se 5 rejeições
-    if (ctx.gameState.failedVoteCount >= 5) {
+    // Verifica limite de rejeições (regra dinâmica por pCount)
+    const activePlayersCount = getActivePlayers(ctx.gameState).length;
+    const maxRejections = GAME_RULES_BY_COUNT[activePlayersCount]?.maxRejections || 5;
+
+    if (ctx.gameState.failedVoteCount >= maxRejections) {
         ctx.gameState.phase = Phase.GAME_OVER;
         ctx.gameState.winner = 'TERMINATOR' as any;
-        addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+        addLog(ctx.gameState, `> TERMINATORS VENCEM - ${maxRejections} REJEIÇÕES`);
         ctx.scheduleRoomClosure();
     } else {
         // Inicia novo timer para o próximo líder
@@ -228,10 +231,13 @@ function handleTeamVoteExpired(ctx: TimerHandlerContext): void {
         ctx.gameState.failedVoteCount++;
         addLog(ctx.gameState, `> EQUIPE REJEITADA (${approvals}/${activePlayers.length})`);
 
-        if (ctx.gameState.failedVoteCount >= 5) {
+        const activePlayersCount = activePlayers.length;
+        const maxRejections = GAME_RULES_BY_COUNT[activePlayersCount]?.maxRejections || 5;
+
+        if (ctx.gameState.failedVoteCount >= maxRejections) {
             ctx.gameState.phase = Phase.GAME_OVER;
             ctx.gameState.winner = 'TERMINATOR' as any;
-            addLog(ctx.gameState, `> TERMINATORS VENCEM - 5 REJEIÇÕES`);
+            addLog(ctx.gameState, `> TERMINATORS VENCEM - ${maxRejections} REJEIÇÕES`);
             ctx.scheduleRoomClosure();
         } else {
             ctx.gameState.phase = Phase.TEAM_SELECTION;
@@ -290,12 +296,12 @@ function handleMissionVoteExpired(ctx: TimerHandlerContext): void {
     const successes = ctx.gameState.missions.filter(m => m.status === 'SUCCESS').length;
     const failures = ctx.gameState.missions.filter(m => m.status === 'FAIL').length;
 
-    if (successes >= 3) {
+    if (successes >= MIN_MISSIONS_TO_WIN) {
         ctx.gameState.winner = 'HUMAN' as any;
         ctx.gameState.phase = Phase.GAME_OVER;
         addLog(ctx.gameState, `> RESISTÊNCIA VENCE!`);
         ctx.scheduleRoomClosure();
-    } else if (failures >= 3) {
+    } else if (failures >= MIN_MISSIONS_TO_WIN) {
         ctx.gameState.winner = 'TERMINATOR' as any;
         ctx.gameState.phase = Phase.GAME_OVER;
         addLog(ctx.gameState, `> SKYNET PREVALECE!`);
@@ -361,8 +367,9 @@ export function handleSetTimerConfig(
 
 /**
  * Limpa timers quando a sala é fechada
+ * @param activeTimers Map de timers da instância do servidor
  */
-export function cleanupTimers(roomCode: string): void {
+export function cleanupTimers(activeTimers: Map<string, NodeJS.Timeout>, roomCode: string): void {
     const timeout = activeTimers.get(roomCode);
     if (timeout) {
         clearTimeout(timeout);

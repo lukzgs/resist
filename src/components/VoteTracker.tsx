@@ -2,9 +2,10 @@ import React from 'react';
 
 interface Props {
   failedVotes: number;
+  maxVotes: number;
 }
 
-const VoteTracker: React.FC<Props> = ({ failedVotes }) => {
+const VoteTracker: React.FC<Props> = ({ failedVotes, maxVotes }) => {
   return (
     <div className="flex flex-col items-center mt-6">
       <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-full border border-white/5 backdrop-blur-sm">
@@ -12,9 +13,9 @@ const VoteTracker: React.FC<Props> = ({ failedVotes }) => {
           Failed Votes
         </div>
         <div className="flex gap-1.5">
-          {[1, 2, 3, 4, 5].map((num) => {
+          {Array.from({ length: maxVotes }, (_, i) => i + 1).map((num) => {
             const isActive = failedVotes >= num;
-            const isDanger = num === 5;
+            const isDanger = num === maxVotes;
             return (
               <div
                 key={num}
@@ -29,7 +30,7 @@ const VoteTracker: React.FC<Props> = ({ failedVotes }) => {
           })}
         </div>
         <div className="text-sm font-mono text-spy font-bold opacity-50 ml-2">
-          {failedVotes}/5
+          {failedVotes}/{maxVotes}
         </div>
       </div>
     </div>

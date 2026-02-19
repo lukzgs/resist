@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import PartySocket from 'partysocket';
 import { GameState, TimerConfig } from '../types';
+import { saveSession, getSessionId, clearSession } from './useSession';
+import { useGameActions } from './useGameActions';
 
 // URL do servidor PartyKit (desenvolvimento ou produção)
 // @ts-ignore - Vite injects this
@@ -112,126 +114,8 @@ export async function getPublicRooms(): Promise<PublicRoom[]> {
     }
 }
 
-// Chave do localStorage para sessão - agora única por sala
-const SESSION_STORAGE_PREFIX = 'resist_session_';
-const COOKIE_PREFIX = 'rs_';
-
-interface StoredSession {
-    sessionId: string;
-    playerId: string;
-    roomCode: string;
-    playerName: string;
-}
-
-// Gera chave única para a sessão (baseada no roomCode)
-function getSessionKey(roomCode: string): string {
-    return `${SESSION_STORAGE_PREFIX}${roomCode}`;
-}
-
-// --- Cookie helpers (fallback para iOS) ---
-function setSessionCookie(roomCode: string, sessionId: string, playerId: string) {
-    const key = `${COOKIE_PREFIX}${roomCode}`;
-    const value = encodeURIComponent(JSON.stringify({ sessionId, playerId }));
-    const maxAge = 7 * 24 * 60 * 60; // 7 dias
-    document.cookie = `${key}=${value}; max-age=${maxAge}; path=/; SameSite=Strict`;
-}
-
-function getSessionCookie(roomCode: string): { sessionId: string; playerId: string } | null {
-    try {
-        const key = `${COOKIE_PREFIX}${roomCode}=`;
-        const cookie = document.cookie.split('; ').find(c => c.startsWith(key));
-        if (cookie) {
-            return JSON.parse(decodeURIComponent(cookie.substring(key.length)));
-        }
-    } catch (e) {
-        console.warn('[Session] Erro ao ler cookie:', e);
-    }
-    return null;
-}
-
-function clearSessionCookie(roomCode?: string) {
-    if (roomCode) {
-        document.cookie = `${COOKIE_PREFIX}${roomCode}=; max-age=0; path=/; SameSite=Strict`;
-    } else {
-        // Limpa todos os cookies resist
-        document.cookie.split('; ')
-            .filter(c => c.startsWith(COOKIE_PREFIX))
-            .forEach(c => {
-                const name = c.split('=')[0];
-                document.cookie = `${name}=; max-age=0; path=/; SameSite=Strict`;
-            });
-    }
-}
-
-// Recupera sessão do localStorage (com fallback para cookie)
-function getStoredSessionId(roomCode: string): string | undefined {
-    try {
-        const key = getSessionKey(roomCode);
-        const stored = localStorage.getItem(key);
-        if (stored) {
-            const session: StoredSession = JSON.parse(stored);
-            return session.sessionId;
-        }
-    } catch (e) {
-        console.warn('[Session] Erro ao ler sessão:', e);
-    }
-    // Fallback: tenta cookie (mais resiliente no iOS)
-    const cookie = getSessionCookie(roomCode);
-    return cookie?.sessionId;
-}
-
-// Salva sessão no localStorage + cookie backup
-function saveSession(roomCode: string, playerName: string, sessionId: string, playerId: string) {
-    try {
-        const key = getSessionKey(roomCode);
-        const session: StoredSession = { sessionId, playerId, roomCode, playerName };
-        localStorage.setItem(key, JSON.stringify(session));
-    } catch (e) {
-        console.warn('[Session] Erro ao salvar sessão:', e);
-    }
-    // Backup em cookie (sobrevive reciclagem de tab no iOS)
-    setSessionCookie(roomCode, sessionId, playerId);
-}
-
-// Obtém playerId armazenado (com fallback para cookie)
-export function getStoredPlayerId(roomCode: string): string | undefined {
-    try {
-        const key = getSessionKey(roomCode);
-        const stored = localStorage.getItem(key);
-        if (stored) {
-            const session: StoredSession = JSON.parse(stored);
-            return session.playerId;
-        }
-    } catch (e) {
-        console.warn('[Session] Erro ao ler playerId:', e);
-    }
-    // Fallback: tenta cookie
-    const cookie = getSessionCookie(roomCode);
-    return cookie?.playerId;
-}
-
-// Limpa sessão do localStorage + cookie (exportada para uso externo)
-export function clearSession(roomCode?: string) {
-    try {
-        if (roomCode) {
-            localStorage.removeItem(getSessionKey(roomCode));
-        } else {
-            // Limpa todas as sessões resist
-            const keysToRemove: string[] = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith(SESSION_STORAGE_PREFIX)) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-        }
-    } catch (e) {
-        console.warn('[Session] Erro ao limpar sessão:', e);
-    }
-    // Limpa cookie também
-    clearSessionCookie(roomCode);
-}
+export { clearSession } from './useSession';
+export { getPlayerId as getStoredPlayerId } from './useSession';
 
 interface UsePartySocketOptions {
     roomCode: string;
@@ -382,7 +266,7 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
                 onConnectionChange?.('connected');
 
                 // Tenta recuperar sessão existente
-                const sessionId = getStoredSessionId(currentRoomCode);
+                const sessionId = getSessionId(currentRoomCode);
 
                 // Envia JOIN (se tiver sessionId, o servidor tenta reconectar; se não, cria nova)
                 socket.send(JSON.stringify({
@@ -551,55 +435,8 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         }
     }, [isConnected]);
 
-    // Ações do jogo
-    const leaveRoom = useCallback(() => {
-        send({ type: 'LEAVE_ROOM' });
-        // O servidor vai fechar a conexão após processar
-    }, [send]);
-
-    const removePlayer = useCallback((playerId: string) => {
-        send({ type: 'REMOVE_PLAYER', playerId });
-    }, [send]);
-
-    const startGame = useCallback((timerConfig?: TimerConfig) => {
-        send({ type: 'START_GAME', timerConfig });
-    }, [send]);
-
-    const selectPlayer = useCallback((playerId: string) => {
-        send({ type: 'SELECT_PLAYER', playerId });
-    }, [send]);
-
-    const submitTeam = useCallback(() => {
-        send({ type: 'SUBMIT_TEAM' });
-    }, [send]);
-
-    const vote = useCallback((approve: boolean) => {
-        send({ type: 'VOTE', approve });
-    }, [send]);
-
-    const missionAction = useCallback((success: boolean) => {
-        send({ type: 'MISSION_ACTION', success });
-    }, [send]);
-
-    const setAnonymousVotes = useCallback((enabled: boolean) => {
-        send({ type: 'SET_ANONYMOUS_VOTES', enabled });
-    }, [send]);
-
-    const setShowRejectionCount = useCallback((enabled: boolean) => {
-        send({ type: 'SET_SHOW_REJECTION_COUNT', enabled });
-    }, [send]);
-
-    const setPublic = useCallback((enabled: boolean) => {
-        send({ type: 'SET_PUBLIC', enabled });
-    }, [send]);
-
-    const restartGame = useCallback(() => {
-        send({ type: 'RESTART_GAME' });
-    }, [send]);
-
-    const disconnectVote = useCallback((endGame: boolean) => {
-        send({ type: 'DISCONNECT_VOTE', endGame });
-    }, [send]);
+    // Ações do jogo - delegadas ao hook especializado (SRP/DIP)
+    const actions = useGameActions(send);
 
     // Handler para visibilitychange (Safari/iOS suspende WebSocket em background)
     useEffect(() => {
@@ -669,17 +506,6 @@ export function usePartySocket(options: UsePartySocketOptions): UsePartySocketRe
         connect,
         disconnect,
         send,
-        leaveRoom,
-        removePlayer,
-        startGame,
-        selectPlayer,
-        submitTeam,
-        vote,
-        missionAction,
-        setAnonymousVotes,
-        setShowRejectionCount,
-        setPublic,
-        restartGame,
-        disconnectVote,
+        ...actions,
     };
 }

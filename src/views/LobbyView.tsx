@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { GameState, TimerConfig } from '../types';
 import { GAME_RULES } from '../constants';
+import { TIMER_LIMITS } from '../../shared/constants';
 import { useTranslation } from '../i18n';
 
 interface Props {
@@ -19,15 +20,16 @@ interface Props {
 export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onTogglePublic, onBack }: Props) {
     const { t } = useTranslation();
     const pCount = state.players.length;
+    const TL = TIMER_LIMITS; // alias local para brevidade no JSX
     const canStart = pCount >= 5 && pCount <= 10;
     const [linkCopied, setLinkCopied] = useState(false);
 
     // Estado LOCAL para configuração de timers - inicializa com valores do servidor (persistidos entre partidas)
     const [timerConfig, setTimerConfig] = useState<TimerConfig>(() => ({
         enabled: state.timerConfig?.enabled ?? true,
-        teamSelectionSeconds: state.timerConfig?.teamSelectionSeconds ?? 120,
-        teamVoteSeconds: state.timerConfig?.teamVoteSeconds ?? 45,
-        missionVoteSeconds: state.timerConfig?.missionVoteSeconds ?? 30,
+        teamSelectionSeconds: state.timerConfig?.teamSelectionSeconds ?? TIMER_LIMITS.teamSelectionSeconds.default,
+        teamVoteSeconds: state.timerConfig?.teamVoteSeconds ?? TIMER_LIMITS.teamVoteSeconds.default,
+        missionVoteSeconds: state.timerConfig?.missionVoteSeconds ?? TIMER_LIMITS.missionVoteSeconds.default,
     }));
 
     const copyLink = async () => {
@@ -151,7 +153,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.max(30, timerConfig.teamSelectionSeconds - 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.max(TL.teamSelectionSeconds.min, timerConfig.teamSelectionSeconds - 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-resistance/20 text-resistance/60 hover:text-resistance transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">−</span>
@@ -162,14 +164,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                             max="120"
                                                             value={timerConfig.teamSelectionSeconds}
                                                             onChange={(e) => {
-                                                                const val = Math.max(30, Math.min(120, Number(e.target.value) || 30));
+                                                                const val = Math.max(TL.teamSelectionSeconds.min, Math.min(TL.teamSelectionSeconds.max, Number(e.target.value) || TL.teamSelectionSeconds.min));
                                                                 setTimerConfig({ ...timerConfig, teamSelectionSeconds: val });
                                                             }}
                                                             className="w-12 bg-black/60 text-lg font-display font-black text-resistance text-center py-1 rounded-lg border border-resistance/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
                                                         />
                                                         <span className="text-xs font-mono text-resistance/60">s</span>
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.min(120, timerConfig.teamSelectionSeconds + 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Math.min(TL.teamSelectionSeconds.max, timerConfig.teamSelectionSeconds + 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-resistance/20 text-resistance/60 hover:text-resistance transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">+</span>
@@ -178,8 +180,8 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                 </div>
                                                 <input
                                                     type="range"
-                                                    min="30"
-                                                    max="120"
+                                                    min={TL.teamSelectionSeconds.min}
+                                                    max={TL.teamSelectionSeconds.max}
                                                     step="5"
                                                     value={timerConfig.teamSelectionSeconds}
                                                     onChange={(e) => setTimerConfig({ ...timerConfig, teamSelectionSeconds: Number(e.target.value) })}
@@ -209,7 +211,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.max(30, timerConfig.teamVoteSeconds - 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.max(TL.teamVoteSeconds.min, timerConfig.teamVoteSeconds - 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-yellow-500/20 text-yellow-500/60 hover:text-yellow-400 transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">−</span>
@@ -220,14 +222,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                             max="120"
                                                             value={timerConfig.teamVoteSeconds}
                                                             onChange={(e) => {
-                                                                const val = Math.max(30, Math.min(120, Number(e.target.value) || 30));
+                                                                const val = Math.max(TL.teamVoteSeconds.min, Math.min(TL.teamVoteSeconds.max, Number(e.target.value) || TL.teamVoteSeconds.min));
                                                                 setTimerConfig({ ...timerConfig, teamVoteSeconds: val });
                                                             }}
                                                             className="w-12 bg-black/60 text-lg font-display font-black text-yellow-400 text-center py-1 rounded-lg border border-yellow-500/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
                                                         />
                                                         <span className="text-xs font-mono text-yellow-500/60">s</span>
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.min(120, timerConfig.teamVoteSeconds + 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, teamVoteSeconds: Math.min(TL.teamVoteSeconds.max, timerConfig.teamVoteSeconds + 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-yellow-500/20 text-yellow-500/60 hover:text-yellow-400 transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">+</span>
@@ -267,7 +269,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.max(5, timerConfig.missionVoteSeconds - 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.max(TL.missionVoteSeconds.min, timerConfig.missionVoteSeconds - 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-spy/20 text-spy/60 hover:text-spy transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">−</span>
@@ -278,14 +280,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                             max="120"
                                                             value={timerConfig.missionVoteSeconds}
                                                             onChange={(e) => {
-                                                                const val = Math.max(5, Math.min(120, Number(e.target.value) || 5));
+                                                                const val = Math.max(TL.missionVoteSeconds.min, Math.min(TL.missionVoteSeconds.max, Number(e.target.value) || TL.missionVoteSeconds.min));
                                                                 setTimerConfig({ ...timerConfig, missionVoteSeconds: val });
                                                             }}
                                                             className="w-12 bg-black/60 text-lg font-display font-black text-spy text-center py-1 rounded-lg border border-spy/30 outline-none appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]"
                                                         />
                                                         <span className="text-xs font-mono text-spy/60">s</span>
                                                         <button
-                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.min(120, timerConfig.missionVoteSeconds + 5) })}
+                                                            onClick={() => setTimerConfig({ ...timerConfig, missionVoteSeconds: Math.min(TL.missionVoteSeconds.max, timerConfig.missionVoteSeconds + 5) })}
                                                             className="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-spy/20 text-spy/60 hover:text-spy transition-colors"
                                                         >
                                                             <span className="text-sm font-bold">+</span>
