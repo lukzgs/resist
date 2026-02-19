@@ -6,12 +6,15 @@
 
 | Need | Documentation |
 |------|---------------|
+| **⚠️ Code quality rules** | [.agent/BEST_PRACTICES.md](file:///home/lukzgs/projects/resist/.agent/BEST_PRACTICES.md) |
+| **⚠️ Known issues** | [.agent/KNOWN_ISSUES.md](file:///home/lukzgs/projects/resist/.agent/KNOWN_ISSUES.md) |
 | Quick project overview | [docs/en/OVERVIEW.md](file:///home/lukzgs/projects/resist/docs/en/OVERVIEW.md) |
 | Server/backend changes | [docs/en/SERVER.md](file:///home/lukzgs/projects/resist/docs/en/SERVER.md) |
 | Frontend/UI changes | [docs/en/CLIENT.md](file:///home/lukzgs/projects/resist/docs/en/CLIENT.md) |
 | WebSocket messages | [docs/en/MESSAGES.md](file:///home/lukzgs/projects/resist/docs/en/MESSAGES.md) |
 | Game state/flow changes | [docs/en/STATE_MACHINE.md](file:///home/lukzgs/projects/resist/docs/en/STATE_MACHINE.md) |
 | Architecture decisions | [docs/en/ARCHITECTURE.md](file:///home/lukzgs/projects/resist/docs/en/ARCHITECTURE.md) |
+| Code quality audit | [docs/pt-br/CODE_QUALITY_REPORT.md](file:///home/lukzgs/projects/resist/docs/pt-br/CODE_QUALITY_REPORT.md) |
 
 ## Key Files
 
