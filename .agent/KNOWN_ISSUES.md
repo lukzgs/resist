@@ -11,12 +11,8 @@
 ### ~~1. `GameView.tsx` — Componente Gigante (SRP)~~ ✅ Resolvido
 - Movido para tabela de resolvidos abaixo.
 
-### 2. Acessos Profundos a Objetos (Lei de Demeter)
-- **Arquivos**: `GameView.tsx`, `gameHandlers.ts`, `timerHandlers.ts`, `joinHandler.ts`
-- **Princípio violado**: Lei de Demeter
-- **Descrição**: 25+ ocorrências de acessos como `ctx.gameState.players[ctx.gameState.leaderIndex].name` e `ctx.gameState.missions[index].votes[player.id]`.
-- **Impacto**: Se a estrutura de `GameState` mudar, 25+ locais quebram.
-- **Correção**: Criar helpers em `server/src/game/state.ts`: `getLeader(state)`, `getCurrentMission(state)`.
+### ~~2. Acessos Profundos a Objetos (Lei de Demeter)~~ ✅ Resolvido
+- Movido para tabela de resolvidos abaixo.
 
 ---
 
@@ -73,3 +69,4 @@
 | ~~15~~ | Bug `LobbyView.tsx` L225 (teamVoteSeconds) | Corrigido: `TL.teamSelectionSeconds` → `TL.teamVoteSeconds` | 2026-02-19 |
 | ~~1~~ | `GameView.tsx` 690 linhas (SRP) | Extraído `DraggableLog`, `GameHeader`, `PhaseControls`, `GameOverScreen`, `useVoteReveal` — reduzido para 140L | 2026-02-20 |
 | ~~8~~ | `GameView` composição > herança | Resolvido com extração de `PhaseControls` (issue #1) | 2026-02-20 |
+| ~~2~~ | Acessos profundos (Lei de Demeter) | Criado `shared/stateHelpers.ts` com `getLeader()` e `getCurrentMission()`, 17 acessos substituídos | 2026-02-20 |
