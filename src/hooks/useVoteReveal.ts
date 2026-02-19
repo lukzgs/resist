@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { GameState, Phase } from '../types';
+import { getCurrentMission } from '../../shared/stateHelpers';
 
 interface VoteResult {
     approvals: number;
@@ -25,7 +26,7 @@ export function useVoteReveal(state: GameState): UseVoteRevealReturn {
     const revealTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const activePlayers = state.players.filter(p => !p.isSpectator);
-    const currentMission = state.missions[state.currentMissionIndex];
+    const currentMission = getCurrentMission(state);
     const totalVotes = Object.keys(currentMission.votes).length;
     const allVoted = totalVotes === activePlayers.length && activePlayers.length > 0;
 

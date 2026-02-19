@@ -5,6 +5,7 @@ import { GameState, Phase, TimerType, TimerConfig } from '../types';
 import { addLog, getActivePlayers, getPlayerByConnection } from '../game/state';
 import { log } from '../utils/logger';
 import { GAME_RULES_BY_COUNT, MIN_MISSIONS_TO_WIN } from '../../../shared/constants';
+import { getLeader } from '../../../shared/stateHelpers';
 
 export interface TimerHandlerContext {
     room: Party.Room;
@@ -156,7 +157,7 @@ function handleTeamSelectionExpired(ctx: TimerHandlerContext): void {
     const activePlayerIds = activePlayers.map(p => p.id);
 
     // Pega líder atual
-    const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+    const currentLeader = getLeader(ctx.gameState);
     const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
 
     // Avança para próximo líder
@@ -170,7 +171,7 @@ function handleTeamSelectionExpired(ctx: TimerHandlerContext): void {
     // Incrementa contador de rejeições (como se fosse uma rejeição)
     ctx.gameState.failedVoteCount++;
 
-    const newLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+    const newLeader = getLeader(ctx.gameState);
     addLog(ctx.gameState, `> TEMPO ESGOTADO! Lideranca passou para ${newLeader.name}`);
     log.timer(ctx.gameState.roomCode, `Timer expirou (selecao) - lideranca passou para "${newLeader.name}"`);
 
@@ -242,7 +243,7 @@ function handleTeamVoteExpired(ctx: TimerHandlerContext): void {
         } else {
             ctx.gameState.phase = Phase.TEAM_SELECTION;
             const activePlayerIds = activePlayers.map(p => p.id);
-            const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+            const currentLeader = getLeader(ctx.gameState);
             const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
             const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
             const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
@@ -313,7 +314,7 @@ function handleMissionVoteExpired(ctx: TimerHandlerContext): void {
 
         const activePlayers = getActivePlayers(ctx.gameState);
         const activePlayerIds = activePlayers.map(p => p.id);
-        const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+        const currentLeader = getLeader(ctx.gameState);
         const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
         const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
         const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];

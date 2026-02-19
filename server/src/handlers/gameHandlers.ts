@@ -3,6 +3,7 @@
 import type * as Party from "partykit/server";
 import { GameState, Phase, Role, Player, ServerMessage, TimerType } from '../types';
 import { GAME_RULES_BY_COUNT } from '../../../shared/constants';
+import { getLeader, getCurrentMission } from '../../../shared/stateHelpers';
 import { shuffle } from '../utils/crypto';
 import { addLog, getSanitizedState, getPlayerByConnection, getActivePlayers } from '../game/state';
 import { log } from '../utils/logger';
@@ -112,7 +113,7 @@ export function handleSelectPlayer(ctx: GameHandlerContext, conn: Party.Connecti
     const player = isActivePlayer(ctx, conn);
     if (!player) return;
 
-    const leader = ctx.gameState.players[ctx.gameState.leaderIndex];
+    const leader = getLeader(ctx.gameState);
     if (player.id !== leader.id) {
         ctx.sendError(conn, 'Apenas o líder pode selecionar');
         return;
@@ -123,7 +124,7 @@ export function handleSelectPlayer(ctx: GameHandlerContext, conn: Party.Connecti
         return;
     }
 
-    const currentMission = ctx.gameState.missions[ctx.gameState.currentMissionIndex];
+    const currentMission = getCurrentMission(ctx.gameState);
     const team = ctx.gameState.proposedTeam;
 
     if (team.includes(playerId)) {
@@ -144,19 +145,19 @@ export function handleSubmitTeam(ctx: GameHandlerContext, conn: Party.Connection
     const player = isActivePlayer(ctx, conn);
     if (!player) return;
 
-    const leader = ctx.gameState.players[ctx.gameState.leaderIndex];
+    const leader = getLeader(ctx.gameState);
     if (player.id !== leader.id) {
         ctx.sendError(conn, 'Apenas o líder pode submeter');
         return;
     }
 
-    const currentMission = ctx.gameState.missions[ctx.gameState.currentMissionIndex];
+    const currentMission = getCurrentMission(ctx.gameState);
     if (ctx.gameState.proposedTeam.length !== currentMission.requiredPlayers) {
         ctx.sendError(conn, `Selecione exatamente ${currentMission.requiredPlayers} jogadores`);
         return;
     }
 
-    ctx.gameState.missions[ctx.gameState.currentMissionIndex].votes = {};
+    getCurrentMission(ctx.gameState).votes = {};
     ctx.gameState.phase = Phase.TEAM_VOTE;
     addLog(ctx.gameState, `> ESQUADRAO PROPOSTO PELO COMANDANTE`);
 
@@ -245,7 +246,7 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
 
                         // Passa a liderança para o próximo jogador ativo
                         const activePlayerIds = activePlayers.map(p => p.id);
-                        const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                        const currentLeader = getLeader(ctx.gameState);
                         const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
                         const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
                         const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
@@ -260,7 +261,7 @@ export function handleVote(ctx: GameHandlerContext, conn: Party.Connection, appr
                 } else {
                     ctx.gameState.phase = Phase.TEAM_SELECTION;
                     const activePlayerIds = activePlayers.map(p => p.id);
-                    const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                    const currentLeader = getLeader(ctx.gameState);
                     const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
                     const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
                     const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];
@@ -350,7 +351,7 @@ export function handleMissionAction(ctx: GameHandlerContext, conn: Party.Connect
                 // Calcula próximo líder apenas entre jogadores ativos
                 const activePlayers = getActivePlayers(ctx.gameState);
                 const activePlayerIds = activePlayers.map(p => p.id);
-                const currentLeader = ctx.gameState.players[ctx.gameState.leaderIndex];
+                const currentLeader = getLeader(ctx.gameState);
                 const currentLeaderActiveIndex = currentLeader ? activePlayerIds.indexOf(currentLeader.id) : -1;
                 const nextLeaderActiveIndex = (currentLeaderActiveIndex + 1) % activePlayerIds.length;
                 const nextLeaderId = activePlayerIds[nextLeaderActiveIndex];

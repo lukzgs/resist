@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GameState, Phase, Role, Player } from '../types';
+import { getLeader, getCurrentMission } from '../../shared/stateHelpers';
 import { useTranslation } from '../i18n';
 import GameOverScreen from './GameOverScreen';
 
@@ -15,7 +16,7 @@ export default function PhaseControls({ state, me, sendAction, isHost }: PhaseCo
     const [pendingVote, setPendingVote] = useState<boolean | null>(null);
     const [pendingMissionAction, setPendingMissionAction] = useState<boolean>(false);
 
-    const currentMission = state.missions[state.currentMissionIndex];
+    const currentMission = getCurrentMission(state);
 
     // Reset pending states quando a fase mudar (hook ANTES do guard)
     React.useEffect(() => {
@@ -54,7 +55,7 @@ export default function PhaseControls({ state, me, sendAction, isHost }: PhaseCo
     }
 
     // Após o guard, me é garantidamente Player ativo
-    const isLeader = state.players[state.leaderIndex].id === me.id;
+    const isLeader = getLeader(state).id === me.id;
 
     if (state.phase === Phase.TEAM_SELECTION) {
         if (isLeader) return (

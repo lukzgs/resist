@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GameState, Phase, Role, Player } from '../types';
 import { GAME_RULES_BY_COUNT } from '../../shared/constants';
+import { getLeader, getCurrentMission } from '../../shared/stateHelpers';
 import PlayerCard from '../components/PlayerCard';
 import MissionTracker from '../components/MissionTracker';
 import VoteTracker from '../components/VoteTracker';
@@ -25,9 +26,9 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const { t } = useTranslation();
   const [showId, setShowId] = useState(false);
   const me = state.players.find(function (p) { return p.name === playerName; });
-  const isLeader = state.players[state.leaderIndex].name === playerName;
+  const isLeader = getLeader(state).name === playerName;
 
-  const currentMission = state.missions[state.currentMissionIndex];
+  const currentMission = getCurrentMission(state);
   const { revealVotes, lastVoteResult } = useVoteReveal(state);
 
   return (
