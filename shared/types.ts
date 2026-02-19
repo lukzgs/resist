@@ -118,13 +118,3 @@ export interface GameRules {
     twoFailsRequiredRound4?: boolean;
     twoFailsRequiredRound5?: boolean;
 }
-
-// Regras do jogo por número de jogadores
-export const GAME_RULES: Record<number, GameRules> = {
-    5: { spyCount: 2, missionSizes: [2, 3, 2, 3, 3], maxRejections: 3 },
-    6: { spyCount: 2, missionSizes: [2, 3, 4, 3, 3], maxRejections: 3 },
-    7: { spyCount: 3, missionSizes: [2, 3, 3, 4, 4], maxRejections: 5, twoFailsRequiredRound4: true },
-    8: { spyCount: 3, missionSizes: [3, 3, 4, 4, 5], maxRejections: 5, twoFailsRequiredRound4: true, twoFailsRequiredRound5: true },
-    9: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], maxRejections: 5, twoFailsRequiredRound4: true },
-    10: { spyCount: 3, missionSizes: [3, 4, 4, 5, 5], maxRejections: 5, twoFailsRequiredRound4: true },
-};
