@@ -2,6 +2,14 @@
 
 import { GameState, Phase, Player } from '../types';
 
+/** Configuração padrão de timer */
+const DEFAULT_TIMER_CONFIG = {
+    enabled: true,
+    teamSelectionSeconds: 120,
+    teamVoteSeconds: 45,
+    missionVoteSeconds: 30,
+} as const;
+
 /**
  * Cria estado inicial do jogo
  */
@@ -24,12 +32,7 @@ export function createInitialState(roomCode: string, roomName: string = '', isPu
         createdAt: now,
         lastActivity: now,
         isPublic,
-        timerConfig: {
-            enabled: true,
-            teamSelectionSeconds: 120,
-            teamVoteSeconds: 45,
-            missionVoteSeconds: 30,
-        },
+        timerConfig: { ...DEFAULT_TIMER_CONFIG },
     };
 }
 
