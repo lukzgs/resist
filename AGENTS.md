@@ -20,6 +20,11 @@ When the user requests commits:
 - Do not use `git add .`
 - Organize commits by features with appropriate tags (chore, fix, feature, etc.)
 
+## Workflow Policy
+
+- Do not execute all tasks at once; work incrementally so the user can observe progress and review changes as they are made
+- Always plan before executing: provide a brief explanation of the problem, how it will be solved, and which files will be changed — then wait for approval before proceeding
+
 ## Language
 
 - Code and documentation: English preferred for AI efficiency

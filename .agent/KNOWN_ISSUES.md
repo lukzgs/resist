@@ -18,11 +18,8 @@
 
 ## Prioridade Média 🟡
 
-### 3. `server.ts` — Switch/Case Gigante (OCP)
-- **Arquivo**: `server/src/server.ts` (725 linhas)
-- **Princípio violado**: OCP (Open/Closed)
-- **Descrição**: O `onMessage` usa um `switch` case para despachar mensagens. Adicionar novo tipo requer modificar o switch.
-- **Correção**: Substituir por mapa de despachante (`Map<MessageType, Handler>`).
+### ~~3. `server.ts` — Switch/Case Gigante (OCP)~~ ✅ Resolvido
+- Movido para tabela de resolvidos abaixo.
 
 ### 4. `GameHandlerContext` — Interface Muito Ampla (ISP)
 - **Arquivo**: `server/src/handlers/gameHandlers.ts`
@@ -30,11 +27,8 @@
 - **Descrição**: Passa todo o poder do servidor (room, broadcast, scheduleRoomClosure) para qualquer handler, mesmo os simples como `vote`.
 - **Correção**: Criar interfaces menores: `VoteContext`, `ConnectionContext`.
 
-### 5. Frontend Sem Guard Clauses (Fail Fast)
-- **Arquivo**: `src/views/GameView.tsx` (L24, L431)
-- **Princípio violado**: Fail Fast
-- **Descrição**: `state.players[state.leaderIndex]` pode ser `undefined` se o índice estiver inconsistente. Sem guard clause, o componente crasha.
-- **Correção**: Adicionar `if (!leader) return null;` antes de usar.
+### ~~5. Frontend Sem Guard Clauses (Fail Fast)~~ ✅ Resolvido
+- Movido para tabela de resolvidos abaixo.
 
 ### 6. Estilos Tailwind Repetidos (DRY)
 - **Arquivos**: `src/views/*`, `src/components/*`
@@ -46,10 +40,8 @@
 
 ## Prioridade Baixa 🟢
 
-### 7. `state.ts` — Mistura de Dados e Config (SRP)
-- **Arquivo**: `server/src/game/state.ts` (82 linhas)
-- **Descrição**: `createInitialState` define dados voláteis e configs padrão de timer juntos.
-- **Correção**: Separar configs em objeto `defaultTimerConfig`.
+### ~~7. `state.ts` — Mistura de Dados e Config (SRP)~~ ✅ Resolvido
+- Movido para tabela de resolvidos abaixo.
 
 ### ~~8. `GameView` — Composição (Composição > Herança)~~ ✅ Resolvido
 - Movido para tabela de resolvidos abaixo.
@@ -70,3 +62,6 @@
 | ~~1~~ | `GameView.tsx` 690 linhas (SRP) | Extraído `DraggableLog`, `GameHeader`, `PhaseControls`, `GameOverScreen`, `useVoteReveal` — reduzido para 140L | 2026-02-20 |
 | ~~8~~ | `GameView` composição > herança | Resolvido com extração de `PhaseControls` (issue #1) | 2026-02-20 |
 | ~~2~~ | Acessos profundos (Lei de Demeter) | Criado `shared/stateHelpers.ts` com `getLeader()` e `getCurrentMission()`, 17 acessos substituídos | 2026-02-20 |
+| ~~3~~ | `server.ts` switch/case gigante (OCP) | Criado `messageRouter.ts` com mapa de despachante + `handleSetPublic.ts` | 2026-02-20 |
+| ~~5~~ | Frontend sem guard clauses (Fail Fast) | `getLeader()` retorna `Player \| undefined`, guards em 4 consumidores | 2026-02-20 |
+| ~~7~~ | `state.ts` mistura dados e config (SRP) | Extraído `DEFAULT_TIMER_CONFIG` constante | 2026-02-20 |
