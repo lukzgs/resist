@@ -8,28 +8,16 @@ import {
 } from "./types";
 
 // Importações dos módulos refatorados
-import { createInitialState, getSanitizedState, addLog, getPlayerByConnection } from './game/state';
+import { createInitialState, getSanitizedState, addLog } from './game/state';
 import { log } from './utils/logger';
 import { generateRoomCode } from './utils/crypto';
 import {
-    handleJoin,
-    handleLeaveRoom,
-    handleRemovePlayer,
     HandlerContext,
 } from './handlers/joinHandler';
 import {
-    handleStartGame,
-    handleSelectPlayer,
-    handleSubmitTeam,
-    handleVote,
-    handleMissionAction,
-    handleSetAnonymousVotes,
-    handleSetShowRejectionCount,
-    handleRestartGame,
     GameHandlerContext,
 } from './handlers/gameHandlers';
 import {
-    handleDisconnectVote,
     startDisconnectWait as _startDisconnectWait,
     cancelDisconnectWait as _cancelDisconnectWait,
     startDisconnectVote as _startDisconnectVote,
@@ -37,6 +25,7 @@ import {
     cancelGame,
     DisconnectHandlerContext,
 } from './handlers/disconnectHandlers';
+import { dispatchMessage, ServerContexts } from './handlers/messageRouter';
 import {
     handleSetTimerConfig,
     startTimer,
@@ -483,6 +472,17 @@ export default class ResistServer implements Party.Server {
         };
     }
 
+    private getServerContexts(): ServerContexts {
+        return {
+            getJoinContext: () => this.getJoinContext(),
+            getGameContext: () => this.getGameContext(),
+            getDisconnectContext: () => this.getDisconnectContext(),
+            hasGameState: () => this.gameState !== null,
+            updateActivity: () => this.updateActivity(),
+            cancelRoomClosure: this.cancelRoomClosure,
+        };
+    }
+
     // ============================================================
     // LIFECYCLE WebSocket
     // ============================================================
@@ -596,79 +596,7 @@ export default class ResistServer implements Party.Server {
         try {
             const data: ClientMessage = JSON.parse(message);
 
-            switch (data.type) {
-                case 'JOIN': {
-                    handleJoin(this.getJoinContext(), sender, data.name, data.avatarSeed, data.sessionId, data.isCreating, data.roomName);
-                    break;
-                }
-                case 'LEAVE_ROOM':
-                    handleLeaveRoom(this.getJoinContext(), sender);
-                    break;
-                case 'REMOVE_PLAYER':
-                    if (this.gameState) handleRemovePlayer(this.getJoinContext(), sender, data.playerId);
-                    break;
-                case 'START_GAME':
-                    if (this.gameState) {
-                        // Aplicar configuração de timer antes de iniciar (com validação)
-                        if (data.timerConfig) {
-                            const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
-                            this.gameState.timerConfig = {
-                                enabled: data.timerConfig.enabled,
-                                teamSelectionSeconds: clamp(data.timerConfig.teamSelectionSeconds || 120, 30, 120),
-                                teamVoteSeconds: clamp(data.timerConfig.teamVoteSeconds || 45, 30, 120),
-                                missionVoteSeconds: clamp(data.timerConfig.missionVoteSeconds || 30, 5, 120),
-                            };
-                        }
-                        handleStartGame(this.getGameContext(), sender);
-                    }
-                    break;
-                case 'SELECT_PLAYER':
-                    if (this.gameState) {
-                        handleSelectPlayer(this.getGameContext(), sender, data.playerId);
-                        this.updateActivity();  // Ação que avança o jogo
-                    }
-                    break;
-                case 'SUBMIT_TEAM':
-                    if (this.gameState) {
-                        handleSubmitTeam(this.getGameContext(), sender);
-                        this.updateActivity();  // Ação que avança o jogo
-                    }
-                    break;
-                case 'VOTE':
-                    if (this.gameState) {
-                        handleVote(this.getGameContext(), sender, data.approve);
-                        this.updateActivity();  // Ação que avança o jogo
-                    }
-                    break;
-                case 'MISSION_ACTION':
-                    if (this.gameState) {
-                        handleMissionAction(this.getGameContext(), sender, data.success);
-                        this.updateActivity();  // Ação que avança o jogo
-                    }
-                    break;
-                case 'SET_ANONYMOUS_VOTES':
-                    if (this.gameState) handleSetAnonymousVotes(this.getGameContext(), sender, data.enabled);
-                    break;
-                case 'SET_SHOW_REJECTION_COUNT':
-                    if (this.gameState) handleSetShowRejectionCount(this.getGameContext(), sender, data.enabled);
-                    break;
-                case 'RESTART_GAME':
-                    if (this.gameState) handleRestartGame(this.getGameContext(), sender, this.cancelRoomClosure);
-                    break;
-                case 'SET_PUBLIC':
-                    if (this.gameState && this.gameState.phase === Phase.LOBBY) {
-                        // Apenas host pode alterar
-                        const player = getPlayerByConnection(this.gameState, this.connections, sender.id);
-                        if (player?.isHost) {
-                            this.gameState.isPublic = data.enabled;
-                            this.broadcastState();
-                        }
-                    }
-                    break;
-                case 'DISCONNECT_VOTE':
-                    if (this.gameState) handleDisconnectVote(this.getDisconnectContext(), sender, data.endGame);
-                    break;
-            }
+            dispatchMessage(this.getServerContexts(), sender, data);
         } catch (e) {
             const errorType = e instanceof SyntaxError ? 'JSON inválido' :
                 e instanceof TypeError ? 'Tipo inválido' : 'Erro desconhecido';

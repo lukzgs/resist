@@ -1,7 +1,7 @@
 // Handlers para ações do jogo
 
 import type * as Party from "partykit/server";
-import { GameState, Phase, Role, Player, ServerMessage, TimerType } from '../types';
+import { GameState, Phase, Role, Player, ServerMessage, TimerType, TimerConfig } from '../types';
 import { GAME_RULES_BY_COUNT } from '../../../shared/constants';
 import { getLeader, getCurrentMission } from '../../../shared/stateHelpers';
 import { shuffle } from '../utils/crypto';
@@ -38,8 +38,19 @@ function isActivePlayer(
 /**
  * Processa START_GAME
  */
-export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection): void {
+export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection, timerConfig?: TimerConfig): void {
     if (ctx.gameState.phase !== Phase.LOBBY) return;
+
+    // Aplicar configuração de timer antes de iniciar (com validação)
+    if (timerConfig) {
+        const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+        ctx.gameState.timerConfig = {
+            enabled: timerConfig.enabled,
+            teamSelectionSeconds: clamp(timerConfig.teamSelectionSeconds || 120, 30, 120),
+            teamVoteSeconds: clamp(timerConfig.teamVoteSeconds || 45, 30, 120),
+            missionVoteSeconds: clamp(timerConfig.missionVoteSeconds || 30, 5, 120),
+        };
+    }
 
     const player = getPlayerByConnection(ctx.gameState, ctx.connections, conn.id);
     if (!player?.isHost) {
