@@ -55,7 +55,8 @@ export default function PhaseControls({ state, me, sendAction, isHost }: PhaseCo
     }
 
     // Após o guard, me é garantidamente Player ativo
-    const isLeader = getLeader(state).id === me.id;
+    const leader = getLeader(state);
+    const isLeader = leader ? leader.id === me.id : false;
 
     if (state.phase === Phase.TEAM_SELECTION) {
         if (isLeader) return (

@@ -1,7 +1,7 @@
 import { GameState, Player, Mission } from './types';
 
-/** Retorna o líder atual da rodada */
-export function getLeader(state: GameState): Player {
+/** Retorna o líder atual da rodada (undefined se leaderIndex inválido) */
+export function getLeader(state: GameState): Player | undefined {
     return state.players[state.leaderIndex];
 }
 

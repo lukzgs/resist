@@ -26,7 +26,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
   const { t } = useTranslation();
   const [showId, setShowId] = useState(false);
   const me = state.players.find(function (p) { return p.name === playerName; });
-  const isLeader = getLeader(state).name === playerName;
+  const leader = getLeader(state);
+  const isLeader = leader ? leader.name === playerName : false;
 
   const currentMission = getCurrentMission(state);
   const { revealVotes, lastVoteResult } = useVoteReveal(state);

@@ -125,7 +125,7 @@ export function handleSelectPlayer(ctx: GameHandlerContext, conn: Party.Connecti
     if (!player) return;
 
     const leader = getLeader(ctx.gameState);
-    if (player.id !== leader.id) {
+    if (!leader || player.id !== leader.id) {
         ctx.sendError(conn, 'Apenas o líder pode selecionar');
         return;
     }
@@ -157,7 +157,7 @@ export function handleSubmitTeam(ctx: GameHandlerContext, conn: Party.Connection
     if (!player) return;
 
     const leader = getLeader(ctx.gameState);
-    if (player.id !== leader.id) {
+    if (!leader || player.id !== leader.id) {
         ctx.sendError(conn, 'Apenas o líder pode submeter');
         return;
     }
