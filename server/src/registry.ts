@@ -202,7 +202,7 @@ export default class RegistryServer implements Party.Server {
             code,
             name: body.name || `Sala ${code}`,  // Default: "Sala XXXX"
             createdAt: Date.now(),
-            playerCount: 0,
+            playerCount: 1,  // Creator is always the first player
             phase: 'LOBBY',
             isPublic: body.isPublic ?? true  // Público por padrão
         };
