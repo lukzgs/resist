@@ -99,7 +99,9 @@ export type ClientMessage =
     | { type: 'SET_SHOW_REJECTION_COUNT'; enabled: boolean }
     | { type: 'SET_PUBLIC'; enabled: boolean }
     | { type: 'RESTART_GAME' }
-    | { type: 'DISCONNECT_VOTE'; endGame: boolean };
+    | { type: 'DISCONNECT_VOTE'; endGame: boolean }
+    | { type: 'TOGGLE_SPECTATOR'; playerId?: string }
+    | { type: 'TRANSFER_HOST'; playerId: string };
 
 // Mensagens do servidor para o cliente
 export type ServerMessage =

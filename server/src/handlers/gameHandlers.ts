@@ -416,6 +416,86 @@ export function handleSetShowRejectionCount(ctx: GameHandlerContext, conn: Party
 }
 
 /**
+ * Processa TOGGLE_SPECTATOR
+ */
+export function handleToggleSpectator(ctx: GameHandlerContext, conn: Party.Connection, targetPlayerId?: string): void {
+    if (ctx.gameState.phase !== Phase.LOBBY) return;
+
+    const requester = getPlayerByConnection(ctx.gameState, ctx.connections, conn.id);
+    if (!requester) return;
+
+    // Determina o alvo: se playerId fornecido, é ação do host; senão, toggle próprio
+    let target: Player | undefined;
+    if (targetPlayerId && targetPlayerId !== requester.id) {
+        // Host toggling outro jogador
+        if (!requester.isHost) {
+            ctx.sendError(conn, 'Apenas o host pode alterar status de outros jogadores');
+            return;
+        }
+        target = ctx.gameState.players.find(p => p.id === targetPlayerId);
+        if (!target) {
+            ctx.sendError(conn, 'Jogador não encontrado');
+            return;
+        }
+    } else {
+        target = requester;
+    }
+
+    // Host não pode virar espectador
+    if (target.isHost && !target.isSpectator) {
+        ctx.sendError(conn, 'O host não pode ser espectador. Transfira o host antes.');
+        return;
+    }
+
+    // Validação: não pode virar jogador se a sala já estiver cheia (10 jogadores ativos)
+    if (target.isSpectator) {
+        const activePlayers = getActivePlayers(ctx.gameState);
+        if (activePlayers.length >= 10) {
+            ctx.sendError(conn, 'A sala já atingiu o limite de 10 jogadores ativos.');
+            return;
+        }
+    }
+
+    target.isSpectator = !target.isSpectator;
+
+    const activeCount = getActivePlayers(ctx.gameState).length;
+    log.system(ctx.gameState.roomCode, `"${target.name}" agora é ${target.isSpectator ? 'espectador' : 'jogador'} (${activeCount} ativos)`);
+    ctx.broadcastState();
+}
+
+/**
+ * Processa TRANSFER_HOST
+ */
+export function handleTransferHost(ctx: GameHandlerContext, conn: Party.Connection, targetPlayerId: string): void {
+    if (ctx.gameState.phase !== Phase.LOBBY) return;
+
+    const requester = getPlayerByConnection(ctx.gameState, ctx.connections, conn.id);
+    if (!requester?.isHost) {
+        ctx.sendError(conn, 'Apenas o host pode transferir o host');
+        return;
+    }
+
+    if (requester.id === targetPlayerId) return; // Já é host
+
+    const target = ctx.gameState.players.find(p => p.id === targetPlayerId);
+    if (!target) {
+        ctx.sendError(conn, 'Jogador não encontrado');
+        return;
+    }
+
+    if (target.isSpectator) {
+        ctx.sendError(conn, 'Não é possível transferir host para um espectador');
+        return;
+    }
+
+    requester.isHost = false;
+    target.isHost = true;
+
+    log.system(ctx.gameState.roomCode, `Host transferido de "${requester.name}" para "${target.name}"`);
+    ctx.broadcastState();
+}
+
+/**
  * Processa RESTART_GAME
  */
 export function handleRestartGame(

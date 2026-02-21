@@ -12,6 +12,8 @@ import {
     handleSetAnonymousVotes,
     handleSetShowRejectionCount,
     handleRestartGame,
+    handleToggleSpectator,
+    handleTransferHost,
     GameHandlerContext,
 } from './gameHandlers';
 import {
@@ -120,6 +122,18 @@ const MESSAGE_HANDLERS: Record<ClientMessage['type'], MessageHandlerEntry> = {
         updatesActivity: false,
         handle: (ctx, sender, data) =>
             handleDisconnectVote(ctx.getDisconnectContext(), sender, data.endGame),
+    },
+    TOGGLE_SPECTATOR: {
+        requiresGame: true,
+        updatesActivity: false,
+        handle: (ctx, sender, data) =>
+            handleToggleSpectator(ctx.getGameContext(), sender, data.playerId),
+    },
+    TRANSFER_HOST: {
+        requiresGame: true,
+        updatesActivity: false,
+        handle: (ctx, sender, data) =>
+            handleTransferHost(ctx.getGameContext(), sender, data.playerId),
     },
 };
 

@@ -172,8 +172,9 @@ function handleTeamSelectionExpired(ctx: TimerHandlerContext): void {
     ctx.gameState.failedVoteCount++;
 
     const newLeader = getLeader(ctx.gameState);
-    addLog(ctx.gameState, `> TEMPO ESGOTADO! Lideranca passou para ${newLeader.name}`);
-    log.timer(ctx.gameState.roomCode, `Timer expirou (selecao) - lideranca passou para "${newLeader.name}"`);
+    const newLeaderName = newLeader?.name || 'Desconhecido';
+    addLog(ctx.gameState, `> TEMPO ESGOTADO! Lideranca passou para ${newLeaderName}`);
+    log.timer(ctx.gameState.roomCode, `Timer expirou (selecao) - lideranca passou para "${newLeaderName}"`);
 
     // Verifica limite de rejeições (regra dinâmica por pCount)
     const activePlayersCount = getActivePlayers(ctx.gameState).length;
