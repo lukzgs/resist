@@ -216,6 +216,38 @@ Toggle public room visibility.
 
 ---
 
+### TOGGLE_SPECTATOR
+Toggle the player's status between active player and spectator.
+
+```typescript
+{
+  type: 'TOGGLE_SPECTATOR';
+  playerId?: string;
+}
+```
+
+**Phases**: `LOBBY`
+**Actor**: Any player (toggles self) or Host (toggles others)
+**Response**: `STATE`
+
+---
+
+### TRANSFER_HOST
+Transfer the host role to another active player.
+
+```typescript
+{
+  type: 'TRANSFER_HOST';
+  playerId: string;
+}
+```
+
+**Phases**: `LOBBY`
+**Actor**: Host only
+**Response**: `STATE`
+
+---
+
 ### RESTART_GAME
 Start new game after game over.
 

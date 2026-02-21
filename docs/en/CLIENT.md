@@ -90,10 +90,11 @@ Player configuration:
 ### LobbyView
 Pre-game waiting room:
 - Player list with avatars
-- Host controls (settings, start)
+- Host controls (settings, start, transfer host)
 - Room code display
 - Timer configuration
 - Public/private toggle
+- Spectator toggle (self or other players)
 
 ### GameView
 Main game screen:

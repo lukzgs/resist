@@ -90,10 +90,11 @@ Configuração do jogador:
 ### LobbyView
 Sala de espera pré-jogo:
 - Lista de jogadores com avatares
-- Controles do host (configurações, iniciar)
+- Controles do host (configurações, iniciar, transferir host)
 - Exibição código da sala
 - Configuração de timer
 - Toggle público/privado
+- Toggle espectador (próprio jogador ou via host)
 
 ### GameView
 Tela principal do jogo:

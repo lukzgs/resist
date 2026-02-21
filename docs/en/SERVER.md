@@ -103,6 +103,37 @@ Host kicks player (lobby only).
 
 ### gameHandlers.ts
 
+#### handleToggleSpectator(ctx, conn, targetPlayerId?)
+Toggle spectator status of a player.
+
+```typescript
+// Requirements:
+- Phase must be LOBBY
+- Sender must be in the room
+- If toggling another player, sender must be the host
+- Host cannot become a spectator
+
+// Actions:
+1. Identify target player
+2. Toggle isSpectator flag
+3. Broadcast state
+```
+
+#### handleTransferHost(ctx, conn, targetPlayerId)
+Transfers the host role to another player.
+
+```typescript
+// Requirements:
+- Phase must be LOBBY
+- Sender must be the host
+- Target must not be a spectator
+
+// Actions:
+1. Target player becomes host
+2. Sender loses host status
+3. Broadcast state
+```
+
 #### handleStartGame(ctx, conn)
 Start the game.
 

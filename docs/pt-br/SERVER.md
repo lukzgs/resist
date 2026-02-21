@@ -103,6 +103,37 @@ Host expulsa jogador (apenas lobby).
 
 ### gameHandlers.ts
 
+#### handleToggleSpectator(ctx, conn, targetPlayerId?)
+Alternar o status de espectador de um jogador.
+
+```typescript
+// Requisitos:
+- Fase deve ser LOBBY
+- Remetente deve estar na sala
+- Se for alterar outro jogador, o remetente deve ser o host
+- Host não pode virar espectador
+
+// Ações:
+1. Identificar o jogador alvo
+2. Alternar o sinalizador isSpectator
+3. Fazer broadcast do estado
+```
+
+#### handleTransferHost(ctx, conn, targetPlayerId)
+Transfere a função de host para outro jogador.
+
+```typescript
+// Requisitos:
+- Fase deve ser LOBBY
+- Remetente deve ser o host
+- O alvo não pode ser um espectador
+
+// Ações:
+1. O jogador alvo se torna o host
+2. O remetente perde o status de host
+3. Fazer broadcast do estado
+```
+
 #### handleStartGame(ctx, conn)
 Inicia o jogo.
 
