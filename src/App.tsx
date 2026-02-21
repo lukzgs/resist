@@ -136,6 +136,8 @@ export default function App() {
     setPublic,
     restartGame,
     disconnectVote,
+    toggleSpectator,
+    transferHost,
   } = usePartySocket({
     roomCode,
     playerName,
@@ -450,6 +452,8 @@ export default function App() {
           onToggleAnonymousVotes={setAnonymousVotes}
           onToggleShowRejectionCount={setShowRejectionCount}
           onTogglePublic={setPublic}
+          onToggleSpectator={toggleSpectator}
+          onTransferHost={transferHost}
           onBack={handleBack}
         />
       )}

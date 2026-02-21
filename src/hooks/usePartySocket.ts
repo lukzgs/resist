@@ -154,6 +154,8 @@ interface UsePartySocketReturn {
     setPublic: (enabled: boolean) => void;
     restartGame: () => void;
     disconnectVote: (endGame: boolean) => void;
+    toggleSpectator: (playerId?: string) => void;
+    transferHost: (playerId: string) => void;
 }
 
 export function usePartySocket(options: UsePartySocketOptions): UsePartySocketReturn {

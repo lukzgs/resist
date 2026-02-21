@@ -56,6 +56,11 @@ const translations = {
         'lobby.public_room.desc': 'Visível na busca de salas',
         'lobby.private_room': 'SALA PRIVADA',
         'lobby.private_room.desc': 'Oculta da busca de salas',
+        'lobby.spectator_badge': 'ESPECTADOR',
+        'lobby.become_player': 'Virar Jogador',
+        'lobby.become_spectator': 'Virar Espectador',
+        'lobby.transfer_host': 'Tornar Host',
+        'lobby.spectators': 'espectadores',
 
         // Game
         'game.mission': 'Missão',
@@ -184,6 +189,11 @@ const translations = {
         'lobby.public_room.desc': 'Visible in room search',
         'lobby.private_room': 'PRIVATE ROOM',
         'lobby.private_room.desc': 'Hidden from room search',
+        'lobby.spectator_badge': 'SPECTATOR',
+        'lobby.become_player': 'Become Player',
+        'lobby.become_spectator': 'Become Spectator',
+        'lobby.transfer_host': 'Make Host',
+        'lobby.spectators': 'spectators',
 
         // Game
         'game.mission': 'Mission',

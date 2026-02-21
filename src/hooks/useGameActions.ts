@@ -62,6 +62,14 @@ export function useGameActions(send: SendFn) {
         send({ type: 'DISCONNECT_VOTE', endGame });
     }, [send]);
 
+    const toggleSpectator = useCallback((playerId?: string) => {
+        send({ type: 'TOGGLE_SPECTATOR', playerId });
+    }, [send]);
+
+    const transferHost = useCallback((playerId: string) => {
+        send({ type: 'TRANSFER_HOST', playerId });
+    }, [send]);
+
     return {
         leaveRoom,
         removePlayer,
@@ -75,5 +83,7 @@ export function useGameActions(send: SendFn) {
         setPublic,
         restartGame,
         disconnectVote,
+        toggleSpectator,
+        transferHost,
     };
 }

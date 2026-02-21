@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5';
+import { LuCrown, LuEye, LuGamepad2 } from 'react-icons/lu';
 import { GameState, TimerConfig } from '../types';
 import { GAME_RULES } from '../constants';
 import { TIMER_LIMITS } from '../../shared/constants';
@@ -14,12 +15,16 @@ interface Props {
     onToggleAnonymousVotes: (enabled: boolean) => void;
     onToggleShowRejectionCount: (enabled: boolean) => void;
     onTogglePublic: (enabled: boolean) => void;
+    onToggleSpectator: (playerId?: string) => void;
+    onTransferHost: (playerId: string) => void;
     onBack: () => void;
 }
 
-export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onTogglePublic, onBack }: Props) {
+export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart, onToggleAnonymousVotes, onToggleShowRejectionCount, onTogglePublic, onToggleSpectator, onTransferHost, onBack }: Props) {
     const { t } = useTranslation();
-    const pCount = state.players.length;
+    const activePlayers = state.players.filter(p => !p.isSpectator);
+    const spectatorCount = state.players.filter(p => p.isSpectator).length;
+    const pCount = activePlayers.length;
     const TL = TIMER_LIMITS; // alias local para brevidade no JSX
     const canStart = pCount >= 5 && pCount <= 10;
     const [linkCopied, setLinkCopied] = useState(false);
@@ -75,7 +80,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                     <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-resistance transition-all duration-1000" style={{ width: `${(pCount / 10) * 100}%` }}></div>
                                     </div>
-                                    <div className="mt-1 text-right text-sm text-resistance">{pCount}/10 {t('lobby.connected')}</div>
+                                    <div className="mt-1 text-right text-sm text-resistance">{pCount}/10 {t('lobby.connected')}{spectatorCount > 0 ? ` (+${spectatorCount} ${t('lobby.spectators')})` : ''}</div>
                                 </div>
 
                                 <div className="p-4 bg-slate-900/50 rounded-xl border border-white/5 space-y-3">
@@ -332,30 +337,68 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {state.players.map((p) => (
-                                    <div key={p.id} className={`group relative h-16 rounded-2xl border ${p.disconnected ? 'border-red-500/30 bg-red-900/10 opacity-50' : 'border-white/10 bg-black/40'} flex items-center px-5 transition-all hover:border-resistance/40 hover:bg-black/60`}>
+                                    <div key={p.id} className={`group relative h-16 rounded-2xl border ${p.isSpectator ? 'border-yellow-500/20 bg-yellow-900/10 opacity-60' : p.disconnected ? 'border-red-500/30 bg-red-900/10 opacity-50' : 'border-white/10 bg-black/40'} flex items-center px-5 transition-all hover:border-resistance/40 hover:bg-black/60`}>
                                         {p.isHost && (
                                             <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 text-black text-[10px] font-display font-bold px-3 py-0.5 rounded-full z-20 shadow-lg tracking-wider border border-yellow-300/50">
                                                 {t('lobby.host')}
                                             </div>
                                         )}
-                                        <div className={`w-2 h-2 ${p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full shrink-0 mr-4`}></div>
+                                        {p.isSpectator && !p.isHost && (
+                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-slate-700 text-slate-300 text-[10px] font-display font-bold px-3 py-0.5 rounded-full z-20 shadow-lg tracking-wider border border-slate-500/50">
+                                                {t('lobby.spectator_badge')}
+                                            </div>
+                                        )}
+                                        <div className={`w-2 h-2 ${p.isSpectator ? 'bg-yellow-500' : p.disconnected ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full shrink-0 mr-4`}></div>
                                         <div className="overflow-hidden flex-1">
                                             <div className="text-lg font-display font-bold text-white uppercase tracking-wide truncate">
                                                 {p.name}
                                             </div>
                                             <div className="text-xs font-mono text-slate-300 uppercase tracking-widest">
-                                                {p.disconnected ? t('lobby.offline') : t('lobby.online')}
+                                                {p.isSpectator ? t('lobby.spectator_badge') : p.disconnected ? t('lobby.offline') : t('lobby.online')}
                                             </div>
                                         </div>
-                                        {isHost && !p.isHost && p.id !== myPlayerId && (
-                                            <button
-                                                onClick={() => onRemove(p.id)}
-                                                className="opacity-0 group-hover:opacity-100 ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 transition-all"
-                                                title="Remover jogador"
-                                            >
-                                                ×
-                                            </button>
-                                        )}
+                                        <div className="flex items-center gap-1 ml-2">
+                                            {/* Toggle spectator - próprio jogador (exceto host) ou host toggling outros */}
+                                            {(p.id === myPlayerId && !p.isHost) && (
+                                                <button
+                                                    onClick={() => onToggleSpectator()}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white opacity-0 group-hover:opacity-100'}`}
+                                                    title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
+                                                >
+                                                    {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
+                                                </button>
+                                            )}
+                                            {isHost && p.id !== myPlayerId && (
+                                                <>
+                                                    {/* Toggle spectator de outro jogador (host only) */}
+                                                    <button
+                                                        onClick={() => onToggleSpectator(p.id)}
+                                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'opacity-0 group-hover:opacity-100 bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
+                                                        title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
+                                                    >
+                                                        {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
+                                                    </button>
+                                                    {/* Transfer host (só para jogadores ativos) */}
+                                                    {!p.isSpectator && (
+                                                        <button
+                                                            onClick={() => onTransferHost(p.id)}
+                                                            className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded-full bg-yellow-500/10 hover:bg-yellow-500/30 text-yellow-400 hover:text-yellow-300 transition-all"
+                                                            title={t('lobby.transfer_host')}
+                                                        >
+                                                            <LuCrown size={16} />
+                                                        </button>
+                                                    )}
+                                                    {/* Remove player */}
+                                                    <button
+                                                        onClick={() => onRemove(p.id)}
+                                                        className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 transition-all"
+                                                        title="Remover jogador"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
