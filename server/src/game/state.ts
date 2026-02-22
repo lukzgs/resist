@@ -52,10 +52,13 @@ export function getSanitizedState(state: GameState): GameState {
             const sanitizedMission = { ...mission, missionOutcomes: [...mission.missionOutcomes] };
 
             if (index === state.currentMissionIndex && state.phase === Phase.MISSION_EXECUTION) {
-                // Durante a votação: oculta o verdeiro valor do voto. Se votou, vira true genérico.
-                sanitizedMission.missionOutcomes = sanitizedMission.missionOutcomes.map(outcome =>
-                    outcome !== undefined ? (true as any) : undefined
-                );
+                // Durante a votação: oculta o verdeiro valor do voto.
+                // Criamos um novo array denso para evitar que o .map pule empty slots
+                const outcomes = [];
+                for (let i = 0; i < mission.requiredPlayers; i++) {
+                    outcomes.push(mission.missionOutcomes[i] !== undefined ? (true as any) : undefined);
+                }
+                sanitizedMission.missionOutcomes = outcomes;
             } else if (mission.status !== 'PENDING') {
                 // Após a votação: embaralha os votos para que não seja possível saber QUEM votou o quê
                 sanitizedMission.missionOutcomes = shuffle([...mission.missionOutcomes]);
