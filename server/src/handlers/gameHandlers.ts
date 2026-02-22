@@ -96,7 +96,8 @@ export function handleStartGame(ctx: GameHandlerContext, conn: Party.Connection,
 
     // Configura estado inicial
     ctx.gameState.phase = Phase.TEAM_SELECTION;
-    ctx.gameState.leaderIndex = Math.floor(Math.random() * pCount);
+    const initialLeader = activePlayers[Math.floor(Math.random() * pCount)];
+    ctx.gameState.leaderIndex = ctx.gameState.players.findIndex(p => p.id === initialLeader.id);
     ctx.gameState.currentMissionIndex = 0;
     ctx.gameState.failedVoteCount = 0;
     ctx.gameState.proposedTeam = [];
