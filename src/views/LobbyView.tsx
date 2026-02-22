@@ -362,7 +362,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                             {(p.id === myPlayerId && !p.isHost) && (
                                                 <button
                                                     onClick={() => onToggleSpectator()}
-                                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white opacity-0 group-hover:opacity-100'}`}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
                                                     title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
                                                 >
                                                     {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
@@ -373,7 +373,7 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                     {/* Toggle spectator de outro jogador (host only) */}
                                                     <button
                                                         onClick={() => onToggleSpectator(p.id)}
-                                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'opacity-0 group-hover:opacity-100 bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
+                                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
                                                         title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
                                                     >
                                                         {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
