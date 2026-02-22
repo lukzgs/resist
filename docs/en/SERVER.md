@@ -345,6 +345,19 @@ All message payloads validated:
 
 ---
 
+## Deployment
+
+To deploy the server to the PartyKit cloud environment:
+
+```bash
+cd server
+npx partykit deploy
+```
+
+This will deploy `src/server.ts` to `https://resist-server.lukzgs.partykit.dev`.
+
+---
+
 See also:
 - [MESSAGES.md](./MESSAGES.md) - Protocol details
 - [STATE_MACHINE.md](./STATE_MACHINE.md) - Phase logic
