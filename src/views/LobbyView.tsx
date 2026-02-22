@@ -370,14 +370,6 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                             )}
                                             {isHost && p.id !== myPlayerId && (
                                                 <>
-                                                    {/* Toggle spectator de outro jogador (host only) */}
-                                                    <button
-                                                        onClick={() => onToggleSpectator(p.id)}
-                                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
-                                                        title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
-                                                    >
-                                                        {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
-                                                    </button>
                                                     {/* Transfer host (só para jogadores ativos) */}
                                                     {!p.isSpectator && (
                                                         <button
@@ -388,6 +380,14 @@ export default function LobbyView({ state, isHost, myPlayerId, onRemove, onStart
                                                             <LuCrown size={16} />
                                                         </button>
                                                     )}
+                                                    {/* Toggle spectator de outro jogador (host only) */}
+                                                    <button
+                                                        onClick={() => onToggleSpectator(p.id)}
+                                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 ${p.isSpectator ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/40' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-white'}`}
+                                                        title={p.isSpectator ? t('lobby.become_player') : t('lobby.become_spectator')}
+                                                    >
+                                                        {p.isSpectator ? <LuGamepad2 size={16} /> : <LuEye size={16} />}
+                                                    </button>
                                                     {/* Remove player */}
                                                     <button
                                                         onClick={() => onRemove(p.id)}
