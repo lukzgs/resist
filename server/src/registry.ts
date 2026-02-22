@@ -8,8 +8,12 @@ const MAX_ROOMS = 50;
 // Máximo de salas retornadas na listagem
 const MAX_ROOMS_LIST = 20;
 
-// Tempo máximo que uma sala pode ficar no registry (5 minutos no lobby)
-const LOBBY_MAX_AGE_MS = 5 * 60 * 1000;
+// Tempo máximo que uma sala pode ficar no registry sem heartbeat (2 minutos no lobby)
+const LOBBY_MAX_AGE_MS = 2 * 60 * 1000;
+
+// Tempo máximo ABSOLUTO que uma sala pode ficar em LOBBY (15 minutos)
+// Previne que trolls usem heartbeats para manter salas abertas indefinidamente
+const STATIC_LOBBY_MAX_AGE_MS = 15 * 60 * 1000;
 
 // Tempo máximo total de uma sala (2 horas)
 const ROOM_MAX_AGE_MS = 2 * 60 * 60 * 1000;
@@ -21,6 +25,7 @@ interface RoomInfo {
     code: string;
     name: string;  // Nome personalizado da sala
     createdAt: number;
+    updatedAt: number; // Último heartbeat recebido do servidor
     playerCount: number;
     phase: string;  // LOBBY, TEAM_SELECTION, etc.
     isPublic: boolean;  // Se a sala aparece na lista pública
@@ -71,22 +76,28 @@ export default class RegistryServer implements Party.Server {
         await this.scheduleCleanup();
     }
 
-    /**
-     * Remove salas antigas/órfãs
-     */
     private async cleanupOrphanRooms(): Promise<void> {
         const now = Date.now();
         const before = this.state.activeRooms.length;
 
         this.state.activeRooms = this.state.activeRooms.filter(room => {
             const age = now - room.createdAt;
+            const idleTime = now - room.updatedAt;
 
-            // Salas em LOBBY expiram em 5 minutos
-            if (room.phase === 'LOBBY' && age >= LOBBY_MAX_AGE_MS) {
-                return false;
+            // Salas em LOBBY:
+            if (room.phase === 'LOBBY') {
+                // 1. Limite absoluto Anti-Troll: Sala no lobby a mais de 15 minutos é removida (independente de heartbeats)
+                if (age >= STATIC_LOBBY_MAX_AGE_MS) {
+                    return false;
+                }
+
+                // 2. Limite de Lixo (Heartbeat): Se a sala parou de mandar updates há mais de 2 minutos, o servidor deve ter crasheado
+                if (idleTime >= LOBBY_MAX_AGE_MS) {
+                    return false;
+                }
             }
 
-            // Todas as salas expiram em 2 horas
+            // Todas as salas expiram em 2 horas (limite drástico do jogo inteiro)
             if (age >= ROOM_MAX_AGE_MS) {
                 return false;
             }
@@ -95,7 +106,7 @@ export default class RegistryServer implements Party.Server {
         });
 
         if (before !== this.state.activeRooms.length) {
-            log.registry(`Cleanup: removidas ${before - this.state.activeRooms.length} salas orfas`);
+            log.registry(`Cleanup: removidas ${before - this.state.activeRooms.length} salas orfas ou expiradas`);
             await this.saveState();
         }
 
@@ -198,10 +209,12 @@ export default class RegistryServer implements Party.Server {
 
         // Registra sala - público por padrão
         const body = await req.json().catch(() => ({})) as { isPublic?: boolean; name?: string };
+        const now = Date.now();
         const roomInfo: RoomInfo = {
             code,
             name: body.name || `Sala ${code}`,  // Default: "Sala XXXX"
-            createdAt: Date.now(),
+            createdAt: now,
+            updatedAt: now,
             playerCount: 1,  // Creator is always the first player
             phase: 'LOBBY',
             isPublic: body.isPublic ?? true  // Público por padrão
@@ -271,16 +284,18 @@ export default class RegistryServer implements Party.Server {
         }
 
         // Atualiza campos
+        room.updatedAt = Date.now(); // Heartbeat validado
+
         if (body.playerCount !== undefined) {
             room.playerCount = body.playerCount;
-            log.registry(`Sala ${body.code} atualizada: ${body.playerCount} jogadores`);
+            // Apenas log de debug para mudanças reais, não precisa spammar log pra todo heartbeat
         }
         if (body.phase !== undefined) {
             // Se a sala está voltando para o LOBBY (restart do jogo), renova o tempo de criação
-            // para não ser ocultada/removida pelo timeout de 5 minutos do LOBBY
+            // para não bater no Limite Absoluto de LOBBY e garantir mais 15 minutos pra jogar de novo
             if (body.phase === 'LOBBY' && room.phase !== 'LOBBY') {
                 room.createdAt = Date.now();
-                log.registry(`Sala ${body.code} retornou ao LOBBY. Timer renovado.`);
+                log.registry(`Sala ${body.code} retornou ao LOBBY. Timers totais renovados.`);
             }
             room.phase = body.phase;
         }
@@ -306,16 +321,20 @@ export default class RegistryServer implements Party.Server {
                 if (!r.isPublic || r.phase !== 'LOBBY' || r.playerCount >= 10) {
                     return false;
                 }
-                // Não retornar salas expiradas (mais de 5 minutos)
+                // Não retornar salas que sofreram hard-timeout ou falta de heartbeat
+                const idleTime = now - r.updatedAt;
                 const age = now - r.createdAt;
-                if (age >= LOBBY_MAX_AGE_MS) {
+                if (idleTime >= LOBBY_MAX_AGE_MS || age >= STATIC_LOBBY_MAX_AGE_MS) {
                     return false;
                 }
                 return true;
             })
             .slice(0, MAX_ROOMS_LIST)  // Limita a 20
             .map(r => {
-                const expiresAt = r.createdAt + LOBBY_MAX_AGE_MS;
+                // Calcula baseando-se no limite que vencer primeiro (Troll timeout x Idle timeout)
+                const trollExpiresAt = r.createdAt + STATIC_LOBBY_MAX_AGE_MS;
+                const idleExpiresAt = r.updatedAt + LOBBY_MAX_AGE_MS;
+                const expiresAt = Math.min(trollExpiresAt, idleExpiresAt);
                 const expiresIn = Math.max(0, expiresAt - now);
 
                 return {

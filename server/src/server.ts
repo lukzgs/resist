@@ -58,6 +58,9 @@ export default class ResistServer implements Party.Server {
     // Timer para limpeza da sala quando vazia
     roomCleanupTimeout: NodeJS.Timeout | null = null;
 
+    // Timer para manter a sala viva ("Ping") enquanto estiver ativa no LOBBY 
+    heartbeatInterval: NodeJS.Timeout | null = null;
+
     // Timers de grace period para reconexão rápida (antes de pausar o jogo)
     gracePeriodTimers: Map<string, NodeJS.Timeout> = new Map();
 
@@ -247,8 +250,32 @@ export default class ResistServer implements Party.Server {
     }
 
     // ============================================================
-    // GERENCIAMENTO DE TIMERS
+    // GERENCIAMENTO DE TIMERS E HEARTBEAT
     // ============================================================
+
+    private startHeartbeat = (): void => {
+        if (!this.heartbeatInterval) {
+            log.system(this.gameState?.roomCode || '', 'Iniciando heartbeat do Registry Server');
+            this.heartbeatInterval = setInterval(() => {
+                const playerCount = this.gameState?.players?.length || 0;
+                if (playerCount > 0) {
+                    this.notifyRegistry('update', {
+                        playerCount,
+                        phase: this.gameState?.phase,
+                        isPublic: this.gameState?.isPublic
+                    });
+                }
+            }, 60000); // 1 minuto
+        }
+    };
+
+    private stopHeartbeat = (): void => {
+        if (this.heartbeatInterval) {
+            log.system(this.gameState?.roomCode || '', 'Parando heartbeat do Registry Server');
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+    };
 
     private scheduleRoomClosure = (): void => {
         if (this.gameOverTimeout) {
@@ -392,12 +419,20 @@ export default class ResistServer implements Party.Server {
             // Sala vazia: remove do registry para não aparecer como sala fantasma
             log.system(this.gameState.roomCode, 'Sala vazia - removendo do registry');
             this.notifyRegistry('unregister');
+            this.stopHeartbeat();
         } else {
             this.notifyRegistry('update', {
                 playerCount,
                 phase: this.gameState.phase,
                 isPublic: this.gameState.isPublic
             });
+
+            // Start ou Parada do Heartbeat dependendo da Fase atual do jogo
+            if (this.gameState.phase === Phase.LOBBY) {
+                this.startHeartbeat();
+            } else {
+                this.stopHeartbeat();
+            }
         }
     };
 
@@ -566,6 +601,7 @@ export default class ResistServer implements Party.Server {
                         clearTimeout(this.gameOverTimeout);
                         this.gameOverTimeout = null;
                     }
+                    this.stopHeartbeat();
                     this.cancelDisconnectTimers();
                     for (const timeout of this.disconnectedPlayers.values()) {
                         clearTimeout(timeout);
