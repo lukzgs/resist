@@ -275,7 +275,15 @@ export default class RegistryServer implements Party.Server {
             room.playerCount = body.playerCount;
             log.registry(`Sala ${body.code} atualizada: ${body.playerCount} jogadores`);
         }
-        if (body.phase !== undefined) room.phase = body.phase;
+        if (body.phase !== undefined) {
+            // Se a sala está voltando para o LOBBY (restart do jogo), renova o tempo de criação
+            // para não ser ocultada/removida pelo timeout de 5 minutos do LOBBY
+            if (body.phase === 'LOBBY' && room.phase !== 'LOBBY') {
+                room.createdAt = Date.now();
+                log.registry(`Sala ${body.code} retornou ao LOBBY. Timer renovado.`);
+            }
+            room.phase = body.phase;
+        }
         if (body.isPublic !== undefined) room.isPublic = body.isPublic;
 
         await this.saveState();
