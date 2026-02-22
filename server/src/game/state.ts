@@ -56,7 +56,9 @@ export function getSanitizedState(state: GameState): GameState {
                 // Criamos um novo array denso para evitar que o .map pule empty slots
                 const outcomes = [];
                 for (let i = 0; i < mission.requiredPlayers; i++) {
-                    outcomes.push(mission.missionOutcomes[i] !== undefined ? (true as any) : null);
+                    const outcome = mission.missionOutcomes[i];
+                    // O valor *real* de outcome será boolean (true/false) se o jogador votou
+                    outcomes.push(typeof outcome === 'boolean' ? (true as any) : null);
                 }
                 sanitizedMission.missionOutcomes = outcomes;
             } else if (mission.status !== 'PENDING') {
