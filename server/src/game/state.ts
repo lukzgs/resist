@@ -1,6 +1,6 @@
 // Gerenciamento de estado do jogo
 
-import { GameState, Phase, Player } from '../types';
+import { GameState, Phase, Player, Role } from '../types';
 import { shuffle } from '../utils/crypto';
 
 /** Configuração padrão de timer */
@@ -40,16 +40,57 @@ export function createInitialState(roomCode: string, roomName: string = '', isPu
 /**
  * Retorna estado sanitizado (sem sessionIds) para enviar aos clientes
  */
-export function getSanitizedState(state: GameState): GameState {
+export function getSanitizedState(state: GameState, targetPlayerId?: string): GameState {
+    const isGameOver = state.phase === Phase.GAME_OVER;
+
     const sanitizedState: GameState = {
         ...state,
-        players: state.players.map(p => ({
-            ...p,
-            sessionId: undefined
-        })),
+        players: state.players.map((p, index) => {
+            const isMe = p.id === targetPlayerId;
+
+            // Determina a Role para enviar. Oculta se for alheia (a menos que seja GameOver ou os dois Terminators)
+            let safeRole = p.role;
+            if (!isMe && !isGameOver) {
+                const targetPlayer = state.players.find(tp => tp.id === targetPlayerId);
+                const amITerminator = targetPlayer?.role === Role.TERMINATOR;
+                const isHeTerminator = p.role === Role.TERMINATOR;
+
+                if (!(amITerminator && isHeTerminator)) {
+                    safeRole = 'UNKNOWN' as Role;
+                }
+            }
+
+            // Centraliza o cálculo de "hasVoted" no backend
+            let hasVoted = false;
+            if (state.phase === Phase.TEAM_VOTE) {
+                const currentMission = state.missions[state.currentMissionIndex];
+                hasVoted = currentMission?.votes[p.id] !== undefined;
+            } else if (state.phase === Phase.MISSION_EXECUTION) {
+                const currentMission = state.missions[state.currentMissionIndex];
+                const teamIndex = state.proposedTeam.indexOf(p.id);
+                if (teamIndex !== -1 && currentMission?.missionOutcomes) {
+                    hasVoted = typeof currentMission.missionOutcomes[teamIndex] === 'boolean';
+                }
+            }
+
+            return {
+                ...p,
+                role: safeRole,
+                hasVoted,
+                sessionId: undefined
+            };
+        }),
         missions: state.missions.map((mission, index) => {
             // Clona a missão para não mutar o estado original
             const sanitizedMission = { ...mission, missionOutcomes: [...mission.missionOutcomes] };
+
+            // Se for TEAM_VOTE de missão anônima: Esconda os votos alheios no dicionário literal
+            if (state.phase === Phase.TEAM_VOTE && state.anonymousVotes && index === state.currentMissionIndex) {
+                sanitizedMission.votes = {};
+                if (mission.votes[targetPlayerId!]) { // Envie apenas o prórpio voto para UI
+                    sanitizedMission.votes[targetPlayerId!] = mission.votes[targetPlayerId!];
+                }
+            }
 
             if (index === state.currentMissionIndex && state.phase === Phase.MISSION_EXECUTION) {
                 // Durante a votação: oculta o verdeiro valor do voto.
@@ -64,6 +105,11 @@ export function getSanitizedState(state: GameState): GameState {
             } else if (mission.status !== 'PENDING') {
                 // Após a votação: embaralha os votos para que não seja possível saber QUEM votou o quê
                 sanitizedMission.missionOutcomes = shuffle([...mission.missionOutcomes]);
+
+                // Anonimiza os votos finais se aplicável (impedindo leitura do log da aba rede de history passados)
+                if (state.anonymousVotes) {
+                    sanitizedMission.votes = {};
+                }
             }
 
             return sanitizedMission;

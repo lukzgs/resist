@@ -408,8 +408,13 @@ export default class ResistServer implements Party.Server {
 
     private broadcastState = (): void => {
         if (!this.gameState) return;
-        const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState) };
-        this.room.broadcast(JSON.stringify(message));
+
+        // O Broadcast agora itera os clients para enviar cópias seguras do JSON baseadas no id individual
+        for (const conn of this.room.getConnections()) {
+            const playerId = this.connections.get(conn.id);
+            const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState, playerId) };
+            conn.send(JSON.stringify(message));
+        }
 
         // Notifica registry sobre mudanças (playerCount, phase, isPublic)
         const playerCount = this.gameState.players.length;
@@ -524,7 +529,8 @@ export default class ResistServer implements Party.Server {
 
     onConnect(conn: Party.Connection, ctx: Party.ConnectionContext): void {
         if (this.gameState) {
-            const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState) };
+            const playerId = this.connections.get(conn.id);
+            const message: ServerMessage = { type: 'STATE', state: getSanitizedState(this.gameState, playerId) };
             conn.send(JSON.stringify(message));
         }
     }

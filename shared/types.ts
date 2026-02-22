@@ -24,6 +24,7 @@ export interface Player {
     sessionId?: string;      // ID persistente para reconexão
     disconnected?: boolean;  // true se jogador está offline
     isSpectator?: boolean;   // true se é espectador (entrou após jogo começar)
+    hasVoted?: boolean;      // (Apenas UI) Server informa se o jogador já votou/agiu na fase atual
 }
 
 export interface Mission {
