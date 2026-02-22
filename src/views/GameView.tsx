@@ -81,7 +81,8 @@ export default function GameView({ state, playerName, isHost, sendAction }: Prop
                         isInTeam={state.proposedTeam.includes(p.id)}
                         showIdentity={showId || p.name === playerName || (me?.role === Role.TERMINATOR && p.role === Role.TERMINATOR)}
                         vote={state.phase === Phase.TEAM_VOTE && !state.anonymousVotes && revealVotes ? currentMission.votes[p.id] : undefined}
-                        hasVoted={state.phase === Phase.TEAM_VOTE && currentMission.votes[p.id] !== undefined && (!revealVotes || state.anonymousVotes)}
+                        hasVoted={(state.phase === Phase.TEAM_VOTE && currentMission.votes[p.id] !== undefined && (!revealVotes || state.anonymousVotes)) ||
+                          (state.phase === Phase.MISSION_EXECUTION && state.proposedTeam.includes(p.id) && currentMission.missionOutcomes[state.proposedTeam.indexOf(p.id)] !== undefined)}
                         isDisconnected={p.disconnected}
                         isMe={p.name === playerName}
                       />
