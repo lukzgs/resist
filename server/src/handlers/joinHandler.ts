@@ -64,7 +64,8 @@ export function handleJoin(
 
     // Verifica se já está conectado com esta conexão
     if (ctx.connections.has(conn.id)) {
-        const message: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState) };
+        const playerId = ctx.connections.get(conn.id);
+        const message: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState, playerId) };
         conn.send(JSON.stringify(message));
         return;
     }
@@ -134,7 +135,7 @@ export function handleJoin(
     ctx.broadcastState();
 
     // Envia estado explicitamente para o novo jogador
-    const stateMsg: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState) };
+    const stateMsg: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState, newPlayer.id) };
     conn.send(JSON.stringify(stateMsg));
 
     // Notifica entrada
@@ -185,7 +186,7 @@ function handleReconnect(
     }
 
     // Envia estado atual
-    const message: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState) };
+    const message: ServerMessage = { type: 'STATE', state: getSanitizedState(ctx.gameState, existingPlayer.id) };
     conn.send(JSON.stringify(message));
 }
 

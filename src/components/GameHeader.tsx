@@ -1,4 +1,5 @@
 import { Role, Player } from '../types';
+import { GAME_RULES_BY_COUNT } from '../../shared/constants';
 import { useTranslation } from '../i18n';
 
 interface GameHeaderProps {
@@ -32,7 +33,9 @@ export default function GameHeader({ roomCode, players }: GameHeaderProps) {
                 {/* Badge de terminators */}
                 <div className="hidden md:flex items-center gap-2 bg-spy/10 px-3 py-2 rounded-lg border border-spy/30">
                     <span className="text-xs font-mono text-spy uppercase tracking-widest">{t('game.terminators_count')}:</span>
-                    <span className="text-lg font-display font-black text-spy">{players.filter(p => p.role === Role.TERMINATOR).length}</span>
+                    <span className="text-lg font-display font-black text-spy">
+                        {players.length >= 5 && players.length <= 10 ? GAME_RULES_BY_COUNT[players.length].spyCount : 0}
+                    </span>
                 </div>
                 <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
                     <span className="text-xs font-mono text-slate-300 uppercase tracking-widest">{t('game.room')}:</span>
