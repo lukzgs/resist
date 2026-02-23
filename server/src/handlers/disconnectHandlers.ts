@@ -64,10 +64,16 @@ export function startDisconnectWait(
     const now = Date.now();
     const expiresAt = now + DISCONNECT_WAIT_MS;
 
+    // Garante que não vamos salvar uma fase de transição da própria desconexão como sendo a fase do jogo
+    // Se o jogo já estava pausado (ou em votação de quit), a fase verdadeira estava guardada no disconnectInfo anterior.
+    const previousPhase = (ctx.gameState.phase === Phase.PAUSED_DISCONNECT || ctx.gameState.phase === Phase.DISCONNECT_VOTE) && ctx.gameState.disconnectInfo
+        ? ctx.gameState.disconnectInfo.pausedPhase
+        : ctx.gameState.phase;
+
     ctx.gameState.disconnectInfo = {
         disconnectedPlayerId: player.id,
         disconnectedPlayerName: player.name,
-        pausedPhase: ctx.gameState.phase,
+        pausedPhase: previousPhase,
         waitingAttempt: attempt,
         pausedAt: now,
         expiresAt,
