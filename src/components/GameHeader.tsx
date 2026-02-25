@@ -10,6 +10,11 @@ interface GameHeaderProps {
 export default function GameHeader({ roomCode, players }: GameHeaderProps) {
     const { t } = useTranslation();
 
+    const activePlayersCount = players.filter(p => !p.isSpectator).length;
+    const terminatorCount = activePlayersCount >= 5 && activePlayersCount <= 10
+        ? GAME_RULES_BY_COUNT[activePlayersCount].spyCount
+        : 0;
+
     return (
         <header className="px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-xl flex justify-between items-center shrink-0 z-50">
             <div className="flex items-center gap-4">
@@ -34,7 +39,7 @@ export default function GameHeader({ roomCode, players }: GameHeaderProps) {
                 <div className="hidden md:flex items-center gap-2 bg-spy/10 px-3 py-2 rounded-lg border border-spy/30">
                     <span className="text-xs font-mono text-spy uppercase tracking-widest">{t('game.terminators_count')}:</span>
                     <span className="text-lg font-display font-black text-spy">
-                        {players.length >= 5 && players.length <= 10 ? GAME_RULES_BY_COUNT[players.length].spyCount : 0}
+                        {terminatorCount}
                     </span>
                 </div>
                 <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
