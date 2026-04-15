@@ -127,12 +127,14 @@ For growing projects, organization is vital.
 
 ---
 
-## Testing Strategy (The Pyramid)
+## Testing Strategy (Vitest + RTL)
 
-1. **Unit Tests (Base)**: Many, fast, test isolated functions.
-2. **Integration Tests (Middle)**: Test communication between modules (e.g., API hitting the Database).
-3. **E2E Tests (Top)**: Few, simulate real users in the browser.
-- **TDD (Test-Driven Development)**: Write the test before the code. This forces you to think about the interface before the implementation.
+We use **Vitest** alongside **React Testing Library** and adopt a **Bottom-Up** approach for the UI:
+
+1. **Components First (`src/__tests__/components/`)**: Test isolated, small components focusing on their behavior and rendering.
+2. **Views/Screens (`src/__tests__/views/`)**: Test full screens by integrating the previously tested components, simulating actual user flow (like clicking buttons and verifying callbacks).
+3. **Backend Logic (`server/vitest.config.ts`)**: Test pure game mathematically rules and state transitions without WebSocket overhead.
+- **Behavior over Implementation**: Always test what the user sees (texts, buttons, roles) rather than internal React state.
 
 ---
 

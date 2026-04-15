@@ -235,10 +235,10 @@ Chamado quando conexão do jogador fecha.
 // Ações:
 1. Marcar jogador como desconectado
 2. Se jogo ativo e não-espectador:
-   - Pausar jogo
-   - Armazenar pausedPhase
-   - Armazenar estado do timer (se ativo)
-   - Iniciar timeout de reconexão
+   - Inicia grace period (25s)
+   - Se jogador reconectar durante grace period → jogo continua fluido
+   - Se grace period expirar → pausar jogo, iniciar timeout de reconexão
+   - Guard Rail: preserva a pausedPhase original sem armazenar transições de votação nula
 ```
 
 #### handlePlayerReconnect(ctx, playerId)
@@ -249,8 +249,9 @@ Chamado quando jogador reentra.
 1. Limpar timeout de reconexão
 2. Restaurar estado do jogador
 3. Se jogo estava pausado por este jogador:
-   - Resumir para pausedPhase
+   - Resumir de volta à explicitamente pausedPhase
    - Resumir timer (se estava rodando)
+4. Fazer broadcast do mapeamento individualizado do estado (playerId injetado para visualização legal de papéis ocultando dados confidenciais)
 ```
 
 #### handleDisconnectVote(ctx, conn, endGame)
@@ -311,7 +312,7 @@ Chamado quando timer expira.
 | `addLog(state, msg)` | Adicionar entrada de log (máx 100) |
 | `getPlayerByConnection(state, conns, connId)` | Encontrar jogador por conexão |
 | `getActivePlayers(state)` | Não-espectador, não-desconectado |
-| `getSanitizedState(state, playerId)` | Preparar estado para cliente |
+| `getSanitizedState(state, targetPlayerId)` | Higieniza o estado para o receptor web: mascare não-terminadores como UNKNOWN, calcula o \`hasVoted\` e oculta votos anônimos globalmente para inspeções maliciosas. |
 
 ---
 
@@ -356,6 +357,15 @@ npx partykit deploy
 ```
 
 Isso fará o deploy do `src/server.ts` para `https://resist-server.lukzgs.partykit.dev`.
+
+## Planejamento de Observabilidade: Eventos & Slack Logger (Próxima Feature)
+
+Atualmente, eventos sistêmicos utilizam o terminal tradicional. Uma das etapas agendadas é a criação de um **Bus de Eventos (Event Bus)** que enviará alertas essenciais de partida para um canal do ambiente Slack. O sistema será projetado garantindo baixo acoplamento para os processos testáveis.
+
+**Onde se encaixará no Backend:**
+- **Local:** `server/src/utils/logger.ts` encapsulando lógicas de formatação (Mensagem de Fim de Jogo, Sala Expiciando, Erros Inesperados).
+- **Como opera:** Durante os *Handlers* (ex., na ocasião de envio de um broadcast informando a Vitória da Skynet), o nosso Servidor fará uma invocação à classe `SlackLogger`, executando uma requisição HTTP via `.fetch()` para uma "Webhook URL Secreta" disponibilizada nas variáveis de ambiente `.env`.
+- **Modo Silencioso**: Caso o ambiente não possua a URL secreta de webhook na `.env`, o serviço retornará de forma polida e gerará o log falso local no terminal da máquina de forma decorada. A arquitetura deixará de molho o local pronto para escalar seu ambiente sem criar bots que travem ou encham a memória do seu script serverless.
 
 ---
 

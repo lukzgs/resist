@@ -9,6 +9,7 @@
 | Frontend | React 19 + TypeScript + Vite |
 | Styling | TailwindCSS 4 |
 | Backend | PartyKit (serverless WebSocket) |
+| Testing | Vitest + React Testing Library |
 | Deploy | Vercel + PartyKit Cloud |
 
 ## Project Structure
@@ -127,3 +128,4 @@ For detailed documentation, see:
 - [CLIENT.md](./CLIENT.md) - Frontend reference
 - [MESSAGES.md](./MESSAGES.md) - Protocol details
 - [STATE_MACHINE.md](./STATE_MACHINE.md) - Game flow diagrams
+- [TESTING_STATUS.md](./TESTING_STATUS.md) - Current testing coverage

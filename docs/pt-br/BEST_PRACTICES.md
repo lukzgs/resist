@@ -127,12 +127,14 @@ Para projetos que crescem, a organização é vital.
 
 ---
 
-## Estratégia de Testes (A Pirâmide)
+## Estratégia de Testes (Vitest + RTL)
 
-1. **Unit Tests (Base)**: Muitos, rápidos, testam funções isoladas.
-2. **Integration Tests (Meio)**: Testam a comunicação entre módulos (ex: API batendo no Banco).
-3. **E2E Tests (Topo)**: Poucos, simulam o usuário real no navegador.
-- **TDD (Test-Driven Development)**: Escreva o teste antes do código. Isso força você a pensar na interface antes da implementação.
+Nós utilizamos o **Vitest** em conjunto com a **React Testing Library** através de uma abordagem **Bottom-Up**:
+
+1. **Componentes Primeiro (`src/__tests__/components/`)**: Testamos componentes isolados focando em sua renderização e ações passivas.
+2. **Views e Telas (`src/__tests__/views/`)**: Testamos o fluxo da tela inteira, garantindo que a união de múltiplos componentes dispara as funções `onNavigate` ou WebSockets corretas simulando cliques reais.
+3. **Lógica de Backend (`server/vitest.config.ts`)**: Testes isolados para as Handlers e a matemática de votações/vitórias do Skynet sem a lentidão do WebSocket real.
+- **Comportamento antes da Implementação**: Foque em achar elementos pelo texto que o usuário enxergaria na tela, e não por atributos ou `useState` interno da aplicação.
 
 ---
 

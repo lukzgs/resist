@@ -237,7 +237,8 @@ Called when player connection closes.
 2. If game active and non-spectator:
    - Start grace period (25s)
    - If player reconnects within grace period → game continues
-   - If grace period expires → pause game, store pausedPhase, start reconnect timeout
+   - If grace period expires → pause game, start reconnect timeout
+   - Guard Rail: stores original pausedPhase if transiting from another pause
 ```
 
 #### handlePlayerReconnect(ctx, playerId)
@@ -248,8 +249,9 @@ Called when player rejoins.
 1. Clear reconnect timeout
 2. Restore player state
 3. If game was paused for this player:
-   - Resume to pausedPhase
+   - Resume to pausedPhase explicitly
    - Resume timer (if was running)
+4. Broadcast individualized state mapping (playerId injected for role visibility)
 ```
 
 #### handleDisconnectVote(ctx, conn, endGame)
@@ -310,7 +312,7 @@ Called when timer expires.
 | `addLog(state, msg)` | Add log entry (max 100) |
 | `getPlayerByConnection(state, conns, connId)` | Find player by connection |
 | `getActivePlayers(state)` | Non-spectator, non-disconnected |
-| `getSanitizedState(state, playerId)` | Prepare state for client |
+| `getSanitizedState(state, targetPlayerId)` | Scrub state for the receiver: masks non-terminators as UNKNOWN, calculates hasVoted, shields anonymous votes. |
 
 ---
 
@@ -355,6 +357,15 @@ npx partykit deploy
 ```
 
 This will deploy `src/server.ts` to `https://resist-server.lukzgs.partykit.dev`.
+
+## Observability Planning: Events & Slack Logger (Upcoming Feature)
+
+Currently, system events utilize the traditional terminal structure. One of the scheduled steps is the creation of an **Event Bus** that will send essential match alerts to a Slack workspace channel. The system will be designed ensuring loose coupling for testability.
+
+**Where it fits in the Backend:**
+- **Location:** `server/src/utils/logger.ts` encapsulating formatting logic (Game Over Messages, Expiring Rooms, Unexpected Errors).
+- **How it operates:** During *Handlers* (e.g., when sending a broadcast reporting a Skynet Victory), our Server will instantiate the `SlackLogger` class, executing an HTTP request via `.fetch()` to a "Secret Webhook URL" provided in the `.env` environment variables.
+- **Silent Mode**: If the environment lacks the secret webhook URL in `.env`, the service will gracefully return and generate a decorated local console log instead. This architecture leaves the environment ready to scale without creating bots that lock or flood your serverless script memory.
 
 ---
 
