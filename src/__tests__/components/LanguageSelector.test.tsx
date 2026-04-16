@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import LanguageSelector from '../../components/LanguageSelector';
 import { I18nProvider } from '../../i18n';
 
-describe('LanguageSelector Component', () => {
+describe('LanguageSelector', () => {
     const renderWithContext = () => {
         return render(
             <I18nProvider>
@@ -14,7 +14,7 @@ describe('LanguageSelector Component', () => {
         );
     };
 
-    it('renders the language toggle button properly', () => {
+    it('renderiza o botão de alternar idioma corretamente', () => {
         renderWithContext();
         
         // React Testing Library verifica se a interface apresenta o que esperamos ao usuário
@@ -23,7 +23,7 @@ describe('LanguageSelector Component', () => {
         expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
-    it('responds to user clicks without crashing', async () => {
+    it('responde aos cliques do usuário sem quebrar', async () => {
         renderWithContext();
         const user = userEvent.setup();
         const button = screen.getByRole('button');
