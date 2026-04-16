@@ -12,6 +12,9 @@ The core infrastructure utilizing Vitest and React Testing Library is fully setu
 - **`HomeView.test.tsx` (View/Screen Test)**
   - **Location**: `src/__tests__/views/HomeView.test.tsx`
   - **What it does**: Renders the complete interface with the translation provider, searches for the user-facing "CREATE ROOM" button, and verifies that the routing callback function responds correctly.
+- **`SetupView.test.tsx` (View/Screen Test)**
+  - **Location**: `src/__tests__/views/SetupView.test.tsx`
+  - **What it does**: Validates behavior for both 'CREATE' and 'JOIN' modes. Tests positive paths (handling text input, conditional rendering, and routing) and negative paths (enforcing uppercase room codes, restricting special characters from player names).
 
 ---
 

@@ -12,6 +12,9 @@ A infraestrutura base utilizando Vitest e React Testing Library está totalmente
 - **`HomeView.test.tsx` (Teste de View/Tela)**
   - **Local**: `src/__tests__/views/HomeView.test.tsx`
   - **O que faz**: Renderiza a interface com o provedor de tradução habilitado, pesquisa pelo botão de "Criar Sala" baseando-se no comportamento do usuário e verifica se o sistema de rotas foi invocado perfeitamente.
+- **`SetupView.test.tsx` (Teste de View/Tela)**
+  - **Local**: `src/__tests__/views/SetupView.test.tsx`
+  - **O que faz**: Valida os modos da tela ("CREATE" e "JOIN"). Testa caminhos felizes como inputs condicionais e transições, além de cenários negativos como validação forçada de UpperCase e bloqueio de injeção de caracteres especiais em nomes.
 
 ---
 
