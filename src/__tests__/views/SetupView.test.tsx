@@ -154,5 +154,39 @@ describe('SetupView', () => {
       // Ela DEVE obrigatoriamente estar forçando pra AB12!
       expect(defaultProps.onJoin).toHaveBeenCalledWith('AB12');
     });
+
+    it('NÃO deve aceitar nome de jogador maior que 10 caracteres', () => {
+      render(<SetupView {...defaultProps} mode="CREATE" />);
+      const nameInput = screen.getByPlaceholderText('Enter name');
+
+      // Enviamos uma string de 15 caracteres
+      fireEvent.change(nameInput, { target: { value: '1234567890ABCDE' } });
+
+      // O limite é duro na lógica do React, deve passar apenas os 10 primeiros
+      expect(defaultProps.onNameChange).toHaveBeenCalledWith('1234567890');
+      // Garantir que a fraude inteira não passou
+      expect(defaultProps.onNameChange).not.toHaveBeenCalledWith('1234567890ABCDE');
+    });
+
+    it('NÃO deve aceitar nome da sala maior que 30 caracteres', async () => {
+      const user = userEvent.setup();
+      render(<SetupView {...defaultProps} mode="CREATE" />);
+
+      const roomInput = screen.getByPlaceholderText('Enter Room');
+      const createBtn = screen.getByText('Start');
+
+      // String gerada de 35 caracteres exatos: 
+      const superLongRoomName = 'A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R';
+      // Os primeiros 30 caracteres formam: 'A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5'
+      const truncatedRoomName = superLongRoomName.slice(0, 30);
+
+      // Ao invés de digitar uma a uma (porque tem limitadores de delay), fazemos a colagem pesada
+      fireEvent.change(roomInput, { target: { value: superLongRoomName } });
+
+      await user.click(createBtn);
+
+      // Deve iniciar a sala OBRIGATORIAMENTE cortada nos 30 caracteres perfeitos
+      expect(defaultProps.onInit).toHaveBeenCalledWith(truncatedRoomName);
+    });
   });
 });
