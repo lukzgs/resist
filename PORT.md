@@ -7,7 +7,7 @@
 ![Status](https://img.shields.io/badge/STATUS-OPERATIONAL-green?style=for-the-badge)
 
 ## Link
-https://resist.any-pages.com
+https://resist-any.pages.dev/
 
 <!-- pt -->
 
